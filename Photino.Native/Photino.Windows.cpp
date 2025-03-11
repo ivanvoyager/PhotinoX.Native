@@ -72,7 +72,7 @@ void Photino::Register(HINSTANCE hInstance)
 
 	RegisterClassEx(&wcx);
 
-	SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE);
+	SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_UNAWARE_GDISCALED);
 }
 
 Photino::Photino(PhotinoInitParams* initParams)
