@@ -136,6 +136,7 @@ Photino::Photino(PhotinoInitParams* initParams)
 
     _ignoreCertificateErrorsEnabled = initParams->IgnoreCertificateErrorsEnabled;
 	_contextMenuEnabled = true; //not configurable on mac //initParams->ContextMenuEnabled;
+	_zoomEnabled = true; // initParams->ZoomEnabled;
 	// _zoom = initParams->Zoom;
     _grantBrowserPermissions = initParams->GrantBrowserPermissions;
 
@@ -368,6 +369,11 @@ void Photino::GetTransparentEnabled(bool* enabled)
 void Photino::GetContextMenuEnabled(bool* enabled)
 {
     *enabled = _contextMenuEnabled;
+}
+
+void Photino::GetZoomEnabled(bool* enabled)
+{
+    *enabled = _zoomEnabled;
 }
 
 void Photino::GetDevToolsEnabled(bool* enabled)
@@ -606,6 +612,11 @@ void Photino::SetTransparentEnabled(bool enabled)
 void Photino::SetContextMenuEnabled(bool enabled)
 {
     //! Not supported on macOS
+}
+
+void Photino::SetZoomEnabled(bool enabled)
+{
+    //! Not implemented (supported?) on macOS
 }
 
 void Photino::SetIconFile(AutoString filename)

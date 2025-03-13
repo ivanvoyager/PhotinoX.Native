@@ -71,6 +71,11 @@ extern "C"
 		instance->GetContextMenuEnabled(enabled);
 	}
 
+    EXPORTED void Photino_GetZoomEnabled(Photino* instance, bool* enabled)
+	{
+	    instance->GetZoomEnabled(enabled);
+	}
+
 	EXPORTED void Photino_GetDevToolsEnabled(Photino* instance, bool* enabled)
 	{
 		instance->GetDevToolsEnabled(enabled);
@@ -199,6 +204,11 @@ extern "C"
 	EXPORTED void Photino_SetContextMenuEnabled(Photino* instance, bool enabled)
 	{
 		instance->SetContextMenuEnabled(enabled);
+	}
+
+    EXPORTED void Photino_SetZoomEnabled(Photino* instance, bool enabled)
+	{
+	    instance->SetZoomEnabled(enabled);
 	}
 
 	EXPORTED void Photino_SetDevToolsEnabled(Photino* instance, bool enabled)

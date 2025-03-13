@@ -95,6 +95,7 @@ struct PhotinoInitParams
 	bool Chromeless;
 	bool Transparent;
 	bool ContextMenuEnabled;
+	bool ZoomEnabled;
 	bool DevToolsEnabled;
 	bool FullScreen;
 	bool Maximized;
@@ -206,6 +207,7 @@ private:
 
 public:
 	bool _contextMenuEnabled;
+	bool _zoomEnabled;
 
 #ifdef _WIN32
 	static void Register(HINSTANCE hInstance);
@@ -248,6 +250,7 @@ public:
 
 	void GetTransparentEnabled(bool *enabled);
 	void GetContextMenuEnabled(bool *enabled);
+	void GetZoomEnabled(bool *enabled);
 	void GetDevToolsEnabled(bool *enabled);
 	void GetFullScreen(bool *fullScreen);
 	void GetGrantBrowserPermissions(bool *grant);
@@ -277,6 +280,7 @@ public:
 
 	void SetTransparentEnabled(bool enabled);
 	void SetContextMenuEnabled(bool enabled);
+	void SetZoomEnabled(bool enabled);
 	void SetDevToolsEnabled(bool enabled);
 	void SetIconFile(AutoString filename);
 	void SetFullScreen(bool fullScreen);
