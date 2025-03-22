@@ -775,6 +775,21 @@ void Photino::SetFullScreen(bool fullScreen)
 	{
 		style |= WS_POPUP;
 		style &= (~WS_OVERLAPPEDWINDOW);
+
+		HMONITOR monitor = MonitorFromWindow(_hWnd, MONITOR_DEFAULTTONEAREST);
+		MONITORINFO monitorInfo = { sizeof(monitorInfo) };
+
+		if (GetMonitorInfoW(monitor, &monitorInfo)) 
+		{
+			RECT rc = monitorInfo.rcMonitor;
+			SetPosition(rc.left, rc.top);
+			SetSize(rc.right - rc.left, rc.bottom - rc.top);
+		}
+		else
+		{
+			SetPosition(0, 0);
+			SetSize(GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN));
+		}
 	}
 	else
 	{
