@@ -290,8 +290,8 @@ Photino::Photino(PhotinoInitParams* initParams)
 	if (initParams->Maximized)
 		SetMaximized(true);
 
-	if (initParams->Resizable == false)
-		SetResizable(false);
+	//if (initParams->Resizable == false)
+	SetResizable(initParams->Resizable);
 
 	if (initParams->Topmost)
 		SetTopmost(true);

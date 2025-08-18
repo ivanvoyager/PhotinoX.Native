@@ -81,7 +81,7 @@ namespace Photino.NET
                 .SetMinHeight(480)
                 .SetMinWidth(640)
                 //.SetMinSize(320, 240)
-                //.SetResizable(false)
+                //.SetResizable(true)
                 //.SetTopMost(true)
                 //.SetUseOsDefaultLocation(false)
                 //.SetUseOsDefaultSize(false)
@@ -458,7 +458,7 @@ namespace Photino.NET
             }
             else if (string.Compare(message, "showSaveFile", true) == 0)
             {
-                var result = currentWindow.ShowSaveFile();
+                var result = currentWindow.ShowSaveFile("MyTitle", "C:\\", null);
                 if (result != null)
                     currentWindow.ShowMessage("Save File", result);
                 else
@@ -466,7 +466,7 @@ namespace Photino.NET
             }
             else if (string.Compare(message, "showSaveFileAsync", true) == 0)
             {
-                var result = await currentWindow.ShowSaveFileAsync();
+                var result = await currentWindow.ShowSaveFileAsync("MyTitle", "C:\\", null);
                 if (result != null)
                     currentWindow.ShowMessage("Save File Async", result);
                 else
