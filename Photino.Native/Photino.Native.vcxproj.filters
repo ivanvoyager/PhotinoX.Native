@@ -38,8 +38,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="packages.config" />
-    <None Include="Photino.Native.nuspec" />
     <None Include="Photino.Mac.AppDelegate.mm">
       <Filter>Source Files</Filter>
     </None>

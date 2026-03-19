@@ -1,0 +1,143 @@
+name: Build Windows
+
+on:
+  workflow_dispatch: {}
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build-win:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        platform: [ x64, ARM64 ]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+        with:
+          vs-version: '[17.0,18.0)'
+
+      - name: Setup MSVC DevCmd
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: ${{ matrix.platform == 'x64' && 'x64' || 'amd64_arm64' }}
+
+      - name: Print MSVC/CL version
+        shell: cmd
+        run: |
+          where cl
+          cl /Bv  || ver
+
+      - name: NuGet restore
+        run: msbuild .\PhotinoX.Native.slnx -t:Restore -m
+
+      - name: Build (try v145)
+        id: build_v145
+        shell: cmd
+        continue-on-error: true
+        run: >
+          msbuild .\Photino.Native\Photino.Native.vcxproj
+          /p:Configuration=Release
+          /p:Platform=${{ matrix.platform }}
+          /p:PlatformToolset=v145
+          /m
+
+      - name: Build (fallback v143)
+        if: ${{ steps.build_v145.outcome == 'failure' }}
+        shell: cmd
+        run: >
+          msbuild .\Photino.Native\Photino.Native.vcxproj
+          /p:Configuration=Release
+          /p:Platform=${{ matrix.platform }}
+          /p:PlatformToolset=v143
+          /m
+
+      - name: Normalize layout for .nuspec (flatten to x64/ and ARM64/)
+        if: ${{ success() || steps.build_v145.outcome == 'failure' }}
+        shell: pwsh
+        env:
+          MATRIX_PLATFORM: ${{ matrix.platform }}   # x64 or ARM64
+        run: |
+          # Source root where MSBuild placed outputs
+          $src = Join-Path (Get-Location) "Photino.Native\$env:MATRIX_PLATFORM\Release"
+          if (-not (Test-Path $src)) {
+            throw "Source folder not found: $src"
+          }
+
+          # Destination folder expected by .nuspec (flat layout)
+          $dst = Join-Path (Get-Location) "$env:MATRIX_PLATFORM"
+          New-Item -ItemType Directory -Force -Path $dst | Out-Null
+
+          # Copy native DLL
+          $dll = Join-Path $src "PhotinoX.Native.dll"
+          if (-not (Test-Path $dll)) {
+            throw "PhotinoX.Native.dll not found in $src"
+          }
+          Copy-Item -LiteralPath $dll -Destination (Join-Path $dst "PhotinoX.Native.dll") -Force
+
+          # Copy WebView2Loader.dll from nested runtimes path to flat destination
+          $rid = "win-$($env:MATRIX_PLATFORM.ToLower())"  # win-x64 or win-arm64
+          $wv2 = Join-Path $src "runtimes\$rid\native\WebView2Loader.dll"
+          if (Test-Path $wv2) {
+            Copy-Item -LiteralPath $wv2 -Destination (Join-Path $dst "WebView2Loader.dll") -Force
+          } else {
+            Write-Host "WARNING: WebView2Loader.dll not found at $wv2 (ok if this build didn't produce it)."
+          }
+
+          Write-Host "Flattened layout ready in $($dst):";
+          Get-ChildItem -Recurse $dst
+
+      - name: Verify flattened artifacts
+        if: ${{ success() || steps.build_v145.outcome == 'failure' }}
+        shell: pwsh
+        env:
+          MATRIX_PLATFORM: ${{ matrix.platform }}   # x64 or ARM64
+        run: >-
+          $dst = Join-Path (Get-Location) "$env:MATRIX_PLATFORM";
+
+          $dll = Join-Path $dst "PhotinoX.Native.dll";
+          if (-not (Test-Path $dll)) { throw "Missing $dll"; }
+
+          $wv2 = Join-Path $dst "WebView2Loader.dll";
+          if (-not (Test-Path $wv2)) {
+            Write-Host "WARNING: $wv2 not found (ok if this build didn't produce it).";
+          }
+
+          Write-Host "Flattened artifacts OK in $($dst):";
+          Get-ChildItem -Recurse $dst
+
+      - name: Upload per-arch artifact (flattened)
+        if: ${{ success() || steps.build_v145.outcome == 'failure' }}
+        uses: actions/upload-artifact@v6
+        with:
+          name: win-${{ matrix.platform }}
+          path: ${{ matrix.platform }}\*
+
+  pack:
+    runs-on: windows-latest
+    needs: build-win
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Download x64 artifacts
+        uses: actions/download-artifact@v8
+        with:
+          name: win-x64
+          path: x64/Release
+
+      - name: Download ARM64 artifacts
+        uses: actions/download-artifact@v8
+        with:
+          name: win-ARM64
+          path: arm64/Release
+
+      - name: Verify expected layout
+        shell: pwsh
+        run: |
+          Write-Host "x64:";  Get-ChildItem -Recurse .\x64\Release
+          Write-Host "arm64:"; Get-ChildItem -Recurse .\arm64\Release

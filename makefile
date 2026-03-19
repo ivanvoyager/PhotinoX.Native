@@ -12,7 +12,7 @@ DEST_PATH=./lib
 DEST_PATH_X64=$(DEST_PATH)/x64
 DEST_PATH_ARM64=$(DEST_PATH)/arm64
 
-DEST_FILE=Photino.Native
+DEST_FILE=PhotinoX.Native
 
 all:
 	# "make all is unavailable, use [windows|mac|linux](-x64|arm64)."
