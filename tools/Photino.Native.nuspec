@@ -1,0 +1,34 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd">
+  <metadata>
+    <id>PhotinoX.Native</id>
+    <version>$version$</version>
+    <title>PhotinoX Native</title>
+    <authors>ivanvoyager, TryPhotino</authors>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <license type="expression">Apache-2.0</license>
+    <icon>logo.png</icon>
+    <description>Open native OS windows hosting web UI on Windows, macOS, and Linux. 
+This package is a maintained fork of Photino.Native.</description>
+    <projectUrl>https://github.com/ivanvoyager/PhotinoX.Native</projectUrl>
+    <tags>native;webview;webview2;photino;photinox;desktop;cross-platform;fork</tags>
+  </metadata>
+  <files>
+     <!-- Windows x64 -->
+    <file src="win-x64/Photino.Native.dll" target="runtimes/win-x64/native/Photino.Native.dll" />
+    <file src="win-x64/WebView2Loader.dll" target="runtimes/win-x64/native/WebView2Loader.dll" />
+    <!-- Windows ARM64 -->
+    <file src="win-ARM64/Photino.Native.dll" target="runtimes/win-arm64/native/Photino.Native.dll" />
+    <file src="win-ARM64/WebView2Loader.dll" target="runtimes/win-arm64/native/WebView2Loader.dll" />
+    <!-- Linux x64 -->
+    <file src="linux-x64/Photino.Native.so" target="./runtimes/linux-x64/native/Photino.Native.so" />
+    <!-- Linux ARM64 -->
+    <file src="linux-arm64/Photino.Native.so" target="./runtimes/linux-arm64/native/Photino.Native.so" />
+    <!-- macOS x64 -->
+    <file src="osx-x64/Photino.Native.dylib" target="./runtimes/osx-x64/native/Photino.Native.dylib" />
+    <!-- macOS ARM64 -->
+    <file src="osx-arm64/Photino.Native.dylib" target="./runtimes/osx-arm64/native/Photino.Native.dylib" />
+
+    <file src="./../assets/logo.png" target="logo.png" />
+  </files>
+</package>
