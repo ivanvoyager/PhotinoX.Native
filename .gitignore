@@ -342,3 +342,4 @@ healthchecksdb
 .vscode
 .DS_Store
 lib/
+version.h

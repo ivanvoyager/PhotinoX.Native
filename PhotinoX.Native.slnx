@@ -1,0 +1,15 @@
+<Solution>
+  <Configurations>
+    <Platform Name="ARM64" />
+    <Platform Name="x64" />
+  </Configurations>
+  <Folder Name="/Solution Items/">
+    <File Path="makefile" />
+    <File Path="README.md" />
+  </Folder>
+  <Project Path="Photino.Native/Photino.Native.vcxproj" Id="b326b50a-f623-40f1-92f7-1ec6a5a48dac" />
+  <Project Path="Photino.Test/Photino.Test.csproj">
+    <BuildDependency Project="Photino.Native/Photino.Native.vcxproj" />
+    <Platform Solution="*|ARM64" Project="ARM64" />
+  </Project>
+</Solution>
