@@ -6,7 +6,7 @@
     <RootNamespace>PhotinoEdge</RootNamespace>
     <Keyword>Win32Proj</Keyword>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
-    <ProjectName>Photino.Native</ProjectName>
+    <ProjectName>PhotinoX.Native</ProjectName>
     <OutDir>$(ProjectDir)$(Platform)\$(Configuration)\</OutDir>
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
     <RestoreProjectStyle>PackageReference</RestoreProjectStyle>

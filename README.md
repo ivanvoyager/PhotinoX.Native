@@ -6,9 +6,7 @@
 [![License](https://img.shields.io/github/license/ivanvoyager/PhotinoX.Native?label=license)](https://github.com/ivanvoyager/PhotinoX.Native/blob/master/LICENSE)
 [![NuGet Downloads](https://img.shields.io/nuget/dt/PhotinoX.Native.svg)](https://www.nuget.org/packages/PhotinoX.Native)
 
-**PhotinoX.Native** is an independent fork of  
-[`tryphotino/photino.Native`](https://github.com/tryphotino/photino.Native)  
-licensed under **Apache‑2.0**.  
+**PhotinoX.Native** is an independent fork of [`tryphotino/photino.Native`](https://github.com/tryphotino/photino.Native) licensed under **Apache‑2.0**.  
 This project is **not affiliated** with the original Photino organization.
 
 The goal of this fork is to maintain and improve native cross‑platform binaries for:
@@ -76,8 +74,6 @@ msbuild .\Photino.Native\Photino.Native.vcxproj ^
   /p:Platform=ARM64 ^
   /p:PlatformToolset=v143
 ```
-
----
 
 ## Linux
 

@@ -1,11 +1,11 @@
-name: PhotinoX.Native - Unix builds (Linux/macOS)
+name: Build Linux/macOS
 
 on:
   workflow_dispatch: {}
   push:
-    branches: [ master, "feature/*" ]
+    branches: [ master ]
   pull_request:
-    branches: [ master, "feature/*" ]
+    branches: [ master ]
 
 jobs:
   # -------- Linux x64 --------
@@ -28,11 +28,11 @@ jobs:
       - name: Normalize layout for .nuspec (linux-x64/)
         run: |
           mkdir -p linux-x64
-          if [ ! -f ./lib/x64/Photino.Native.so ]; then
-            echo "ERROR: ./lib/x64/Photino.Native.so not found"
+          if [ ! -f ./lib/x64/PhotinoX.Native.so ]; then
+            echo "ERROR: ./lib/x64/PhotinoX.Native.so not found"
             exit 1
           fi
-          cp -f ./lib/x64/Photino.Native.so ./linux-x64/Photino.Native.so
+          cp -f ./lib/x64/PhotinoX.Native.so ./linux-x64/PhotinoX.Native.so
           echo "Flattened linux-x64:"
           find linux-x64 -maxdepth 1 -type f
 
@@ -43,7 +43,7 @@ jobs:
           path: linux-x64/*
 
   # -------- Linux ARM64 --------
-  # NOTE: Requires an ARM64 runner (ubuntu-24.04-arm). If unavailable, comment this job for now.
+  # NOTE: Requires an ARM64 runner (ubuntu-24.04-arm).
   build-linux-arm64:
     runs-on: ubuntu-24.04-arm
     steps:
@@ -63,11 +63,11 @@ jobs:
       - name: Normalize layout for .nuspec (linux-arm64/)
         run: |
           mkdir -p linux-arm64
-          if [ ! -f ./lib/arm64/Photino.Native.so ]; then
-            echo "ERROR: ./lib/arm64/Photino.Native.so not found"
+          if [ ! -f ./lib/arm64/PhotinoX.Native.so ]; then
+            echo "ERROR: ./lib/arm64/PhotinoX.Native.so not found"
             exit 1
           fi
-          cp -f ./lib/arm64/Photino.Native.so ./linux-arm64/Photino.Native.so
+          cp -f ./lib/arm64/PhotinoX.Native.so ./linux-arm64/PhotinoX.Native.so
           echo "Flattened linux-arm64:"
           find linux-arm64 -maxdepth 1 -type f
 
@@ -88,18 +88,18 @@ jobs:
         run: |
           make mac-universal
           ls -la ./lib/x64 || true
-          file ./lib/x64/Photino.Native.dylib || true
+          file ./lib/x64/PhotinoX.Native.dylib || true
 
       - name: Normalize layout for .nuspec (osx-x64/ and osx-arm64/)
         run: |
-          if [ ! -f ./lib/x64/Photino.Native.dylib ]; then
-            echo "ERROR: ./lib/x64/Photino.Native.dylib not found"
+          if [ ! -f ./lib/x64/PhotinoX.Native.dylib ]; then
+            echo "ERROR: ./lib/x64/PhotinoX.Native.dylib not found"
             exit 1
           fi
           mkdir -p osx-x64 osx-arm64
           # The Makefile builds a universal (fat) dylib; we copy it to both folders.
-          cp -f ./lib/x64/Photino.Native.dylib ./osx-x64/Photino.Native.dylib
-          cp -f ./lib/x64/Photino.Native.dylib ./osx-arm64/Photino.Native.dylib
+          cp -f ./lib/x64/PhotinoX.Native.dylib ./osx-x64/PhotinoX.Native.dylib
+          cp -f ./lib/x64/PhotinoX.Native.dylib ./osx-arm64/PhotinoX.Native.dylib
 
           echo "Flattened osx-x64:"
           find osx-x64 -maxdepth 1 -type f
