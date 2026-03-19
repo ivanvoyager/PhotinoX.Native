@@ -1,0 +1,1 @@
+.\nuget.exe pack ".\..\Photino.Native\Photino.Native.nuspec" -Version 4.1.0 -NonInteractive

@@ -1,0 +1,119 @@
+name: PhotinoX.Native - Unix builds (Linux/macOS)
+
+on:
+  workflow_dispatch: {}
+  push:
+    branches: [ master, "feature/*" ]
+  pull_request:
+    branches: [ master, "feature/*" ]
+
+jobs:
+  # -------- Linux x64 --------
+  build-linux-x64:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Linux dependencies (GTK + WebKitGTK 4.1)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential libgtk-3-dev libwebkit2gtk-4.1-dev libnotify-dev
+
+      - name: Build linux-x64
+        run: |
+          make linux-x64
+          ls -la ./lib/x64 || true
+
+      - name: Normalize layout for .nuspec (linux-x64/)
+        run: |
+          mkdir -p linux-x64
+          if [ ! -f ./lib/x64/Photino.Native.so ]; then
+            echo "ERROR: ./lib/x64/Photino.Native.so not found"
+            exit 1
+          fi
+          cp -f ./lib/x64/Photino.Native.so ./linux-x64/Photino.Native.so
+          echo "Flattened linux-x64:"
+          find linux-x64 -maxdepth 1 -type f
+
+      - name: Upload linux-x64 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-x64
+          path: linux-x64/*
+
+  # -------- Linux ARM64 --------
+  # NOTE: Requires an ARM64 runner (ubuntu-24.04-arm). If unavailable, comment this job for now.
+  build-linux-arm64:
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Linux dependencies (GTK + WebKitGTK 4.1)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential libgtk-3-dev libwebkit2gtk-4.1-dev libnotify-dev
+
+      - name: Build linux-arm64
+        run: |
+          make linux-arm64
+          ls -la ./lib/arm64 || true
+
+      - name: Normalize layout for .nuspec (linux-arm64/)
+        run: |
+          mkdir -p linux-arm64
+          if [ ! -f ./lib/arm64/Photino.Native.so ]; then
+            echo "ERROR: ./lib/arm64/Photino.Native.so not found"
+            exit 1
+          fi
+          cp -f ./lib/arm64/Photino.Native.so ./linux-arm64/Photino.Native.so
+          echo "Flattened linux-arm64:"
+          find linux-arm64 -maxdepth 1 -type f
+
+      - name: Upload linux-arm64 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-arm64
+          path: linux-arm64/*
+
+  # -------- macOS (universal: x64+arm64) --------
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build macOS universal dylib
+        run: |
+          make mac-universal
+          ls -la ./lib/x64 || true
+          file ./lib/x64/Photino.Native.dylib || true
+
+      - name: Normalize layout for .nuspec (osx-x64/ and osx-arm64/)
+        run: |
+          if [ ! -f ./lib/x64/Photino.Native.dylib ]; then
+            echo "ERROR: ./lib/x64/Photino.Native.dylib not found"
+            exit 1
+          fi
+          mkdir -p osx-x64 osx-arm64
+          # The Makefile builds a universal (fat) dylib; we copy it to both folders.
+          cp -f ./lib/x64/Photino.Native.dylib ./osx-x64/Photino.Native.dylib
+          cp -f ./lib/x64/Photino.Native.dylib ./osx-arm64/Photino.Native.dylib
+
+          echo "Flattened osx-x64:"
+          find osx-x64 -maxdepth 1 -type f
+          echo "Flattened osx-arm64:"
+          find osx-arm64 -maxdepth 1 -type f
+
+      - name: Upload osx-x64 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: osx-x64
+          path: osx-x64/*
+
+      - name: Upload osx-arm64 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: osx-arm64
+          path: osx-arm64/*
