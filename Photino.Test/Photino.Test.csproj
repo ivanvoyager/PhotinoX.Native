@@ -52,18 +52,18 @@
 
 	<Target Name="Photino_CopyNativeLibs_x64" AfterTargets="Build" Condition="'$(Platform)' == 'x64' Or '$(Platform)' == 'AnyCPU'">
 		<Message Importance="High" Text="Copying native libs for x64/AnyCPU..." />
-		<Copy SourceFiles="$(MSBuildProjectDirectory)\..\Photino.Native\x64\Debug\Photino.Native.dll" DestinationFolder="$(TargetDir)" Condition="$(IsWindows) == 'true'" />
-		<Copy SourceFiles="$(MSBuildProjectDirectory)\..\Photino.Native\x64\Debug\Photino.Native.pdb" DestinationFolder="$(TargetDir)" Condition="$(IsWindows) == 'true'" />
-		<Copy SourceFiles="$(MSBuildProjectDirectory)\..\Photino.Native\x64\Debug\runtimes\win-x64\native\WebView2Loader.dll" DestinationFolder="$(TargetDir)" Condition="$(IsWindows) == 'true'" />
+		<Copy SourceFiles="$(MSBuildProjectDirectory)\..\Photino.Native\x64\$(Configuration)\Photino.Native.dll" DestinationFolder="$(TargetDir)" Condition="$(IsWindows) == 'true'" />
+		<Copy SourceFiles="$(MSBuildProjectDirectory)\..\Photino.Native\x64\$(Configuration)\Photino.Native.pdb" DestinationFolder="$(TargetDir)" Condition="$(IsWindows) == 'true' AND '$(Configuration)' == 'Debug'" />
+		<Copy SourceFiles="$(MSBuildProjectDirectory)\..\Photino.Native\x64\$(Configuration)\runtimes\win-x64\native\WebView2Loader.dll" DestinationFolder="$(TargetDir)" Condition="$(IsWindows) == 'true'" />
 		<Copy SourceFiles="../lib/x64/Photino.Native.dylib" DestinationFolder="$(TargetDir)" Condition="$(IsOSX) == 'true'" />
 		<Copy SourceFiles="../lib/x64/Photino.Native.so" DestinationFolder="$(TargetDir)" Condition="$(IsLinux) == 'true'" />
 	</Target>
 
 	<Target Name="Photino_CopyNativeLibs_ARM64" AfterTargets="Build" Condition="$(Platform) == 'ARM64'">
 		<Message Importance="High" Text="Copying native libs for ARM64..." />
-		<Copy SourceFiles="$(MSBuildProjectDirectory)\..\Photino.Native\ARM64\Debug\Photino.Native.dll" DestinationFolder="$(TargetDir)" Condition="$(IsWindows) == 'true'" />
-		<Copy SourceFiles="$(MSBuildProjectDirectory)\..\Photino.Native\ARM64\Debug\Photino.Native.pdb" DestinationFolder="$(TargetDir)" Condition="$(IsWindows) == 'true'" />
-		<Copy SourceFiles="$(MSBuildProjectDirectory)\..\Photino.Native\ARM64\Debug\runtimes\win-arm64\native\WebView2Loader.dll" DestinationFolder="$(TargetDir)" Condition="$(IsWindows) == 'true'" />
+		<Copy SourceFiles="$(MSBuildProjectDirectory)\..\Photino.Native\ARM64\$(Configuration)\Photino.Native.dll" DestinationFolder="$(TargetDir)" Condition="$(IsWindows) == 'true'" />
+		<Copy SourceFiles="$(MSBuildProjectDirectory)\..\Photino.Native\ARM64\$(Configuration)\Photino.Native.pdb" DestinationFolder="$(TargetDir)" Condition="$(IsWindows) == 'true' AND '$(Configuration)' == 'Debug'" />
+		<Copy SourceFiles="$(MSBuildProjectDirectory)\..\Photino.Native\ARM64\$(Configuration)\runtimes\win-arm64\native\WebView2Loader.dll" DestinationFolder="$(TargetDir)" Condition="$(IsWindows) == 'true'" />
 		<Copy SourceFiles="../lib/ARM64/Photino.Native.dylib" DestinationFolder="$(TargetDir)" Condition="$(IsOSX) == 'true'" />
 		<Copy SourceFiles="../lib/ARM64/Photino.Native.so" DestinationFolder="$(TargetDir)" Condition="$(IsLinux) == 'true'" />
 	</Target>
