@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Install Linux dependencies (GTK + WebKitGTK 4.1)
         run: |
@@ -37,7 +37,7 @@ jobs:
           find linux-x64 -maxdepth 1 -type f
 
       - name: Upload linux-x64 artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: linux-x64
           path: linux-x64/*
@@ -48,7 +48,7 @@ jobs:
     runs-on: ubuntu-24.04-arm
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Install Linux dependencies (GTK + WebKitGTK 4.1)
         run: |
@@ -72,7 +72,7 @@ jobs:
           find linux-arm64 -maxdepth 1 -type f
 
       - name: Upload linux-arm64 artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: linux-arm64
           path: linux-arm64/*
@@ -82,7 +82,7 @@ jobs:
     runs-on: macos-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Build macOS universal dylib
         run: |
@@ -107,13 +107,13 @@ jobs:
           find osx-arm64 -maxdepth 1 -type f
 
       - name: Upload osx-x64 artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: osx-x64
           path: osx-x64/*
 
       - name: Upload osx-arm64 artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: osx-arm64
           path: osx-arm64/*
