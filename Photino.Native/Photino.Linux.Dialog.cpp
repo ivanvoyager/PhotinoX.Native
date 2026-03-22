@@ -54,7 +54,9 @@ AutoString* ShowDialog(DialogType type, AutoString title, AutoString defaultPath
     }
     if (type == SaveFile) {
         gtk_file_chooser_set_do_overwrite_confirmation(GTK_FILE_CHOOSER(dialog), TRUE);
-        gtk_file_chooser_set_current_name(GTK_FILE_CHOOSER(dialog), defaultFileName);
+        if (defaultFileName != NULL) {
+            gtk_file_chooser_set_current_name(GTK_FILE_CHOOSER(dialog), defaultFileName);
+        }
     }
     if (type == OpenFile || type == SaveFile) {
         AddFilters(dialog, filters, filterCount);

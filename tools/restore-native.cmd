@@ -1,3 +1,8 @@
+@rem In Visual Studio Developer PowerShell:
+@rem tools\restore-native.cmd
+@rem or
+@rem cd tools
+@rem  .\restore-native.cmd
 @echo off
 setlocal enabledelayedexpansion
 
@@ -8,8 +13,8 @@ echo ==========================================
 echo.
 
 rem Define possible paths to the SAME project file
-set "PROJ_PATH_A=.\Photino.Native\Photino.Native.vcxproj"
-set "PROJ_PATH_B=.\PhotinoX.Native\Photino.Native\Photino.Native.vcxproj"
+set "PROJ_PATH_A=.\..\Photino.Native\Photino.Native.vcxproj"
+set "PROJ_PATH_B=.\..\PhotinoX.Native\Photino.Native\Photino.Native.vcxproj"
 
 set "BUILD_PARAMS=/t:Restore /p:Configuration=Debug /p:Platform=x64"
 
