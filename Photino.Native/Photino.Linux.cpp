@@ -123,6 +123,7 @@ Photino::Photino(PhotinoInitParams *initParams) : _webview(nullptr)
 
 	_transparentEnabled = initParams->Transparent;
 	_contextMenuEnabled = initParams->ContextMenuEnabled;
+	_zoomEnabled = true; // initParams->ZoomEnabled;
 	_devToolsEnabled = initParams->DevToolsEnabled;
 	_grantBrowserPermissions = initParams->GrantBrowserPermissions;
 	_mediaAutoplayEnabled = initParams->MediaAutoplayEnabled;
@@ -346,6 +347,11 @@ void Photino::GetTransparentEnabled(bool *enabled)
 void Photino::GetContextMenuEnabled(bool *enabled)
 {
 	*enabled = _contextMenuEnabled;
+}
+
+void Photino::GetZoomEnabled(bool *enabled)
+{
+    *enabled = _zoomEnabled;
 }
 
 void Photino::GetDevToolsEnabled(bool *enabled)
@@ -582,6 +588,11 @@ void Photino::SendWebMessage(AutoString message)
 void Photino::SetContextMenuEnabled(bool enabled)
 {
 	_contextMenuEnabled = enabled;
+}
+
+void Photino::SetZoomEnabled(bool enabled)
+{
+    //! Not implemented (supported?) on Linux
 }
 
 void Photino::SetDevToolsEnabled(bool enabled)

@@ -71,6 +71,11 @@ extern "C"
 		instance->GetContextMenuEnabled(enabled);
 	}
 
+    EXPORTED void Photino_GetZoomEnabled(Photino* instance, bool* enabled)
+	{
+	    instance->GetZoomEnabled(enabled);
+	}
+
 	EXPORTED void Photino_GetDevToolsEnabled(Photino* instance, bool* enabled)
 	{
 		instance->GetDevToolsEnabled(enabled);
@@ -201,6 +206,11 @@ extern "C"
 		instance->SetContextMenuEnabled(enabled);
 	}
 
+    EXPORTED void Photino_SetZoomEnabled(Photino* instance, bool enabled)
+	{
+	    instance->SetZoomEnabled(enabled);
+	}
+
 	EXPORTED void Photino_SetDevToolsEnabled(Photino* instance, bool enabled)
 	{
 		instance->SetDevToolsEnabled(enabled);
@@ -285,8 +295,8 @@ extern "C"
 	EXPORTED AutoString* Photino_ShowOpenFolder(Photino* inst, AutoString title, AutoString defaultPath, bool multiSelect, int* resultCount) {
 		return inst->GetDialog()->ShowOpenFolder(title, defaultPath, multiSelect, resultCount);
 	}
-	EXPORTED AutoString Photino_ShowSaveFile(Photino* inst, AutoString title, AutoString defaultPath, AutoString* filters, int filterCount) {
-		return inst->GetDialog()->ShowSaveFile(title, defaultPath, filters, filterCount);
+	EXPORTED AutoString Photino_ShowSaveFile(Photino* inst, AutoString title, AutoString defaultPath, AutoString* filters, int filterCount, AutoString defaultFileName = NULL) {
+		return inst->GetDialog()->ShowSaveFile(title, defaultPath, filters, filterCount, defaultFileName);
 	}
 	EXPORTED DialogResult Photino_ShowMessage(Photino* inst, AutoString title, AutoString text, DialogButtons buttons, DialogIcon icon) {
 		return inst->GetDialog()->ShowMessage(title, text, buttons, icon);
