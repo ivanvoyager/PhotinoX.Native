@@ -9,8 +9,8 @@
     <icon>logo.png</icon>
     <readme>README.md</readme>
     <description>
-Open native OS windows hosting web UI on Windows, macOS, and Linux.
-This package is a maintained fork of Photino.Native.
+Open native OS windows hosting web UI on Windows, macOS, and Linux. 
+Maintained fork of Photino.Native.
     </description>
     <projectUrl>https://github.com/ivanvoyager/PhotinoX.Native</projectUrl>
     <tags>native;webview;webview2;photino;photinox;desktop;cross-platform;fork</tags>

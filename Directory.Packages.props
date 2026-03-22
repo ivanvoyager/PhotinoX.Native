@@ -2,9 +2,8 @@
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
   </PropertyGroup>
-
   <ItemGroup>
-    <PackageVersion Include="Microsoft.Web.WebView2" Version="1.0.2903.40" />
-    <PackageVersion Include="Microsoft.Windows.ImplementationLibrary" Version="1.0.240803.1" />
+    <PackageVersion Include="Microsoft.Web.WebView2" Version="1.0.3856.49" />
+    <PackageVersion Include="Microsoft.Windows.ImplementationLibrary" Version="1.0.260126.7" />
   </ItemGroup>
 </Project>
