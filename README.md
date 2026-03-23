@@ -16,13 +16,17 @@ The goal of this fork is to maintain and improve the native cross‑platform bin
 
 PhotinoX.Native provides a lightweight native window host using the OS’s built‑in WebView stack:
 
-- **Windows:** WebView2
-- **macOS:** WKWebView
-- **Linux:** WebKitGTK 4.1
+- **Windows:** WebView2 Runtime  
+  Required component: **Microsoft.Web.WebView2** (Edge WebView2)  
+  https://learn.microsoft.com/microsoft-edge/webview2/
+- **macOS:** WKWebView (system WebKit)  
+  https://developer.apple.com/documentation/webkit/wkwebview/
+- **Linux:** WebKitGTK 4.1 (runtime + dev packages)  
+  https://webkitgtk.org/
 
 ## Runtime support (RID matrix)
 
-Native binaries included in this package:
+Binaries included in this package:
 
 | OS      | Architecture | RID              | Files                                       |
 |---------|--------------|------------------|---------------------------------------------|
@@ -34,6 +38,15 @@ Native binaries included in this package:
 | macOS   | ARM64        | `osx-arm64`      | `PhotinoX.Native.dylib` (universal)         |
 
 All files follow the standard NuGet `runtimes/<rid>/native/` layout.
+
+## Core (ecosystem)
+
+These repositories provide the managed .NET surface around the native binaries:
+
+- [**PhotinoX**](https://github.com/ivanvoyager/PhotinoX) - .NET wrapper around the native layer.
+- [**PhotinoX.Blazor**](https://github.com/ivanvoyager/PhotinoX.Blazor) - Blazor integration for native desktop apps.
+- [**PhotinoX.Server**](https://github.com/ivanvoyager/PhotinoX.Server) - optional static-file server (avoids CORS/ESM issues).
+- [**PhotinoX.Samples**](https://github.com/ivanvoyager/PhotinoX.Samples) - sample projects showcasing common scenarios.
 
 This package is intended for developers building modern desktop apps with  
 web‑based UI frameworks (Blazor, React, Vue, Angular, etc.) on top of  
@@ -60,7 +73,7 @@ native OS windows with minimal dependencies.
 
 **Native core.** The cross‑platform native layer is `Photino.Native` (C++/Objective‑C++), which wraps the system web view and exposes a minimal interface for higher‑level runtimes.
 
-**Linux dependency update.** In January 2025 upstream switched Linux builds from WebKitGTK 4.0 to 4.1 and shortly released 4.0.22. The public documentation was not updated and still references `libwebkit2gtk-4.0-dev`
+**Linux dependency update.** In January 2025 upstream switched Linux builds from WebKitGTK 4.0 to 4.1 and shortly released 4.0.22. The public documentation was not updated and still references `libwebkit2gtk-4.0-dev`.
 
 **Current state.** Upstream’s last public `Photino.Native` release is dated January 23, 2025 (v4.0.22). PhotinoX continues the idea with maintained native binaries and consistent RID packaging for Windows x64/ARM64, Linux x64/ARM64, and macOS x64/ARM64.
 
@@ -74,6 +87,10 @@ and the included `makefile` (Linux, macOS).
 > **Toolset note:** The project targets **MSVC v145** (Visual Studio 2026).  
 > The examples below show how to build with **v143** for Visual Studio 2022.  
 > CI also uses **v143** for compatibility with hosted runners.
+
+> CI: see  
+> - [`.github/workflows/photinox-native-win.yml`](https://github.com/ivanvoyager/PhotinoX.Native/blob/master/.github/workflows/photinox-native-win.yml) (build + pack + upload `win-x64`/`win-ARM64`)  
+> - [`.github/workflows/build-native-unix.yml`](https://github.com/ivanvoyager/PhotinoX.Native/blob/master/.github/workflows/build-native-unix.yml) (build + pack + upload `linux-x64`/`linux-arm64` and `osx-x64`/`osx-arm64`)
 
 ## Windows
 
