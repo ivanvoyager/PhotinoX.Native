@@ -11,7 +11,7 @@ namespace Photino.NET
         private static readonly bool _logEvents = true;
         private static int _windowNumber = 1;
 
-        private static PhotinoWindow mainWindow;
+        private static PhotinoWindow? mainWindow;
 
         [STAThread]
         static void Main(string[] args)
@@ -226,10 +226,10 @@ namespace Photino.NET
 
 
         //These are the event handlers I'm hooking up
-        private static Stream AppCustomSchemeUsed(object sender, string scheme, string url, out string contentType)
+        private static Stream AppCustomSchemeUsed(object? sender, string scheme, string url, out string contentType)
         {
             Log(sender, $"Custom scheme '{scheme}' was used.");
-            var currentWindow = sender as PhotinoWindow;
+            var currentWindow = (sender as PhotinoWindow)!;
 
             contentType = "text/javascript";
 
@@ -262,11 +262,11 @@ namespace Photino.NET
             return new MemoryStream(Encoding.UTF8.GetBytes(js));
         }
 
-        private static async void MessageReceivedFromWindow(object sender, string message)
+        private static async void MessageReceivedFromWindow(object? sender, string message)
         {
             Log(sender, $"MessageReceivedFromWindow Callback Fired.");
 
-            var currentWindow = sender as PhotinoWindow;
+            var currentWindow = (sender as PhotinoWindow)!;
             if (string.Compare(message, "child-window", true) == 0)
             {
                 var iconFile = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
@@ -414,13 +414,13 @@ namespace Photino.NET
             }
             else if (string.Compare(message, "showOpenFile", true) == 0)
             {
-                var results = currentWindow.ShowOpenFile(filters: new[]{
-                    ("All files", new [] {"*.*"}),
-                    ("Text files", new [] {"*.txt"}),
-                    ("Image files", new [] {"*.png", "*.jpg", "*.jpeg"}),
-                    ("PDF files", new [] {"*.pdf"}),
-                    ("CSharp files", new [] { "*.cs" })
-                });
+                var results = currentWindow.ShowOpenFile(filters: [
+                    ("All files", ["*.*"]),
+                    ("Text files", ["*.txt"]),
+                    ("Image files", ["*.png", "*.jpg", "*.jpeg"]),
+                    ("PDF files", ["*.pdf"]),
+                    ("CSharp files", ["*.cs"])
+                ]);
                 if (results.Length > 0)
                     currentWindow.ShowMessage("Open File", string.Join(Environment.NewLine, results));
                 else
@@ -428,13 +428,13 @@ namespace Photino.NET
             }
             else if (string.Compare(message, "showOpenFileAsync", true) == 0)
             {
-                var results = await currentWindow.ShowOpenFileAsync(filters: new[]{
+                var results = await currentWindow.ShowOpenFileAsync(filters: [
                     ("All files", new [] {"*.*"}),
-                    ("Text files", new [] {"*.txt"}),
-                    ("Image files", new [] {"*.png", "*.jpg", "*.jpeg"}),
-                    ("PDF files", new [] {"*.pdf"}),
-                    ("CSharp files", new [] { "*.cs" })
-                });
+                    ("Text files", ["*.txt"]),
+                    ("Image files", ["*.png", "*.jpg", "*.jpeg"]),
+                    ("PDF files", ["*.pdf"]),
+                    ("CSharp files", ["*.cs"])
+                ]);
                 if (results.Length > 0)
                     currentWindow.ShowMessage("Open File Async", string.Join(Environment.NewLine, results));
                 else
@@ -480,53 +480,53 @@ namespace Photino.NET
                 throw new Exception($"Unknown message '{message}'");
         }
 
-        private static void WindowCreating(object sender, EventArgs e)
+        private static void WindowCreating(object? sender, EventArgs e)
         {
             Log(sender, "WindowCreating Callback Fired.");
         }
 
-        private static void WindowCreated(object sender, EventArgs e)
+        private static void WindowCreated(object? sender, EventArgs e)
         {
             Log(sender, "WindowCreated Callback Fired.");
         }
 
-        private static void WindowLocationChanged(object sender, Point location)
+        private static void WindowLocationChanged(object? sender, Point location)
         {
             Log(sender, $"WindowLocationChanged Callback Fired.  Left: {location.X}  Top: {location.Y}");
         }
 
-        private static void WindowSizeChanged(object sender, Size size)
+        private static void WindowSizeChanged(object? sender, Size size)
         {
             Log(sender, $"WindowSizeChanged Callback Fired.  Height: {size.Height}  Width: {size.Width}");
         }
 
-        private static void WindowMaximized(object sender, EventArgs e)
+        private static void WindowMaximized(object? sender, EventArgs e)
         {
             Log(sender, $"{nameof(WindowMaximized)} Callback Fired.");
         }
 
-        private static void WindowRestored(object sender, EventArgs e)
+        private static void WindowRestored(object? sender, EventArgs e)
         {
             Log(sender, $"{nameof(WindowRestored)} Callback Fired.");
         }
 
-        private static void WindowMinimized(object sender, EventArgs e)
+        private static void WindowMinimized(object? sender, EventArgs e)
         {
             Log(sender, $"{nameof(WindowMinimized)} Callback Fired.");
         }
 
-        private static bool WindowIsClosing(object sender, EventArgs e)
+        private static bool WindowIsClosing(object? sender, EventArgs e)
         {
             Log(sender, "WindowIsClosing Callback Fired.");
             return false;   //return true to block closing of the window
         }
 
-        private static void WindowFocusIn(object sender, EventArgs e)
+        private static void WindowFocusIn(object? sender, EventArgs e)
         {
             Log(sender, "WindowFocusIn Callback Fired.");
         }
 
-        private static void WindowFocusOut(object sender, EventArgs e)
+        private static void WindowFocusOut(object? sender, EventArgs e)
         {
             Log(sender, "WindowFocusOut Callback Fired.");
         }
@@ -558,7 +558,7 @@ namespace Photino.NET
             return sb.ToString();
         }
 
-        private static void Log(object sender, string message)
+        private static void Log(object? sender, string message)
         {
             if (!_logEvents) return;
             var currentWindow = sender as PhotinoWindow;
