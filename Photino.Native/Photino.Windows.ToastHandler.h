@@ -6,35 +6,39 @@
 
 using namespace WinToastLib;
 
-class WinToastHandler : public IWinToastHandler
+class WinToastHandler final : public IWinToastHandler
 {
 private:
-    Photino* _window;
+    Photino* window_;
 
 public:
-    WinToastHandler(Photino* window)
+    explicit WinToastHandler(Photino* window) : window_(window)
     {
-        this->_window = window;
     }
 
-    void toastActivated() const
+    void toastActivated() const override
     {
-        ShowWindow(this->_window->getHwnd(), SW_SHOW);    // Make the window visible if it was hidden
-        ShowWindow(this->_window->getHwnd(), SW_RESTORE); // Next, restore it if it was minimized
-        SetForegroundWindow(this->_window->getHwnd());    // Finally, activate the window
+        ShowWindow(this->window_->getHwnd(), SW_SHOW);    // Make the window visible if it was hidden
+        ShowWindow(this->window_->getHwnd(), SW_RESTORE); // Next, restore it if it was minimized
+        SetForegroundWindow(this->window_->getHwnd());    // Finally, activate the window
     }
 
-    void toastActivated(int actionIndex) const
-    {
-        //
-    }
-
-    void toastDismissed(WinToastDismissalReason state) const
+    void toastActivated(int actionIndex) const override
     {
         //
     }
 
-    void toastFailed() const
+    void toastActivated(std::wstring response) const override
+    {
+        //
+    }
+
+    void toastDismissed(WinToastDismissalReason state) const override
+    {
+        //
+    }
+
+    void toastFailed() const override
     {
         //
     }

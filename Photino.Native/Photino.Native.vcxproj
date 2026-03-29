@@ -286,7 +286,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Dependencies\wintoastlib.h" />
-    <ClInclude Include="json.hpp" />
+    <ClInclude Include="Dependencies\json.hpp" />
     <ClInclude Include="Photino.h" />
     <ClInclude Include="Photino.Mac.AppDelegate.h" />
     <ClInclude Include="Photino.Mac.NavigationDelegate.h" />

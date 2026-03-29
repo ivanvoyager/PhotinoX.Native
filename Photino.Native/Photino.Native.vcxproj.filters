@@ -91,7 +91,7 @@
     <ClInclude Include="Photino.Dialog.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="json.hpp">
+    <ClInclude Include="Dependencies\json.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Photino.Mac.NavigationDelegate.h">

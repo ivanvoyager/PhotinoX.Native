@@ -1,3 +1,4 @@
+//#define __APPLE__ 1
 #ifdef __APPLE__
 #include "Photino.h"
 #include "Photino.Dialog.h"
@@ -9,7 +10,7 @@
 #include "Photino.Mac.NavigationDelegate.h"
 #include <vector>
 
-#include "json.hpp"
+#include "Dependencies/json.hpp"
 
 using json = nlohmann::json;
 
@@ -136,21 +137,20 @@ Photino::Photino(PhotinoInitParams* initParams)
 
     _ignoreCertificateErrorsEnabled = initParams->IgnoreCertificateErrorsEnabled;
 	_contextMenuEnabled = true; //not configurable on mac //initParams->ContextMenuEnabled;
-	_zoomEnabled = true; // initParams->ZoomEnabled;
-	// _zoom = initParams->Zoom;
+	_zoomEnabled = initParams->ZoomEnabled;
     _grantBrowserPermissions = initParams->GrantBrowserPermissions;
 
 	//these handlers are ALWAYS hooked up
-	_webMessageReceivedCallback = (WebMessageReceivedCallback)initParams->WebMessageReceivedHandler;
-	_resizedCallback = (ResizedCallback)initParams->ResizedHandler;
-	_movedCallback = (MovedCallback)initParams->MovedHandler;
-	_closingCallback = (ClosingCallback)initParams->ClosingHandler;
-    _focusInCallback = (FocusInCallback)initParams->FocusInHandler;
-	_focusOutCallback = (FocusOutCallback)initParams->FocusOutHandler;
-    _maximizedCallback = (MaximizedCallback)initParams->MaximizedHandler;
-	_minimizedCallback = (MinimizedCallback)initParams->MinimizedHandler;
-	_restoredCallback = (RestoredCallback)initParams->RestoredHandler;
-	_customSchemeCallback = (WebResourceRequestedCallback)initParams->CustomSchemeHandler;
+	_webMessageReceivedCallback = reinterpret_cast<WebMessageReceivedCallback>(initParams->WebMessageReceivedHandler);
+	_resizedCallback = reinterpret_cast<ResizedCallback>(initParams->ResizedHandler);
+	_movedCallback = reinterpret_cast<MovedCallback>(initParams->MovedHandler);
+	_closingCallback = reinterpret_cast<ClosingCallback>(initParams->ClosingHandler);
+    _focusInCallback = reinterpret_cast<FocusInCallback>(initParams->FocusInHandler);
+	_focusOutCallback = reinterpret_cast<FocusOutCallback>(initParams->FocusOutHandler);
+    _maximizedCallback = reinterpret_cast<MaximizedCallback>(initParams->MaximizedHandler);
+	_minimizedCallback = reinterpret_cast<MinimizedCallback>(initParams->MinimizedHandler);
+	_restoredCallback = reinterpret_cast<RestoredCallback>(initParams->RestoredHandler);
+	_customSchemeCallback = reinterpret_cast<WebResourceRequestedCallback>(initParams->CustomSchemeHandler);
     
 
 	//copy strings from the fixed size array passed, but only if they have a value.

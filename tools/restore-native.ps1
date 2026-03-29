@@ -1,5 +1,6 @@
 # In Visual Studio Developer PowerShell:
 # tools\restore-native.ps1
+# PhotinoX.Native\tools\restore-native.ps1
 # or
 # cd tools
 #  .\restore-native.ps1
