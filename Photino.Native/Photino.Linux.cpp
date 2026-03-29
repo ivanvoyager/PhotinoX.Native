@@ -1,3 +1,4 @@
+//#define __linux__ 1
 #ifdef __linux__
 #include "Photino.h"
 #include "Photino.Dialog.h"
@@ -10,7 +11,7 @@
 #include <iomanip>
 #include <libnotify/notify.h>
 #include <dlfcn.h>	//for dynamically calling functions from shared libraries
-#include "json.hpp"
+#include "Dependencies/json.hpp"
 using json = nlohmann::json;
 
 /* --- PRINTF_BINARY_FORMAT macro's --- */
@@ -123,7 +124,7 @@ Photino::Photino(PhotinoInitParams *initParams) : _webview(nullptr)
 
 	_transparentEnabled = initParams->Transparent;
 	_contextMenuEnabled = initParams->ContextMenuEnabled;
-	_zoomEnabled = true; // initParams->ZoomEnabled;
+	_zoomEnabled = initParams->ZoomEnabled;
 	_devToolsEnabled = initParams->DevToolsEnabled;
 	_grantBrowserPermissions = initParams->GrantBrowserPermissions;
 	_mediaAutoplayEnabled = initParams->MediaAutoplayEnabled;
@@ -142,16 +143,16 @@ Photino::Photino(PhotinoInitParams *initParams) : _webview(nullptr)
 	_maxHeight = initParams->MaxHeight;
 
 	// these handlers are ALWAYS hooked up
-	_webMessageReceivedCallback = (WebMessageReceivedCallback)initParams->WebMessageReceivedHandler;
-	_resizedCallback = (ResizedCallback)initParams->ResizedHandler;
-	_movedCallback = (MovedCallback)initParams->MovedHandler;
-	_closingCallback = (ClosingCallback)initParams->ClosingHandler;
-	_focusInCallback = (FocusInCallback)initParams->FocusInHandler;
-	_focusOutCallback = (FocusOutCallback)initParams->FocusOutHandler;
-	_maximizedCallback = (MaximizedCallback)initParams->MaximizedHandler;
-	_minimizedCallback = (MinimizedCallback)initParams->MinimizedHandler;
-	_restoredCallback = (RestoredCallback)initParams->RestoredHandler;
-	_customSchemeCallback = (WebResourceRequestedCallback)initParams->CustomSchemeHandler;
+	_webMessageReceivedCallback = reinterpret_cast<WebMessageReceivedCallback>(initParams->WebMessageReceivedHandler);
+	_resizedCallback = reinterpret_cast<ResizedCallback>(initParams->ResizedHandler);
+	_movedCallback = reinterpret_cast<MovedCallback>(initParams->MovedHandler);
+	_closingCallback = reinterpret_cast<ClosingCallback>(initParams->ClosingHandler);
+	_focusInCallback = reinterpret_cast<FocusInCallback>(initParams->FocusInHandler);
+	_focusOutCallback = reinterpret_cast<FocusOutCallback>(initParams->FocusOutHandler);
+	_maximizedCallback = reinterpret_cast<MaximizedCallback>(initParams->MaximizedHandler);
+	_minimizedCallback = reinterpret_cast<MinimizedCallback>(initParams->MinimizedHandler);
+	_restoredCallback = reinterpret_cast<RestoredCallback>(initParams->RestoredHandler);
+	_customSchemeCallback = reinterpret_cast<WebResourceRequestedCallback>(initParams->CustomSchemeHandler);
 
 	// copy strings from the fixed size array passed, but only if they have a value.
 	for (int i = 0; i < 16; ++i)
@@ -1062,7 +1063,7 @@ gboolean on_permission_request(WebKitWebView *web_view, WebKitPermissionRequest 
 
 void HandleCustomSchemeRequest(WebKitURISchemeRequest *request, gpointer user_data)
 {
-	WebResourceRequestedCallback webResourceRequestedCallback = (WebResourceRequestedCallback)user_data;
+	WebResourceRequestedCallback webResourceRequestedCallback = reinterpret_cast<WebResourceRequestedCallback>(user_data);
 
 	const gchar *uri = webkit_uri_scheme_request_get_uri(request);
 	int numBytes;

@@ -1,17 +1,18 @@
-﻿using System;
+﻿using System.ComponentModel;
 using System.Drawing;
-using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
+using Photino.NET;
+using Photino.NET.Utils;
 
-namespace Photino.NET
+namespace Photino.Test
 {
     class Program
     {
-        private static readonly bool _logEvents = true;
-        private static int _windowNumber = 1;
+        private static readonly bool s_logEvents = true;
+        private static int s_windowNumber = 1;
 
-        private static PhotinoWindow? mainWindow;
+        private static PhotinoWindow? s_mainWindow;
 
         [STAThread]
         static void Main(string[] args)
@@ -30,7 +31,7 @@ namespace Photino.NET
 
         private static void FluentStyle()
         {
-            var iconFile = PhotinoWindow.IsWindowsPlatform
+            var iconFile = Platform.IsWindows
                 ? "wwwroot/photino-logo.ico"
                 : "wwwroot/photino-logo.png";
 
@@ -61,17 +62,17 @@ namespace Photino.NET
             //    });
             //}
 
-            mainWindow = new PhotinoWindow()
+            s_mainWindow = new PhotinoWindow()
                 //.Load(new Uri("https://google.com"))
                 //.Load("https://duckduckgo.com/?t=ffab&q=user+agent+&ia=answer")
                 //.Load("https://localhost:8080/")
                 .Load("wwwroot/main.html")
                 //.Load("wwwroot/index.html")
-                //.LoadRawString("<h1>Hello Photino!</h1>")
+                //.LoadRawString("<h1>Hello PhotinoX!</h1>")
 
                 //Window settings
                 //.SetIconFile(iconFile)
-                //.SetTitle($"My Photino Window {_windowNumber++}")
+                //.SetTitle($"My PhotinoX Window {_windowNumber++}")
                 //.SetChromeless(true)
                 //.SetTransparent(true)
                 //.SetFullScreen(true)
@@ -107,7 +108,7 @@ namespace Photino.NET
 
                 //Browser startup flags
                 //.SetBrowserControlInitParameters("--ignore-certificate-errors ")
-                .SetUserAgent("Custom Photino User Agent")
+                .SetUserAgent("Custom PhotinoX User Agent")
                 //.SetMediaAutoplayEnabled(true)
                 //.SetFileSystemAccessEnabled(true)
                 //.SetWebSecurityEnabled(true)
@@ -124,13 +125,13 @@ namespace Photino.NET
                 .RegisterLocationChangedHandler(WindowLocationChanged)
                 .RegisterSizeChangedHandler(WindowSizeChanged)
                 .RegisterWebMessageReceivedHandler(MessageReceivedFromWindow)
-                .RegisterWindowClosingHandler(WindowIsClosing)
+                .RegisterWindowClosingHandler(WindowClosing)
                 .RegisterFocusInHandler(WindowFocusIn)
                 .RegisterFocusOutHandler(WindowFocusOut)
 
-                .SetLogVerbosity(_logEvents ? 2 : 0);
+                .SetLogVerbosity(s_logEvents ? 2 : 0);
 
-            mainWindow.WaitForClose();
+            s_mainWindow.WaitForClose();
 
             Console.WriteLine("Done Blocking!");
         }
@@ -147,16 +148,16 @@ namespace Photino.NET
                     ? "{ 'set_enable_encrypted_media': true }"          //Linux example for Webkit2Gtk
                     : "{ 'setLegacyEncryptedMediaAPIEnabled': true }";  //Mac example for Webkit on Cocoa
 
-            mainWindow = new PhotinoWindow
+            s_mainWindow = new PhotinoWindow
             {
                 //StartUrl = "https://google.com",
                 //StartUrl = "https://duckduckgo.com/?t=ffab&q=user+agent+&ia=answer",
                 StartUrl = "wwwroot/main.html",
-                //StartString = "<h1>Hello Photino!</h1>",
+                //StartString = "<h1>Hello PhotinoX!</h1>",
 
                 //Window settings
                 IconFile = iconFile,
-                Title = $"My Photino Window {_windowNumber++}",
+                Title = $"My PhotinoX Window {s_windowNumber++}",
                 //Chromeless = true,
                 //Transparent = true,
                 //FullScreen = true,
@@ -190,7 +191,7 @@ namespace Photino.NET
 
                 //Browser startup flags
                 BrowserControlInitParameters = browserInit,
-                UserAgent = "Custom Photino User Agent",
+                UserAgent = "Custom PhotinoX User Agent",
                 MediaAutoplayEnabled = true,
                 FileSystemAccessEnabled = true,
                 WebSecurityEnabled = true,
@@ -200,25 +201,25 @@ namespace Photino.NET
                 //TemporaryFilesPath = @"C:\Temp",
                 //IgnoreCertificateErrorsEnabled = false,
 
-                WindowCreatingHandler = WindowCreating,
-                WindowCreatedHandler = WindowCreated,
-                WindowLocationChangedHandler = WindowLocationChanged,
-                WindowSizeChangedHandler = WindowSizeChanged,
-                WindowMaximizedHandler = WindowMaximized,
-                WindowRestoredHandler = WindowRestored,
-                WindowMinimizedHandler = WindowMinimized,
-                WebMessageReceivedHandler = MessageReceivedFromWindow,
-                WindowClosingHandler = WindowIsClosing,
-                WindowFocusInHandler = WindowFocusIn,
-                WindowFocusOutHandler = WindowFocusOut,
-
-                LogVerbosity = _logEvents ? 2 : 0,
+                LogVerbosity = s_logEvents ? 2 : 0,
             };
 
-            //Can this be done with a property? 
-            mainWindow.RegisterCustomSchemeHandler("app", AppCustomSchemeUsed);
+            s_mainWindow.WindowCreating += WindowCreating;
+            s_mainWindow.WindowCreated += WindowCreated;
+            s_mainWindow.WindowLocationChanged += WindowLocationChanged;
+            s_mainWindow.WindowSizeChanged += WindowSizeChanged;
+            s_mainWindow.WindowMaximized += WindowMaximized;
+            s_mainWindow.WindowRestored += WindowRestored;
+            s_mainWindow.WindowMinimized += WindowMinimized;
+            s_mainWindow.WebMessageReceived += MessageReceivedFromWindow;
+            s_mainWindow.WindowClosing += WindowClosing;
+            s_mainWindow.WindowFocusIn += WindowFocusIn;
+            s_mainWindow.WindowFocusOut += WindowFocusOut;
 
-            mainWindow.WaitForClose();
+            //Can this be done with a property? 
+            s_mainWindow.RegisterCustomSchemeHandler("app", AppCustomSchemeUsed);
+
+            s_mainWindow.WaitForClose();
 
             Console.WriteLine("Done Blocking!");
         }
@@ -274,7 +275,7 @@ namespace Photino.NET
                     : "wwwroot/photino-logo.png";
 
                 var x = new PhotinoWindow(currentWindow)
-                    .SetTitle($"Child Window {_windowNumber++}")
+                    .SetTitle($"Child Window {s_windowNumber++}")
                     //.SetIconFile(iconFile)
                     .Load("wwwroot/main.html")
 
@@ -289,12 +290,12 @@ namespace Photino.NET
                     .RegisterLocationChangedHandler(WindowLocationChanged)
                     .RegisterSizeChangedHandler(WindowSizeChanged)
                     .RegisterWebMessageReceivedHandler(MessageReceivedFromWindow)
-                    .RegisterWindowClosingHandler(WindowIsClosing)
+                    .RegisterWindowClosingHandler(WindowClosing)
 
                     .RegisterCustomSchemeHandler("app", AppCustomSchemeUsed)
 
                     .SetTemporaryFilesPath(currentWindow.TemporaryFilesPath)
-                    .SetLogVerbosity(_logEvents ? 2 : 0);
+                    .SetLogVerbosity(s_logEvents ? 2 : 0);
 
                 x.WaitForClose();
 
@@ -429,7 +430,7 @@ namespace Photino.NET
             else if (string.Compare(message, "showOpenFileAsync", true) == 0)
             {
                 var results = await currentWindow.ShowOpenFileAsync(filters: [
-                    ("All files", new [] {"*.*"}),
+                    ("All files", ["*.*"]),
                     ("Text files", ["*.txt"]),
                     ("Image files", ["*.png", "*.jpg", "*.jpeg"]),
                     ("PDF files", ["*.pdf"]),
@@ -515,10 +516,9 @@ namespace Photino.NET
             Log(sender, $"{nameof(WindowMinimized)} Callback Fired.");
         }
 
-        private static bool WindowIsClosing(object? sender, EventArgs e)
+        private static void WindowClosing(object? sender, CancelEventArgs e)
         {
-            Log(sender, "WindowIsClosing Callback Fired.");
-            return false;   //return true to block closing of the window
+            Log(sender, "WindowClosing Callback Fired.");
         }
 
         private static void WindowFocusIn(object? sender, EventArgs e)
@@ -560,10 +560,9 @@ namespace Photino.NET
 
         private static void Log(object? sender, string message)
         {
-            if (!_logEvents) return;
-            var currentWindow = sender as PhotinoWindow;
-            var windowTitle = currentWindow == null ? string.Empty : currentWindow.Title;
-            Console.WriteLine($"-Client App: \"{windowTitle ?? "title?"}\" {message}");
+            if (!s_logEvents) return;
+            var windowTitle = sender is PhotinoWindow currentWindow ? currentWindow.Title : string.Empty;
+            Console.WriteLine($"-Client App: \"{windowTitle}\" {message}");
         }
     }
 }
