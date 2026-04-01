@@ -1,3 +1,4 @@
+//#define __linux__ 1
 #ifdef __linux__
 #include "Photino.h"
 #include "Photino.Dialog.h"
@@ -10,8 +11,10 @@
 #include <iomanip>
 #include <libnotify/notify.h>
 #include <dlfcn.h>	//for dynamically calling functions from shared libraries
-#include "json.hpp"
+#include "Dependencies/json.hpp"
 using json = nlohmann::json;
+
+using namespace PhotinoX::Native;
 
 /* --- PRINTF_BINARY_FORMAT macro's --- */
 // #define FMT_BUF_SIZE (CHAR_BIT*sizeof(uintmax_t)+1)
@@ -30,7 +33,7 @@ std::mutex invokeLockMutex;
 
 struct InvokeWaitInfo
 {
-	ACTION callback;
+    InvokeCallback callback;
 	std::condition_variable completionNotifier;
 	bool isCompleted;
 };
@@ -44,6 +47,7 @@ struct InvokeJSWaitInfo
 gboolean on_configure_event(GtkWidget *widget, GdkEvent *event, gpointer self);
 gboolean on_window_state_event(GtkWidget *widget, GdkEventWindowState *event, gpointer self);
 gboolean on_widget_deleted(GtkWidget *widget, GdkEvent *event, gpointer self);
+void on_widget_destroyed(GtkWidget* widget, gpointer self);
 gboolean on_focus_in_event(GtkWidget *widget, GdkEvent *event, gpointer self);
 gboolean on_focus_out_event(GtkWidget *widget, GdkEvent *event, gpointer self);
 gboolean on_webview_context_menu(WebKitWebView *web_view,
@@ -123,7 +127,7 @@ Photino::Photino(PhotinoInitParams *initParams) : _webview(nullptr)
 
 	_transparentEnabled = initParams->Transparent;
 	_contextMenuEnabled = initParams->ContextMenuEnabled;
-	_zoomEnabled = true; // initParams->ZoomEnabled;
+	_zoomEnabled = initParams->ZoomEnabled;
 	_devToolsEnabled = initParams->DevToolsEnabled;
 	_grantBrowserPermissions = initParams->GrantBrowserPermissions;
 	_mediaAutoplayEnabled = initParams->MediaAutoplayEnabled;
@@ -142,16 +146,17 @@ Photino::Photino(PhotinoInitParams *initParams) : _webview(nullptr)
 	_maxHeight = initParams->MaxHeight;
 
 	// these handlers are ALWAYS hooked up
-	_webMessageReceivedCallback = (WebMessageReceivedCallback)initParams->WebMessageReceivedHandler;
-	_resizedCallback = (ResizedCallback)initParams->ResizedHandler;
-	_movedCallback = (MovedCallback)initParams->MovedHandler;
-	_closingCallback = (ClosingCallback)initParams->ClosingHandler;
-	_focusInCallback = (FocusInCallback)initParams->FocusInHandler;
-	_focusOutCallback = (FocusOutCallback)initParams->FocusOutHandler;
-	_maximizedCallback = (MaximizedCallback)initParams->MaximizedHandler;
-	_minimizedCallback = (MinimizedCallback)initParams->MinimizedHandler;
-	_restoredCallback = (RestoredCallback)initParams->RestoredHandler;
-	_customSchemeCallback = (WebResourceRequestedCallback)initParams->CustomSchemeHandler;
+	_webMessageReceivedCallback = reinterpret_cast<WebMessageReceivedCallback>(initParams->WebMessageReceivedHandler);
+	_resizedCallback = reinterpret_cast<ResizedCallback>(initParams->ResizedHandler);
+	_movedCallback = reinterpret_cast<MovedCallback>(initParams->MovedHandler);
+	_closingCallback = reinterpret_cast<ClosingCallback>(initParams->ClosingHandler);
+    _closedCallback = reinterpret_cast<ClosedCallback>(initParams->ClosedHandler);
+	_focusInCallback = reinterpret_cast<FocusInCallback>(initParams->FocusInHandler);
+	_focusOutCallback = reinterpret_cast<FocusOutCallback>(initParams->FocusOutHandler);
+	_maximizedCallback = reinterpret_cast<MaximizedCallback>(initParams->MaximizedHandler);
+	_minimizedCallback = reinterpret_cast<MinimizedCallback>(initParams->MinimizedHandler);
+	_restoredCallback = reinterpret_cast<RestoredCallback>(initParams->RestoredHandler);
+	_customSchemeCallback = reinterpret_cast<WebResourceRequestedCallback>(initParams->CustomSchemeHandler);
 
 	// copy strings from the fixed size array passed, but only if they have a value.
 	for (int i = 0; i < 16; ++i)
@@ -241,6 +246,12 @@ Photino::Photino(PhotinoInitParams *initParams) : _webview(nullptr)
 	g_signal_connect(G_OBJECT(_window), "delete-event",
 					 G_CALLBACK(on_widget_deleted),
 					 this);
+
+
+    g_signal_connect(G_OBJECT(_window), "destroy",
+        G_CALLBACK(on_widget_destroyed),
+        this);
+
 
 	//if (initParams->Transparent)
 	//{
@@ -759,7 +770,7 @@ static gboolean invokeCallback(gpointer data)
 	return false;
 }
 
-void Photino::Invoke(ACTION callback)
+void Photino::Invoke(InvokeCallback callback)
 {
 	InvokeWaitInfo waitInfo = {};
 	waitInfo.callback = callback;
@@ -917,7 +928,7 @@ void Photino::set_webkit_settings()
 		NULL); // NULL terminates the list
 
 	if (_browserControlInitParameters != NULL && strlen(_browserControlInitParameters) > 0)
-		Photino::set_webkit_customsettings(settings);		//if any custom init parameters were passed, set them now.
+		Photino::set_webkit_custom_settings(settings);		//if any custom init parameters were passed, set them now.
 
 	WebKitWebsiteDataManager* manager = webkit_web_view_get_website_data_manager(WEBKIT_WEB_VIEW(_webview));
 	if (_ignoreCertificateErrorsEnabled)
@@ -928,7 +939,7 @@ void Photino::set_webkit_settings()
 	webkit_web_view_set_settings(WEBKIT_WEB_VIEW(_webview), settings);			//apply the settings to the webview
 }
 
-void Photino::set_webkit_customsettings(WebKitSettings* settings)
+void Photino::set_webkit_custom_settings(WebKitSettings* settings)
 {
 	//parse the JSON out of _browserControlInitParameters
 	json data = json::parse(_browserControlInitParameters);
@@ -1025,7 +1036,15 @@ gboolean on_window_state_event(GtkWidget *widget, GdkEventWindowState *event, gp
 gboolean on_widget_deleted(GtkWidget *widget, GdkEvent *event, gpointer self)
 {
 	Photino *instance = ((Photino *)self);
-	return instance->InvokeClose();
+
+    bool doNotClose = instance->InvokeClosing();
+    return doNotClose ? TRUE : FALSE;
+}
+
+void on_widget_destroyed(GtkWidget* widget, gpointer self)
+{
+    Photino* instance = (Photino*)self;
+    instance->InvokeClose();
 }
 
 gboolean on_focus_in_event(GtkWidget *widget, GdkEvent *event, gpointer self)
@@ -1062,7 +1081,7 @@ gboolean on_permission_request(WebKitWebView *web_view, WebKitPermissionRequest 
 
 void HandleCustomSchemeRequest(WebKitURISchemeRequest *request, gpointer user_data)
 {
-	WebResourceRequestedCallback webResourceRequestedCallback = (WebResourceRequestedCallback)user_data;
+	WebResourceRequestedCallback webResourceRequestedCallback = reinterpret_cast<WebResourceRequestedCallback>(user_data);
 
 	const gchar *uri = webkit_uri_scheme_request_get_uri(request);
 	int numBytes;

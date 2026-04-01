@@ -7,6 +7,8 @@
 #include <objbase.h>
 #include <vector>
 
+using namespace PhotinoX::Native;
+
 class Dll
 {
 public:

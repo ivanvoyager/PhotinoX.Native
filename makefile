@@ -1,10 +1,10 @@
 # C++ toolchain
 CXX ?= c++
-CXXFLAGS ?= -std=c++17 -Wall -O2
+CXXFLAGS ?= -std=c++20 -Wall -O2
 LDFLAGS ?=
 SOFLAGS ?= -shared -fPIC
 # Debug example:
-#   make linux-x64 CXXFLAGS="-std=c++17 -Wall -O0 -g"
+#   make linux-x64 CXXFLAGS="-std=c++20 -Wall -O0 -g"
 
 # Source layout
 SRC=./Photino.Native

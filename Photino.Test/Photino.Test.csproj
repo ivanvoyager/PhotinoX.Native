@@ -30,6 +30,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="..\..\PhotinoX\Photino.NET\Utils\Platform.cs" Link="Utils\Platform.cs" />
+    <Compile Include="..\..\PhotinoX\Photino.NET\Utils\Platform.MacOS.cs" Link="Utils\Platform.MacOS.cs" />
     <Compile Include="..\..\PhotinoX\Photino.NET\PhotinoDialogEnums.cs" Link="PhotinoDialogEnums.cs" />
     <Compile Include="..\..\PhotinoX\Photino.NET\PhotinoDllImports.cs" Link="PhotinoDllImports.cs" />
     <Compile Include="..\..\PhotinoX\Photino.NET\PhotinoMonitorStruct.cs" Link="PhotinoMonitorStruct.cs" />

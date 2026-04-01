@@ -1,6 +1,8 @@
 #ifdef __linux__
 #include "Photino.Dialog.h"
 
+using namespace PhotinoX::Native;
+
 enum DialogType {
     OpenFile,
     OpenFolder,
