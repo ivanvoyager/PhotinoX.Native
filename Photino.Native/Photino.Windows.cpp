@@ -968,21 +968,25 @@ void Photino::WaitForExit()
 	}
 }
 
-
-
-
-
-
 //Callbacks
-BOOL MonitorEnum(HMONITOR monitor, HDC, LPRECT, LPARAM arg)
+//https://learn.microsoft.com/en-us/windows/win32/api/winuser/nc-winuser-monitorenumproc
+//To continue the enumeration, return TRUE.
+//To stop the enumeration, return FALSE.
+BOOL MonitorEnum(HMONITOR hMonitor, HDC hdcMonitor, LPRECT lprcMonitor, LPARAM dwData)
 {
-	auto callback = (GetAllMonitorsCallback)arg;
-	UINT dpiX, dpiY;
+	auto callback = reinterpret_cast<GetAllMonitorsCallback>(dwData);
+    
 	MONITORINFO info = {};
-	info.cbSize = sizeof(MONITORINFO);
-	GetMonitorInfo(monitor, &info);
-	GetDpiForMonitor(monitor, MDT_EFFECTIVE_DPI, &dpiX, &dpiY);
-	Monitor props = {};
+    info.cbSize = sizeof(info);
+    if (!GetMonitorInfo(hMonitor, &info)) return TRUE;
+
+    UINT dpiX = 96, dpiY = 96;
+    if (FAILED(GetDpiForMonitor(hMonitor, MDT_EFFECTIVE_DPI, &dpiX, &dpiY)))
+    {
+        dpiX = dpiY = 96;
+    }
+
+    Monitor props{};
 	props.monitor.x = info.rcMonitor.left;
 	props.monitor.y = info.rcMonitor.top;
 	props.monitor.width = info.rcMonitor.right - info.rcMonitor.left;
@@ -991,7 +995,8 @@ BOOL MonitorEnum(HMONITOR monitor, HDC, LPRECT, LPARAM arg)
 	props.work.y = info.rcWork.top;
 	props.work.width = info.rcWork.right - info.rcWork.left;
 	props.work.height = info.rcWork.bottom - info.rcWork.top;
-	props.scale = dpiY / 96.0;
+	props.scale = static_cast<double>(dpiY) / 96.0;
+
 	return callback(&props) ? TRUE : FALSE;
 }
 

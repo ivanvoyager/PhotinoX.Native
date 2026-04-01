@@ -57,12 +57,17 @@ gboolean on_webview_context_menu(WebKitWebView *web_view,
 								 gpointer user_data);
 gboolean on_permission_request(WebKitWebView *web_view, WebKitPermissionRequest *request, gpointer user_data);
 
+void Photino::Register()
+{
+    static std::once_flag flag;
+    std::call_once(flag, []() {
+        XInitThreads();
+        gtk_init(0, nullptr);
+    });
+}
+
 Photino::Photino(PhotinoInitParams *initParams) : _webview(nullptr)
 {
-	// It makes xlib thread safe.
-	// Needed for get_position.
-	XInitThreads();
-	gtk_init(0, NULL);
 	notify_init(initParams->Title);
 
 	if (initParams->Size != sizeof(PhotinoInitParams))

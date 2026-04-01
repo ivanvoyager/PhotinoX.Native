@@ -242,6 +242,7 @@ namespace PhotinoX::Native {
         int _maxWidth;
         int _maxHeight;
 #elif __linux__
+        static void Register();
         void set_webkit_settings();
         void set_webkit_custom_settings(WebKitSettings* settings);
         GtkWidget* _window;
