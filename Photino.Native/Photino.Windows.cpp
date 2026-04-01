@@ -22,6 +22,7 @@
 
 using namespace WinToastLib;
 using namespace Microsoft::WRL;
+using namespace PhotinoX::Native;
 
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 LPCWSTR CLASS_NAME = L"PhotinoX";
@@ -194,6 +195,7 @@ Photino::Photino(PhotinoInitParams* initParams)
 	_minimizedCallback = reinterpret_cast<MinimizedCallback>(initParams->MinimizedHandler);
 	_movedCallback = reinterpret_cast<MovedCallback>(initParams->MovedHandler);
 	_closingCallback = reinterpret_cast<ClosingCallback>(initParams->ClosingHandler);
+    _closedCallback = reinterpret_cast<ClosedCallback>(initParams->ClosedHandler);
 	_focusInCallback = reinterpret_cast<FocusInCallback>(initParams->FocusInHandler);
 	_focusOutCallback = reinterpret_cast<FocusOutCallback>(initParams->FocusOutHandler);
 	_customSchemeCallback = reinterpret_cast<WebResourceRequestedCallback>(initParams->CustomSchemeHandler);
@@ -416,12 +418,10 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		Photino* Photino = hwndToPhotino[hwnd];
 		if (Photino)
 		{
-			bool doNotClose = Photino->InvokeClose();
-
-			if (!doNotClose)
-			{
-				DestroyWindow(hwnd);
-			}
+			bool doNotClose = Photino->InvokeClosing();
+            if (doNotClose)
+                return 0;
+            DestroyWindow(hwnd);
 		}
 
 		return 0;
@@ -432,6 +432,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		if (Photino)
 		{
 			Photino->CloseWebView();
+            Photino->InvokeClose();
 		}
 		// Only terminate the message loop if the window being closed is the one that
 		// started the message loop
@@ -443,9 +444,9 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	}
 	case WM_USER_INVOKE:
 	{
-		ACTION callback = (ACTION)wParam;
+        auto callback = reinterpret_cast<InvokeCallback>(wParam);
 		callback();
-		InvokeWaitInfo* waitInfo = (InvokeWaitInfo*)lParam;
+		auto waitInfo = reinterpret_cast<InvokeWaitInfo*>(lParam);
 		{
 			std::lock_guard<std::mutex> guard(invokeLockMutex);
 			waitInfo->isCompleted = true;
@@ -726,8 +727,10 @@ void Photino::GetZoom(int* zoom)
 	*zoom = (int)rawValue;
 }
 
-
-
+/*
+ * The htmlContent parameter may not be larger than 2 MB (2 * 1024 * 1024 bytes) in total size. 
+ * The origin of the new page is about:blank.
+ */
 void Photino::NavigateToString(AutoString content)
 {
 	content = ToUTF16String(content);
@@ -1000,7 +1003,7 @@ void Photino::GetAllMonitors(GetAllMonitorsCallback callback)
 	}
 }
 
-void Photino::Invoke(ACTION callback)
+void Photino::Invoke(InvokeCallback callback)
 {
 	InvokeWaitInfo waitInfo = {};
 	PostMessage(_hWnd, WM_USER_INVOKE, (WPARAM)callback, (LPARAM)&waitInfo);

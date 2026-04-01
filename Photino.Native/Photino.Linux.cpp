@@ -14,6 +14,8 @@
 #include "Dependencies/json.hpp"
 using json = nlohmann::json;
 
+using namespace PhotinoX::Native;
+
 /* --- PRINTF_BINARY_FORMAT macro's --- */
 // #define FMT_BUF_SIZE (CHAR_BIT*sizeof(uintmax_t)+1)
 //
@@ -31,7 +33,7 @@ std::mutex invokeLockMutex;
 
 struct InvokeWaitInfo
 {
-	ACTION callback;
+    InvokeCallback callback;
 	std::condition_variable completionNotifier;
 	bool isCompleted;
 };
@@ -45,6 +47,7 @@ struct InvokeJSWaitInfo
 gboolean on_configure_event(GtkWidget *widget, GdkEvent *event, gpointer self);
 gboolean on_window_state_event(GtkWidget *widget, GdkEventWindowState *event, gpointer self);
 gboolean on_widget_deleted(GtkWidget *widget, GdkEvent *event, gpointer self);
+void on_widget_destroyed(GtkWidget* widget, gpointer self);
 gboolean on_focus_in_event(GtkWidget *widget, GdkEvent *event, gpointer self);
 gboolean on_focus_out_event(GtkWidget *widget, GdkEvent *event, gpointer self);
 gboolean on_webview_context_menu(WebKitWebView *web_view,
@@ -147,6 +150,7 @@ Photino::Photino(PhotinoInitParams *initParams) : _webview(nullptr)
 	_resizedCallback = reinterpret_cast<ResizedCallback>(initParams->ResizedHandler);
 	_movedCallback = reinterpret_cast<MovedCallback>(initParams->MovedHandler);
 	_closingCallback = reinterpret_cast<ClosingCallback>(initParams->ClosingHandler);
+    _closedCallback = reinterpret_cast<ClosedCallback>(initParams->ClosedHandler);
 	_focusInCallback = reinterpret_cast<FocusInCallback>(initParams->FocusInHandler);
 	_focusOutCallback = reinterpret_cast<FocusOutCallback>(initParams->FocusOutHandler);
 	_maximizedCallback = reinterpret_cast<MaximizedCallback>(initParams->MaximizedHandler);
@@ -242,6 +246,12 @@ Photino::Photino(PhotinoInitParams *initParams) : _webview(nullptr)
 	g_signal_connect(G_OBJECT(_window), "delete-event",
 					 G_CALLBACK(on_widget_deleted),
 					 this);
+
+
+    g_signal_connect(G_OBJECT(_window), "destroy",
+        G_CALLBACK(on_widget_destroyed),
+        this);
+
 
 	//if (initParams->Transparent)
 	//{
@@ -760,7 +770,7 @@ static gboolean invokeCallback(gpointer data)
 	return false;
 }
 
-void Photino::Invoke(ACTION callback)
+void Photino::Invoke(InvokeCallback callback)
 {
 	InvokeWaitInfo waitInfo = {};
 	waitInfo.callback = callback;
@@ -918,7 +928,7 @@ void Photino::set_webkit_settings()
 		NULL); // NULL terminates the list
 
 	if (_browserControlInitParameters != NULL && strlen(_browserControlInitParameters) > 0)
-		Photino::set_webkit_customsettings(settings);		//if any custom init parameters were passed, set them now.
+		Photino::set_webkit_custom_settings(settings);		//if any custom init parameters were passed, set them now.
 
 	WebKitWebsiteDataManager* manager = webkit_web_view_get_website_data_manager(WEBKIT_WEB_VIEW(_webview));
 	if (_ignoreCertificateErrorsEnabled)
@@ -929,7 +939,7 @@ void Photino::set_webkit_settings()
 	webkit_web_view_set_settings(WEBKIT_WEB_VIEW(_webview), settings);			//apply the settings to the webview
 }
 
-void Photino::set_webkit_customsettings(WebKitSettings* settings)
+void Photino::set_webkit_custom_settings(WebKitSettings* settings)
 {
 	//parse the JSON out of _browserControlInitParameters
 	json data = json::parse(_browserControlInitParameters);
@@ -1026,7 +1036,15 @@ gboolean on_window_state_event(GtkWidget *widget, GdkEventWindowState *event, gp
 gboolean on_widget_deleted(GtkWidget *widget, GdkEvent *event, gpointer self)
 {
 	Photino *instance = ((Photino *)self);
-	return instance->InvokeClose();
+
+    bool doNotClose = instance->InvokeClosing();
+    return doNotClose ? TRUE : FALSE;
+}
+
+void on_widget_destroyed(GtkWidget* widget, gpointer self)
+{
+    Photino* instance = (Photino*)self;
+    instance->InvokeClose();
 }
 
 gboolean on_focus_in_event(GtkWidget *widget, GdkEvent *event, gpointer self)

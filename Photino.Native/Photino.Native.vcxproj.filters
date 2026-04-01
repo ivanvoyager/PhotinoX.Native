@@ -68,16 +68,16 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Photino.Mac.AppDelegate.h">
-      <Filter>Source Files</Filter>
+      <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Photino.Mac.UiDelegate.h">
-      <Filter>Source Files</Filter>
+      <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Photino.Mac.WindowDelegate.h">
-      <Filter>Source Files</Filter>
+      <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Photino.Mac.UrlSchemeHandler.h">
-      <Filter>Source Files</Filter>
+      <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Photino.Windows.ToastHandler.h">
       <Filter>Header Files</Filter>
@@ -86,7 +86,7 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Photino.Windows.DarkMode.h">
-      <Filter>Source Files</Filter>
+      <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Photino.Dialog.h">
       <Filter>Header Files</Filter>
@@ -108,5 +108,9 @@
     <ResourceCompile Include="Photino.Native.rc">
       <Filter>Resource Files</Filter>
     </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Natvis Include="$(MSBuildThisFileDirectory)..\..\natvis\wil.natvis" />
+    <Natvis Include="$(MSBuildThisFileDirectory)..\..\natvis\wil.natstepfilter" />
   </ItemGroup>
 </Project>

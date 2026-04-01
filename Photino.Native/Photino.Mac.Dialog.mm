@@ -18,6 +18,8 @@ NSImage* getIcon(NSString* base64) {
   return image;
 }
 
+using namespace PhotinoX::Native;
+
 PhotinoDialog::PhotinoDialog() {
   _errorIcon = getIcon(errorBase64);
   _infoIcon = getIcon(infoBase64);

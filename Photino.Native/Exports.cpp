@@ -7,6 +7,8 @@
 #define EXPORTED
 #endif
 
+using namespace PhotinoX::Native;
+
 extern "C"
 {
 #ifdef _WIN32
@@ -320,6 +322,11 @@ extern "C"
 		instance->SetClosingCallback(callback);
 	}
 
+    EXPORTED void Photino_SetClosedCallback(Photino* instance, ClosedCallback callback)
+    {
+        instance->SetClosedCallback(callback);
+    }
+
 	EXPORTED void Photino_SetFocusInCallback(Photino* instance, FocusInCallback callback)
 	{
 		instance->SetFocusInCallback(callback);
@@ -340,7 +347,7 @@ extern "C"
 		instance->SetResizedCallback(callback);
 	}
 
-	EXPORTED void Photino_Invoke(Photino* instance, ACTION callback)
+	EXPORTED void Photino_Invoke(Photino* instance, InvokeCallback callback)
 	{
 		instance->Invoke(callback);
 	}

@@ -1,10 +1,11 @@
-#ifndef TOASTHANDLER_H
-#define TOASTHANDLER_H
+#pragma once
+
 #include "Photino.h"
 #include "Dependencies/wintoastlib.h"
 #include <WinUser.h>
 
 using namespace WinToastLib;
+using namespace PhotinoX::Native;
 
 class WinToastHandler final : public IWinToastHandler
 {
@@ -43,4 +44,3 @@ public:
         //
     }
 };
-#endif

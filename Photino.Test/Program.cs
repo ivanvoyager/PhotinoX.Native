@@ -126,6 +126,7 @@ namespace Photino.Test
                 .RegisterSizeChangedHandler(WindowSizeChanged)
                 .RegisterWebMessageReceivedHandler(MessageReceivedFromWindow)
                 .RegisterWindowClosingHandler(WindowClosing)
+                .RegisterWindowClosedHandler(WindowClosed)
                 .RegisterFocusInHandler(WindowFocusIn)
                 .RegisterFocusOutHandler(WindowFocusOut)
 
@@ -291,6 +292,7 @@ namespace Photino.Test
                     .RegisterSizeChangedHandler(WindowSizeChanged)
                     .RegisterWebMessageReceivedHandler(MessageReceivedFromWindow)
                     .RegisterWindowClosingHandler(WindowClosing)
+                    .RegisterWindowClosedHandler(WindowClosed)
 
                     .RegisterCustomSchemeHandler("app", AppCustomSchemeUsed)
 
@@ -519,6 +521,11 @@ namespace Photino.Test
         private static void WindowClosing(object? sender, CancelEventArgs e)
         {
             Log(sender, "WindowClosing Callback Fired.");
+        }
+
+        private static void WindowClosed(object? sender, EventArgs e)
+        {
+            Log(sender, "WindowClosed Callback Fired.");
         }
 
         private static void WindowFocusIn(object? sender, EventArgs e)

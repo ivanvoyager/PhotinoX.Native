@@ -16,6 +16,8 @@ using json = nlohmann::json;
 
 using namespace std;
 
+using namespace PhotinoX::Native;
+
 //Creates an instance of the 'application' under which, all windows will run
 //Only called once!
 void Photino::Register()
@@ -145,6 +147,7 @@ Photino::Photino(PhotinoInitParams* initParams)
 	_resizedCallback = reinterpret_cast<ResizedCallback>(initParams->ResizedHandler);
 	_movedCallback = reinterpret_cast<MovedCallback>(initParams->MovedHandler);
 	_closingCallback = reinterpret_cast<ClosingCallback>(initParams->ClosingHandler);
+    _closedCallback = reinterpret_cast<ClosedCallback>(initParams->ClosedHandler);
     _focusInCallback = reinterpret_cast<FocusInCallback>(initParams->FocusInHandler);
 	_focusOutCallback = reinterpret_cast<FocusOutCallback>(initParams->FocusOutHandler);
     _maximizedCallback = reinterpret_cast<MaximizedCallback>(initParams->MaximizedHandler);
@@ -860,7 +863,7 @@ std::vector<Monitor *> Photino::GetMonitors()
     return monitors;
 }
 
-void Photino::Invoke(ACTION callback)
+void Photino::Invoke(InvokeCallback callback)
 {
     dispatch_sync(dispatch_get_main_queue(), ^(void){
         callback();

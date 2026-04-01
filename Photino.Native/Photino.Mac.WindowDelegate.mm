@@ -1,7 +1,9 @@
 #ifdef __APPLE__
 #import "Photino.Mac.WindowDelegate.h"
 
-@implementation WindowDelegate : NSObject
+//https://developer.apple.com/documentation/appkit/nswindowdelegate
+@implementation WindowDelegate
+
 - (void)windowDidResize:(NSNotification *)notification {
     int width, height;
     photino->GetSize(&width, &height);
@@ -30,10 +32,17 @@
     photino->InvokeRestored();
 }
 
-- (void)windowWillClose: (NSWindow *)sender
-{
-    photino->InvokeClose();
+- (BOOL)windowShouldClose:(NSWindow *)sender {
+    bool doNotClose = photino->InvokeClosing();
+    return doNotClose ? NO : YES;
 }
+
+- (void)windowWillClose:(NSNotification *)notification {
+    photino->InvokeClose();
+    NSWindow *window = (NSWindow *)notification.object;
+    [window setDelegate:nil];
+}
+
 @end
 
 #endif
