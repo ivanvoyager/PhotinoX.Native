@@ -49,6 +49,10 @@
         function SetContextMenuEnabled() {
             window.external.sendMessage('setcontextmenuenabled');
         }
+
+        function SetZoomEnabled() {
+            window.external.sendMessage('setzoomenabled');
+        }
         
         function SetDevToolsEnabled() {
             window.external.sendMessage('setdevtoolsenabled');
@@ -291,6 +295,7 @@
     <b>Browser</b><br>
     <button onclick="ZoomIn()">Zoom In</button>
     <button onclick="ZoomOut()">Zoom Out</button>
+    <button onclick="SetZoomEnabled()">Zoom</button>
     <button onclick="SetContextMenuEnabled()">Context Menu</button>
     <button onclick="SetDevToolsEnabled()">Dev Tools</button>
     <br>
