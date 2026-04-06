@@ -25,18 +25,24 @@ using namespace Microsoft::WRL;
 using namespace PhotinoX::Native;
 
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
-LPCWSTR CLASS_NAME = L"PhotinoX";
-std::mutex invokeLockMutex;
-HINSTANCE Photino::_hInstance;
-HWND messageLoopRootWindowHandle = nullptr;
-std::map<HWND, Photino*> hwndToPhotino;
-wchar_t _webview2RuntimePath[MAX_PATH];
 
+namespace
+{
+    constexpr LPCWSTR CLASS_NAME = L"PhotinoX";
+    wchar_t g_webview2RuntimePath[MAX_PATH];
+
+    HINSTANCE g_hInstance = nullptr;
+    std::atomic g_messageLoopRunning{ false };
+    HWND g_uiThreadWindowHandle = nullptr;
+    std::atomic g_isShuttingDown{ false };
+    std::mutex g_invokeLockMutex;
+    std::map<HWND, Photino*> g_hwndToPhotino;
+}
 
 struct InvokeWaitInfo
 {
     std::condition_variable completionNotifier;
-    bool isCompleted;
+    bool isCompleted = false;
 };
 
 struct ShowMessageParams
@@ -54,7 +60,7 @@ void Photino::Register(const HINSTANCE hInstance)
 {
     InitDarkModeSupport();
 
-    _hInstance = hInstance;
+    g_hInstance = hInstance;
 
     // Register the window class
     WNDCLASSEX wcx;
@@ -259,7 +265,7 @@ Photino::Photino(PhotinoInitParams* initParams)
     if (initParams->Width < initParams->MinWidth && initParams->MinWidth > 0) initParams->Width = initParams->MinWidth;
 
     //Create the window
-    _hWnd = CreateWindowEx(
+    _hWnd = CreateWindowExW(
         initParams->Transparent ? WS_EX_LAYERED : 0, //WS_EX_OVERLAPPEDWINDOW, //An optional extended window style.
         CLASS_NAME,					//Window class
         _windowTitle,		//Window text
@@ -270,10 +276,10 @@ Photino::Photino(PhotinoInitParams* initParams)
 
         nullptr,    //Parent window handle
         nullptr,    //Menu
-        _hInstance, //Instance handle
+        g_hInstance, //Instance handle
         this        //Additional application data
     );
-    hwndToPhotino[_hWnd] = this;
+    g_hwndToPhotino[_hWnd] = this;
 
     if (initParams->WindowIconFile != nullptr)
     {
@@ -313,10 +319,10 @@ Photino::Photino(PhotinoInitParams* initParams)
 
 Photino::~Photino()
 {
-    if (_startUrl != nullptr) delete[]_startUrl;
-    if (_startString != nullptr) delete[]_startString;
-    if (_temporaryFilesPath != nullptr) delete[]_temporaryFilesPath;
-    if (_windowTitle != nullptr) delete[]_windowTitle;
+    delete[]_startUrl;
+    delete[]_startString;
+    delete[]_temporaryFilesPath;
+    delete[]_windowTitle;
     if (_notificationsEnabled && _toastHandler != nullptr) delete _toastHandler;
 }
 
@@ -329,19 +335,21 @@ LRESULT CALLBACK WindowProc(const HWND hwnd, const UINT uMsg, const WPARAM wPara
 {
     switch (uMsg)
     {
+
     case WM_CREATE:
     {
         EnableDarkMode(hwnd, true);
         if (IsDarkModeEnabled())
             RefreshNonClientArea(hwnd);
-        break;
+        return 0;
     }
+
     case WM_DPICHANGED:
     {
         UINT dpiX = HIWORD(wParam);
         UINT dpiY = LOWORD(wParam);
 
-        RECT* newWindowRect = (RECT*)lParam;
+        const auto newWindowRect = reinterpret_cast<const RECT*>(lParam);
 
         SetWindowPos(
             hwnd,
@@ -355,165 +363,199 @@ LRESULT CALLBACK WindowProc(const HWND hwnd, const UINT uMsg, const WPARAM wPara
 
         return 0;
     }
+
     case WM_SETTINGCHANGE:
     {
         if (IsColorSchemeChange(lParam))
             SendMessageW(hwnd, WM_THEMECHANGED, 0, 0);
 
-        break;
+        return 0;
     }
+
     case WM_THEMECHANGED:
     {
         EnableDarkMode(hwnd, IsDarkModeEnabled());
         RefreshNonClientArea(hwnd);
         InvalidateRect(hwnd, nullptr, TRUE);
-        break;
+        return 0;
     }
+
     case WM_PAINT:
     {
-        PAINTSTRUCT ps;
-        HDC hdc = BeginPaint(hwnd, &ps);
-
-        // Fill the background with the current theme color
-        if (IsDarkModeEnabled())
+        PAINTSTRUCT ps{};
+        if (const HDC hdc = BeginPaint(hwnd, &ps))
         {
-            FillRect(hdc, &ps.rcPaint, darkBrush);
-            //SetTextColor(hdc, RGB(255,255,255));
-        }
-        else
-        {
-            FillRect(hdc, &ps.rcPaint, lightBrush);
-            //SetTextColor(hdc, RGB(0, 0, 0));
-        }
 
-        // Draw some text
-        //SetBkMode(hdc, TRANSPARENT);
-        //TextOut(hdc, 10, 10, L"Hello, World! (Dynamic Theme)", 31);
+            // Fill the background with the current theme color
+            if (IsDarkModeEnabled())
+            {
+                FillRect(hdc, &ps.rcPaint, darkBrush);
+                //SetTextColor(hdc, RGB(255,255,255));
+            }
+            else
+            {
+                FillRect(hdc, &ps.rcPaint, lightBrush);
+                //SetTextColor(hdc, RGB(0, 0, 0));
+            }
 
-        EndPaint(hwnd, &ps);
-        break;
+            // Draw some text
+            //SetBkMode(hdc, TRANSPARENT);
+            //TextOut(hdc, 10, 10, L"Hello, World! (Dynamic Theme)", 31);
+
+            EndPaint(hwnd, &ps);
+        }
+        return 0;
     }
+
     case WM_ACTIVATE:
     {
-        Photino* Photino = hwndToPhotino[hwnd];
-        if (LOWORD(wParam) == WA_INACTIVE)
+        if (const auto it = g_hwndToPhotino.find(hwnd); it != g_hwndToPhotino.end())
         {
-            Photino->InvokeFocusOut();
-        }
-        else
-        {
-            Photino->FocusWebView2();
-            Photino->InvokeFocusIn();
+            const auto photino = it->second;
 
-            return 0;
+            if (LOWORD(wParam) == WA_INACTIVE)
+            {
+                photino->InvokeFocusOut();
+            }
+            else
+            {
+                photino->FocusWebView2();
+                photino->InvokeFocusIn();
+            }
         }
-        break;
+
+        return 0;
     }
+
     case WM_CLOSE:
     {
-        Photino* Photino = hwndToPhotino[hwnd];
-        if (Photino)
+        if (const auto it = g_hwndToPhotino.find(hwnd); it != g_hwndToPhotino.end())
         {
-            bool doNotClose = Photino->InvokeClosing();
+            const auto photino = it->second;
+
+            bool doNotClose = photino->InvokeClosing();
             if (doNotClose)
                 return 0;
+
             DestroyWindow(hwnd);
         }
 
         return 0;
     }
+
     case WM_DESTROY:
     {
-        Photino* Photino = hwndToPhotino[hwnd];
-        if (Photino)
+        if (const auto it = g_hwndToPhotino.find(hwnd); it != g_hwndToPhotino.end())
         {
-            Photino->CloseWebView();
-            Photino->InvokeClose();
+            const auto photino = it->second;
+
+            photino->CloseWebView();
+            photino->InvokeClose();
+
+            g_hwndToPhotino.erase(it);
         }
-        // Only terminate the message loop if the window being closed is the one that
-        // started the message loop
-        hwndToPhotino.erase(hwnd);
-        if (hwnd == messageLoopRootWindowHandle)
+
+        if (hwnd == g_uiThreadWindowHandle)
+        {
+            g_isShuttingDown.store(true, std::memory_order_release);
             PostQuitMessage(0);
+        }
 
         return 0;
     }
+
     case WM_USER_INVOKE:
     {
-        auto callback = reinterpret_cast<InvokeCallback>(wParam);
+        const auto callback = std::bit_cast<InvokeCallback>(wParam);
+        const auto waitInfo = std::bit_cast<InvokeWaitInfo*>(lParam);
+
+        assert(callback && waitInfo);
+        if (!callback || !waitInfo) return 0;
+
         callback();
-        auto waitInfo = reinterpret_cast<InvokeWaitInfo*>(lParam);
-        {
-            std::lock_guard<std::mutex> guard(invokeLockMutex);
-            waitInfo->isCompleted = true;
-        }
+
+        std::scoped_lock guard(g_invokeLockMutex);
+        waitInfo->isCompleted = true;
+
         waitInfo->completionNotifier.notify_one();
-        //delete waitInfo; ?
         return 0;
     }
+
     case WM_GETMINMAXINFO:
     {
-        Photino* Photino = hwndToPhotino[hwnd];
-        if (Photino == nullptr)
-            return 0;
+        if (const auto it = g_hwndToPhotino.find(hwnd); it != g_hwndToPhotino.end())
+        {
+            const auto photino = it->second;
 
-        MINMAXINFO* mmi = (MINMAXINFO*)lParam;
-        if (Photino->_minWidth > 0)
-            mmi->ptMinTrackSize.x = Photino->_minWidth;
-        if (Photino->_minHeight > 0)
-            mmi->ptMinTrackSize.y = Photino->_minHeight;
-        if (Photino->_maxWidth < INT_MAX)
-            mmi->ptMaxTrackSize.x = Photino->_maxWidth;
-        if (Photino->_maxHeight < INT_MAX)
-            mmi->ptMaxTrackSize.y = Photino->_maxHeight;
+            const auto mmi = std::bit_cast<MINMAXINFO*>(lParam);
+
+            if (photino->_minWidth > 0)
+                mmi->ptMinTrackSize.x = photino->_minWidth;
+            if (photino->_minHeight > 0)
+                mmi->ptMinTrackSize.y = photino->_minHeight;
+            if (photino->_maxWidth < INT_MAX)
+                mmi->ptMaxTrackSize.x = photino->_maxWidth;
+            if (photino->_maxHeight < INT_MAX)
+                mmi->ptMaxTrackSize.y = photino->_maxHeight;
+        }
         return 0;
     }
+
     case WM_SIZE:
     {
-        Photino* Photino = hwndToPhotino[hwnd];
-        if (Photino)
+        if (const auto it = g_hwndToPhotino.find(hwnd); it != g_hwndToPhotino.end())
         {
-            Photino->RefitContent();
-            int width, height;
-            Photino->GetSize(&width, &height);
-            Photino->InvokeResize(width, height);
+            const auto photino = it->second;
 
-            if (LOWORD(wParam) == SIZE_MAXIMIZED) {
-                Photino->InvokeMaximized();
-            }
-            else if (LOWORD(wParam) == SIZE_RESTORED) {
-                Photino->InvokeRestored();
-            }
-            else if (LOWORD(wParam) == SIZE_MINIMIZED) {
-                Photino->InvokeMinimized();
+            photino->RefitContent();
+
+            int width = 0, height = 0;
+            photino->GetSize(&width, &height);
+            photino->InvokeResize(width, height);
+
+            switch (wParam)
+            {
+            case SIZE_MAXIMIZED:
+                photino->InvokeMaximized();
+                break;
+            case SIZE_RESTORED:
+                photino->InvokeRestored();
+                break;
+            case SIZE_MINIMIZED:
+                photino->InvokeMinimized();
+                break;
             }
         }
         return 0;
     }
+
     case WM_MOVE:
     {
-        Photino* Photino = hwndToPhotino[hwnd];
-        if (Photino)
+        if (const auto it = g_hwndToPhotino.find(hwnd); it != g_hwndToPhotino.end())
         {
-            //Photino->NotifyWebView2WindowMove();
-            //Photino->RefitContent();
+            const auto photino = it->second;
+            //photino->NotifyWebView2WindowMove();
+            //photino->RefitContent();
 
-            int x, y;
-            Photino->GetPosition(&x, &y);
-            Photino->InvokeMove(x, y);
+            int x = 0, y = 0;
+            photino->GetPosition(&x, &y);
+            photino->InvokeMove(x, y);
         }
         return 0;
     }
+
     case WM_MOVING:
     {
-        Photino* Photino = hwndToPhotino[hwnd];
-        if (Photino)
+        if (const auto it = g_hwndToPhotino.find(hwnd); it != g_hwndToPhotino.end())
         {
+            const auto photino = it->second;
+
             //Photino->NotifyWebView2WindowMove();
             //Photino->RefitContent();
         }
+        break;
     }
-    break;
+
     }
 
     return DefWindowProc(hwnd, uMsg, wParam, lParam);
@@ -1173,7 +1215,11 @@ void Photino::WaitForExit() const
     assert(_hWnd);
     if (!_hWnd) return;
 
-    messageLoopRootWindowHandle = _hWnd;
+    bool expected = false;
+    if (!g_messageLoopRunning.compare_exchange_strong(expected, true, std::memory_order_acq_rel)) return;
+
+    g_isShuttingDown.store(false, std::memory_order_release);
+    g_uiThreadWindowHandle = _hWnd;
 
     // Run the message loop
     MSG msg{};
@@ -1187,7 +1233,8 @@ void Photino::WaitForExit() const
         DispatchMessageW(&msg);
     }
 
-    messageLoopRootWindowHandle = nullptr;
+    g_uiThreadWindowHandle = nullptr;
+    g_messageLoopRunning.store(false, std::memory_order_release);
 }
 
 //Callbacks
@@ -1197,16 +1244,15 @@ void Photino::WaitForExit() const
 BOOL MonitorEnum(const HMONITOR hMonitor, HDC hdcMonitor, LPRECT lprcMonitor, const LPARAM dwData)
 {
     auto callback = reinterpret_cast<GetAllMonitorsCallback>(dwData);
+    if (!callback) return FALSE;
 
-    MONITORINFO info = {};
+    MONITORINFO info{};
     info.cbSize = sizeof(info);
-    if (!GetMonitorInfo(hMonitor, &info)) return TRUE;
+    if (!GetMonitorInfoW(hMonitor, &info)) return TRUE;
 
     UINT dpiX = 96, dpiY = 96;
     if (FAILED(GetDpiForMonitor(hMonitor, MDT_EFFECTIVE_DPI, &dpiX, &dpiY)))
-    {
         dpiX = dpiY = 96;
-    }
 
     Monitor props{};
     props.monitor.x = info.rcMonitor.left;
@@ -1224,25 +1270,27 @@ BOOL MonitorEnum(const HMONITOR hMonitor, HDC hdcMonitor, LPRECT lprcMonitor, co
 
 void Photino::GetAllMonitors(GetAllMonitorsCallback callback)
 {
-    if (callback)
-    {
-        EnumDisplayMonitors(nullptr, nullptr, (MONITORENUMPROC)MonitorEnum, (LPARAM)callback);
-    }
+    assert(callback);
+    if (!callback) return;
+
+    EnumDisplayMonitors(nullptr, nullptr, MonitorEnum, reinterpret_cast<LPARAM>(callback));
 }
 
 void Photino::Invoke(InvokeCallback callback) const
 {
-    InvokeWaitInfo waitInfo = {};
-    PostMessage(_hWnd, WM_USER_INVOKE, (WPARAM)callback, (LPARAM)&waitInfo);
+    assert(_hWnd && callback);
+    if (!_hWnd || !callback) return;
+
+    if (g_isShuttingDown.load(std::memory_order_acquire)) return;
+
+    InvokeWaitInfo waitInfo{};
+    if (!PostMessageW(_hWnd, WM_USER_INVOKE, reinterpret_cast<WPARAM>(callback), reinterpret_cast<LPARAM>(&waitInfo))) return;
 
     // Block until the callback is actually executed and completed
     // TODO: Add return values, exception handling, etc.
-    std::unique_lock<std::mutex> uLock(invokeLockMutex);
-    waitInfo.completionNotifier.wait(uLock, [&] { return waitInfo.isCompleted; });
+    std::unique_lock lock(g_invokeLockMutex);
+    waitInfo.completionNotifier.wait(lock, [&waitInfo] { return waitInfo.isCompleted || g_isShuttingDown.load(std::memory_order_acquire); });
 }
-
-
-
 
 
 //private methods
@@ -1286,8 +1334,8 @@ AutoString Photino::ToUTF16String(const AutoString source)
 
 void Photino::AttachWebView()
 {
-    size_t runtimePathLen = wcsnlen(_webview2RuntimePath, _countof(_webview2RuntimePath));
-    PCWSTR runtimePath = runtimePathLen > 0 ? &_webview2RuntimePath[0] : nullptr;
+    size_t runtimePathLen = wcsnlen(g_webview2RuntimePath, _countof(g_webview2RuntimePath));
+    PCWSTR runtimePath = runtimePathLen > 0 ? &g_webview2RuntimePath[0] : nullptr;
 
     //TODO: Implement special startup strings.
     //https://peter.sh/experiments/chromium-command-line-switches/
@@ -1562,7 +1610,7 @@ void Photino::SetWebView2RuntimePath(const AutoString pathToWebView2)
 {
     if (pathToWebView2 != nullptr)
     {
-        wcsncpy(_webview2RuntimePath, pathToWebView2, _countof(_webview2RuntimePath));
+        wcsncpy(g_webview2RuntimePath, pathToWebView2, _countof(g_webview2RuntimePath));
     }
 }
 
@@ -1578,7 +1626,7 @@ void Photino::Show(const bool isAlreadyShown)
     // until the window is shown.
     if (!_webviewController)
     {
-        if (wcsnlen(_webview2RuntimePath, _countof(_webview2RuntimePath)) > 0 || EnsureWebViewIsInstalled())
+        if (wcsnlen(g_webview2RuntimePath, _countof(g_webview2RuntimePath)) > 0 || EnsureWebViewIsInstalled())
             AttachWebView();
         else
             exit(0);

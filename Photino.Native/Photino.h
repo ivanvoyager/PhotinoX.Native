@@ -179,7 +179,6 @@ namespace PhotinoX::Native {
         PhotinoDialog* _dialog;
         void Show(bool isAlreadyShown);
 #ifdef _WIN32
-        static HINSTANCE _hInstance;
         HWND _hWnd;
         WinToastHandler* _toastHandler;
         wil::com_ptr<ICoreWebView2Environment> _webviewEnvironment;

@@ -278,8 +278,8 @@
   <ItemGroup>
     <ClCompile Include="Exports.cpp" />
     <ClCompile Include="Dependencies\wintoastlib.cpp" />
-    <ClCompile Include="Photino.Linux.cpp" />
-    <ClCompile Include="Photino.Linux.Dialog.cpp" />
+    <None Include="Photino.Linux.cpp" />
+    <None Include="Photino.Linux.Dialog.cpp" />
     <ClCompile Include="Photino.Windows.cpp" />
     <ClCompile Include="Photino.Windows.DarkMode.cpp" />
     <ClCompile Include="Photino.Windows.Dialog.cpp" />

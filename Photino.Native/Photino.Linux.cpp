@@ -29,7 +29,7 @@ using namespace PhotinoX::Native;
 // }
 /* --- end macro --- */
 
-std::mutex invokeLockMutex;
+static std::mutex invokeLockMutex;
 
 struct InvokeWaitInfo
 {
