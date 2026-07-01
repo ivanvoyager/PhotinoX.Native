@@ -29,7 +29,7 @@ using namespace PhotinoX::Native;
 // }
 /* --- end macro --- */
 
-std::mutex invokeLockMutex;
+static std::mutex invokeLockMutex;
 
 struct InvokeWaitInfo
 {
@@ -57,12 +57,17 @@ gboolean on_webview_context_menu(WebKitWebView *web_view,
 								 gpointer user_data);
 gboolean on_permission_request(WebKitWebView *web_view, WebKitPermissionRequest *request, gpointer user_data);
 
+void Photino::Register()
+{
+    static std::once_flag flag;
+    std::call_once(flag, []() {
+        XInitThreads();
+        gtk_init(0, nullptr);
+    });
+}
+
 Photino::Photino(PhotinoInitParams *initParams) : _webview(nullptr)
 {
-	// It makes xlib thread safe.
-	// Needed for get_position.
-	XInitThreads();
-	gtk_init(0, NULL);
 	notify_init(initParams->Title);
 
 	if (initParams->Size != sizeof(PhotinoInitParams))
@@ -340,115 +345,124 @@ void Photino::Center()
 					(screen.height - windowHeight) / 2);
 }
 
-void Photino::ClearBrowserAutoFill()
+void Photino::ClearBrowserAutoFill() const
 {
 	// TODO
 }
 
-void Photino::Close()
+void Photino::Close() const
 {
 	gtk_window_close(GTK_WINDOW(_window));
 }
 
-void Photino::GetTransparentEnabled(bool *enabled)
+void Photino::GetTransparentEnabled(bool *enabled) const
 {
 	*enabled = _transparentEnabled;
 }
 
-void Photino::GetContextMenuEnabled(bool *enabled)
+void Photino::GetContextMenuEnabled(bool *enabled) const
 {
 	*enabled = _contextMenuEnabled;
 }
 
-void Photino::GetZoomEnabled(bool *enabled)
+void Photino::GetZoomEnabled(bool *enabled) const
 {
     *enabled = _zoomEnabled;
 }
 
-void Photino::GetDevToolsEnabled(bool *enabled)
+void Photino::GetDevToolsEnabled(bool *enabled) const
 {
 	WebKitSettings *settings = webkit_web_view_get_settings(WEBKIT_WEB_VIEW(_webview));
-	_devToolsEnabled = webkit_settings_get_enable_developer_extras(settings);
-	*enabled = _devToolsEnabled;
+    *enabled = webkit_settings_get_enable_developer_extras(settings) ? true : false;
 }
 
-void Photino::GetFullScreen(bool *fullScreen)
+void Photino::GetFullScreen(bool *fullScreen) const
 {
 	*fullScreen = _isFullScreen;
 }
 
-void Photino::GetGrantBrowserPermissions(bool *grant)
+void Photino::GetGrantBrowserPermissions(bool *grant) const
 {
 	*grant = _grantBrowserPermissions;
 }
 
-AutoString Photino::GetUserAgent()
+AutoString Photino::GetUserAgent() const
 {
 	return this->_userAgent;
 }
 
-void Photino::GetMediaAutoplayEnabled(bool* enabled)
+void Photino::GetMediaAutoplayEnabled(bool* enabled) const
 {
 	*enabled = this->_mediaAutoplayEnabled;
 }
 
-void Photino::GetFileSystemAccessEnabled(bool* enabled)
+void Photino::GetFileSystemAccessEnabled(bool* enabled) const
 {
 	*enabled = this->_fileSystemAccessEnabled;
 }
 
-void Photino::GetWebSecurityEnabled(bool* enabled)
+void Photino::GetWebSecurityEnabled(bool* enabled) const
 {
 	*enabled = this->_webSecurityEnabled;
 }
 
-void Photino::GetJavascriptClipboardAccessEnabled(bool* enabled)
+void Photino::GetJavascriptClipboardAccessEnabled(bool* enabled) const
 {
 	*enabled = this->_javascriptClipboardAccessEnabled;
 }
 
-void Photino::GetMediaStreamEnabled(bool* enabled)
+void Photino::GetMediaStreamEnabled(bool* enabled) const
 {
 	*enabled = this->_mediaStreamEnabled;
 }
 
-void Photino::GetSmoothScrollingEnabled(bool* enabled)
+void Photino::GetSmoothScrollingEnabled(bool* enabled) const
 {
 	*enabled = this->_smoothScrollingEnabled;
 }
 
-void Photino::GetIgnoreCertificateErrorsEnabled(bool* enabled)
+void Photino::GetIgnoreCertificateErrorsEnabled(bool* enabled) const
 {
 	*enabled = this->_ignoreCertificateErrorsEnabled;
 }
 
-void Photino::GetMaximized(bool *isMaximized)
+void Photino::GetMaximized(bool *isMaximized) const
 {
 	//gboolean maximized = gtk_window_is_maximized(GTK_WINDOW(_window));  //this method doesn't work
 	//*isMaximized = maximized;
 	GdkWindow *gdk_window = gtk_widget_get_window(GTK_WIDGET(_window));
+	if (gdk_window == NULL)
+	{
+		*isMaximized = false;
+		return;
+	}
 	GdkWindowState flags = gdk_window_get_state(gdk_window);
 	*isMaximized = flags & GDK_WINDOW_STATE_MAXIMIZED;
 }
 
-void Photino::GetMinimized(bool *isMinimized)
+void Photino::GetMinimized(bool *isMinimized) const
 {
 	GdkWindow *gdk_window = gtk_widget_get_window(GTK_WIDGET(_window));
+	if (gdk_window == NULL)
+	{
+		*isMinimized = false;
+		return;
+	}
 	GdkWindowState flags = gdk_window_get_state(gdk_window);
 	*isMinimized = flags & GDK_WINDOW_STATE_ICONIFIED;
 }
 
-void Photino::GetPosition(int *x, int *y)
+void Photino::GetPosition(int *x, int *y) const
 {
 	gtk_window_get_position(GTK_WINDOW(_window), x, y);
 }
 
-void Photino::GetResizable(bool *resizable)
+void Photino::GetResizable(bool *resizable) const
 {
 	*resizable = gtk_window_get_resizable(GTK_WINDOW(_window));
 }
 
-unsigned int Photino::GetScreenDpi()
+unsigned int Photino::GetScreenDpi() const
 {
 	GdkScreen *screen = gtk_window_get_screen(GTK_WINDOW(_window));
 	gdouble dpi = gdk_screen_get_resolution(screen);
@@ -458,7 +472,7 @@ unsigned int Photino::GetScreenDpi()
 		return (unsigned int)dpi;
 }
 
-void Photino::GetSize(int *width, int *height)
+void Photino::GetSize(int *width, int *height) const
 {
 	gtk_window_get_size(GTK_WINDOW(_window), width, height);
 
@@ -476,15 +490,20 @@ void Photino::GetSize(int *width, int *height)
 	// gtk_widget_destroy(dialog);
 }
 
-AutoString Photino::GetTitle()
+AutoString Photino::GetTitle() const
 {
 	return (AutoString)gtk_window_get_title(GTK_WINDOW(_window));
 }
 
-void Photino::GetTopmost(bool *topmost)
+void Photino::GetTopmost(bool *topmost) const
 {
 	// TODO: This flag is not set in GDK3. WebKit does not support GTK5 yet.
 	GdkWindow *gdk_window = gtk_widget_get_window(GTK_WIDGET(_window));
+	if (gdk_window == NULL)
+	{
+		*topmost = false;
+		return;
+	}
 	GdkWindowState flags = gdk_window_get_state(gdk_window);
 	*topmost = flags & GDK_WINDOW_STATE_ABOVE;
 
@@ -505,7 +524,7 @@ void Photino::GetTopmost(bool *topmost)
 	// gtk_widget_destroy(dialog);
 }
 
-void Photino::GetZoom(int *zoom)
+void Photino::GetZoom(int *zoom) const
 {
 	double rawValue = 0;
 	rawValue = webkit_web_view_get_zoom_level(WEBKIT_WEB_VIEW(_webview));
@@ -732,7 +751,7 @@ void Photino::ShowNotification(AutoString title, AutoString message)
 	g_object_unref(G_OBJECT(notification));
 }
 
-void Photino::WaitForExit()
+void Photino::WaitForExit() const
 {
 	gtk_main();
 }
@@ -770,7 +789,7 @@ static gboolean invokeCallback(gpointer data)
 	return false;
 }
 
-void Photino::Invoke(InvokeCallback callback)
+void Photino::Invoke(InvokeCallback callback) const
 {
 	InvokeWaitInfo waitInfo = {};
 	waitInfo.callback = callback;
@@ -1065,7 +1084,9 @@ gboolean on_webview_context_menu(WebKitWebView *web_view, GtkWidget *default_men
 								 WebKitHitTestResult *hit_test_result, gboolean triggered_with_keyboard, gpointer self)
 {
 	Photino *instance = ((Photino *)self);
-	return !instance->_contextMenuEnabled;
+    bool contextMenuEnabled = false;
+    instance->GetContextMenuEnabled(&contextMenuEnabled);
+    return !contextMenuEnabled;
 }
 
 gboolean on_permission_request(WebKitWebView *web_view, WebKitPermissionRequest *request, gpointer user_data)

@@ -21,9 +21,6 @@
     <ClCompile Include="Photino.Windows.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Photino.Linux.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Dependencies\wintoastlib.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -31,9 +28,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Photino.Windows.Dialog.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Photino.Linux.Dialog.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -60,6 +54,12 @@
       <Filter>Source Files</Filter>
     </None>
     <None Include="Photino.Mac.NSWindowBorderless.mm">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="Photino.Linux.cpp">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="Photino.Linux.Dialog.cpp">
       <Filter>Source Files</Filter>
     </None>
   </ItemGroup>

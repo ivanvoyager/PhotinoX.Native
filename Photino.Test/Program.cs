@@ -79,8 +79,8 @@ namespace Photino.Test
                 //.SetMaximized(true)
                 //.SetMaxSize(640, 480)
                 //.SetMinimized(true)
-                .SetMinHeight(480)
-                .SetMinWidth(640)
+                .SetMinHeight(600)
+                .SetMinWidth(800)
                 //.SetMinSize(320, 240)
                 //.SetResizable(true)
                 //.SetTopMost(true)
@@ -163,8 +163,8 @@ namespace Photino.Test
                 //Transparent = true,
                 //FullScreen = true,
                 //Maximized = true,
-                MaxWidth = 640,
-                MaxHeight = 480,
+                MaxWidth = 800,
+                MaxHeight = 600,
                 //MaxSize = new Point(640, 480),
                 //Minimized = true,
                 MinWidth = 320,
@@ -339,6 +339,10 @@ namespace Photino.Test
             {
                 currentWindow.SetContextMenuEnabled(!currentWindow.ContextMenuEnabled);
             }
+            else if (string.Compare(message, "setzoomenabled", true) == 0)
+            {
+                currentWindow.SetZoomEnabled(!currentWindow.ZoomEnabled);
+            }
             else if (string.Compare(message, "setdevtoolsenabled", true) == 0)
             {
                 currentWindow.SetDevToolsEnabled(!currentWindow.DevToolsEnabled);
@@ -409,7 +413,7 @@ namespace Photino.Test
             }
             else if (string.Compare(message, "setMaxSize", true) == 0)
             {
-                currentWindow.SetMaxSize(640, 480);
+                currentWindow.SetMaxSize(800, 600);
             }
             else if (string.Compare(message, "toastNotification", true) == 0)
             {

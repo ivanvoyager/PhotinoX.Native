@@ -169,6 +169,8 @@ namespace PhotinoX::Native {
         bool _smoothScrollingEnabled;
         bool _ignoreCertificateErrorsEnabled;
         bool _notificationsEnabled;
+        bool _contextMenuEnabled;
+        bool _zoomEnabled;
         bool isClosing_ = false;
 
         int _zoom;
@@ -177,7 +179,6 @@ namespace PhotinoX::Native {
         PhotinoDialog* _dialog;
         void Show(bool isAlreadyShown);
 #ifdef _WIN32
-        static HINSTANCE _hInstance;
         HWND _hWnd;
         WinToastHandler* _toastHandler;
         wil::com_ptr<ICoreWebView2Environment> _webviewEnvironment;
@@ -186,7 +187,6 @@ namespace PhotinoX::Native {
         bool EnsureWebViewIsInstalled();
         bool InstallWebView2();
         void AttachWebView();
-        bool ToWide(PhotinoInitParams* params);
 
 #elif __linux__
         // GtkWidget* _window;
@@ -198,7 +198,7 @@ namespace PhotinoX::Native {
         NSWindow* _window;
         WKWebView* _webview;
         WKWebViewConfiguration* _webviewConfiguration;
-        std::vector<Monitor*> GetMonitors();
+        std::vector<Monitor*> GetMonitors() const;
 
         bool _chromeless;
 
@@ -213,28 +213,17 @@ namespace PhotinoX::Native {
         void SetUserAgent(AutoString userAgent);
 
         void SetPreference(NSString* key, NSNumber* value);
-        // void SetPreference(NSString *key, NSUInteger value);
-        // void SetPreference(NSString *key, double value);
         void SetPreference(NSString* key, NSString* value);
-        // void SetPreference(NSString *key, _WKEditableLinkBehavior value);
-        // void SetPreference(NSString *key, _WKJavaScriptRuntimeFlags value);
-        // void SetPreference(NSString *key, _WKPitchCorrectionAlgorithm value);
-        // void SetPreference(NSString *key, _WKStorageBlockingPolicy value);
-        // void SetPreference(NSString *key, _WKDebugOverlayRegions value);
 #endif
-
     public:
-        bool _contextMenuEnabled;
-        bool _zoomEnabled;
-
 #ifdef _WIN32
         static void Register(HINSTANCE hInstance);
         static void SetWebView2RuntimePath(AutoString pathToWebView2);
-        HWND getHwnd();
-        void RefitContent();
-        void FocusWebView2();
-        void NotifyWebView2WindowMove();
-        void GetNotificationsEnabled(bool* enabled);
+        HWND getHwnd() const;
+        void RefitContent() const;
+        void FocusWebView2() const;
+        void NotifyWebView2WindowMove() const;
+        void GetNotificationsEnabled(bool* enabled) const;
         AutoString ToUTF16String(AutoString source);
         AutoString ToUTF8String(AutoString source);
         int _minWidth;
@@ -242,6 +231,7 @@ namespace PhotinoX::Native {
         int _maxWidth;
         int _maxHeight;
 #elif __linux__
+        static void Register();
         void set_webkit_settings();
         void set_webkit_custom_settings(WebKitSettings* settings);
         GtkWidget* _window;
@@ -263,33 +253,33 @@ namespace PhotinoX::Native {
         PhotinoDialog* GetDialog() const { return _dialog; };
 
         void Center();
-        void ClearBrowserAutoFill();
-        void Close();
+        void ClearBrowserAutoFill() const;
+        void Close() const;
 
-        void GetTransparentEnabled(bool* enabled);
-        void GetContextMenuEnabled(bool* enabled);
-        void GetZoomEnabled(bool* enabled);
-        void GetDevToolsEnabled(bool* enabled);
-        void GetFullScreen(bool* fullScreen);
-        void GetGrantBrowserPermissions(bool* grant);
-        AutoString GetUserAgent();
-        void GetMediaAutoplayEnabled(bool* enabled);
-        void GetFileSystemAccessEnabled(bool* enabled);
-        void GetWebSecurityEnabled(bool* enabled);
-        void GetJavascriptClipboardAccessEnabled(bool* enabled);
-        void GetMediaStreamEnabled(bool* enabled);
-        void GetSmoothScrollingEnabled(bool* enabled);
-        AutoString GetIconFileName();
-        void GetMaximized(bool* isMaximized);
-        void GetMinimized(bool* isMinimized);
-        void GetPosition(int* x, int* y);
-        void GetResizable(bool* resizable);
-        unsigned int GetScreenDpi();
-        void GetSize(int* width, int* height);
-        AutoString GetTitle();
-        void GetTopmost(bool* topmost);
-        void GetZoom(int* zoom);
-        void GetIgnoreCertificateErrorsEnabled(bool* enabled);
+        void GetTransparentEnabled(bool* enabled) const;
+        void GetContextMenuEnabled(bool* enabled) const;
+        void GetZoomEnabled(bool* enabled) const;
+        void GetDevToolsEnabled(bool* enabled) const;
+        void GetFullScreen(bool* fullScreen) const;
+        void GetGrantBrowserPermissions(bool* grant) const;
+        AutoString GetUserAgent() const;
+        void GetMediaAutoplayEnabled(bool* enabled) const;
+        void GetFileSystemAccessEnabled(bool* enabled) const;
+        void GetWebSecurityEnabled(bool* enabled) const;
+        void GetJavascriptClipboardAccessEnabled(bool* enabled) const;
+        void GetMediaStreamEnabled(bool* enabled) const;
+        void GetSmoothScrollingEnabled(bool* enabled) const;
+        AutoString GetIconFileName() const;
+        void GetMaximized(bool* isMaximized) const;
+        void GetMinimized(bool* isMinimized) const;
+        void GetPosition(int* x, int* y) const;
+        void GetResizable(bool* resizable) const;
+        unsigned int GetScreenDpi() const;
+        void GetSize(int* width, int* height) const;
+        AutoString GetTitle() const;
+        void GetTopmost(bool* topmost) const;
+        void GetZoom(int* zoom) const;
+        void GetIgnoreCertificateErrorsEnabled(bool* enabled) const;
 
         void NavigateToString(AutoString content);
         void NavigateToUrl(AutoString url);
@@ -314,7 +304,7 @@ namespace PhotinoX::Native {
         void SetZoom(int zoom);
 
         void ShowNotification(AutoString title, AutoString message);
-        void WaitForExit();
+        void WaitForExit() const;
         void CloseWebView();
 
         // Callbacks
@@ -330,7 +320,7 @@ namespace PhotinoX::Native {
         void SetRestoredCallback(RestoredCallback callback) { _restoredCallback = callback; }
         void SetMinimizedCallback(MinimizedCallback callback) { _minimizedCallback = callback; }
 
-        void Invoke(InvokeCallback callback);
+        void Invoke(InvokeCallback callback) const;
 
         bool InvokeClosing()
         {

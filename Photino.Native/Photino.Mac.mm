@@ -343,12 +343,12 @@ void Photino::Center()
     //[_window setFrame: NSMakeRect(xPos, yPos, NSWidth(window), NSHeight(window)) display:YES];
 }
 
-void Photino::ClearBrowserAutoFill()
+void Photino::ClearBrowserAutoFill() const
 {
     //TODO
 }
 
-void Photino::Close()
+void Photino::Close() const
 {
     if (_chromeless)
     {
@@ -362,87 +362,87 @@ void Photino::Close()
     }
 }
 
-void Photino::GetTransparentEnabled(bool* enabled)
+void Photino::GetTransparentEnabled(bool* enabled) const
 {
     //! Not implemented (supported?) on macOS
     // *enabled = _transparentEnabled;
     *enabled = false;
 }
 
-void Photino::GetContextMenuEnabled(bool* enabled)
+void Photino::GetContextMenuEnabled(bool* enabled) const
 {
     *enabled = _contextMenuEnabled;
 }
 
-void Photino::GetZoomEnabled(bool* enabled)
+void Photino::GetZoomEnabled(bool* enabled) const
 {
     *enabled = _zoomEnabled;
 }
 
-void Photino::GetDevToolsEnabled(bool* enabled)
+void Photino::GetDevToolsEnabled(bool* enabled) const
 {
     *enabled = _devToolsEnabled;
 }
 
-void Photino::GetGrantBrowserPermissions(bool* enabled)
+void Photino::GetGrantBrowserPermissions(bool* enabled) const
 {
     *enabled = _grantBrowserPermissions;
 }
 
-AutoString Photino::GetUserAgent()
+AutoString Photino::GetUserAgent() const
 {
     return _userAgent;
 }
 
 //! Always enabled on macOS. This is always true.
-void Photino::GetMediaAutoplayEnabled(bool* enabled)
+void Photino::GetMediaAutoplayEnabled(bool* enabled) const
 {
     *enabled = true;
 }
 
 //! Not supported on macOS. This is always false.
-void Photino::GetFileSystemAccessEnabled(bool* enabled)
+void Photino::GetFileSystemAccessEnabled(bool* enabled) const
 {
     *enabled = _fileSystemAccessEnabled;
 }
 
 //! Not supported on macOS. This is always false.
-void Photino::GetSmoothScrollingEnabled(bool* enabled)
+void Photino::GetSmoothScrollingEnabled(bool* enabled) const
 {
     *enabled = false;
 }
 
-void Photino::GetWebSecurityEnabled(bool* enabled)
+void Photino::GetWebSecurityEnabled(bool* enabled) const
 {
     *enabled = _webSecurityEnabled;
 }
 
-void Photino::GetJavascriptClipboardAccessEnabled(bool* enabled)
+void Photino::GetJavascriptClipboardAccessEnabled(bool* enabled) const
 {
     *enabled = _javascriptClipboardAccessEnabled;
 }
 
-void Photino::GetMediaStreamEnabled(bool* enabled)
+void Photino::GetMediaStreamEnabled(bool* enabled) const
 {
     *enabled = _mediaStreamEnabled;
 }
 
-void Photino::GetFullScreen(bool* fullScreen)
+void Photino::GetFullScreen(bool* fullScreen) const
 {
     *fullScreen = ([_window.contentView isInFullScreenMode]);
 }
 
-void Photino::GetMaximized(bool* isMaximized)
+void Photino::GetMaximized(bool* isMaximized) const
 {
     *isMaximized = (([_window styleMask] & NSWindowStyleMaskFullScreen) == NSWindowStyleMaskFullScreen);
 }
 
-void Photino::GetMinimized(bool* isMinimized)
+void Photino::GetMinimized(bool* isMinimized) const
 {
 	*isMinimized = [_window isMiniaturized];
 }
 
-void Photino::GetPosition(int* x, int* y)
+void Photino::GetPosition(int* x, int* y) const
 {
     NSRect frame = [_window frame];
 
@@ -455,40 +455,40 @@ void Photino::GetPosition(int* x, int* y)
     *y = (int)(monitor.monitor.height - ((int)roundf(frame.origin.y) + height)); // Assuming window is on monitor 0
  }
 
-void Photino::GetResizable(bool* resizable)
+void Photino::GetResizable(bool* resizable) const
 {
    *resizable = (([_window styleMask] & NSWindowStyleMaskResizable) == NSWindowStyleMaskResizable);
 }
 
-void Photino::GetIgnoreCertificateErrorsEnabled(bool* enabled)
+void Photino::GetIgnoreCertificateErrorsEnabled(bool* enabled) const
 {
 	*enabled = this->_ignoreCertificateErrorsEnabled;
 }
 
-unsigned int Photino::GetScreenDpi()
+unsigned int Photino::GetScreenDpi() const
 {
     //not supported on macOS - _window's devices collection does have dpi
 	return 72;  //https://stackoverflow.com/questions/2621439/hot-to-get-screen-dpi-linux-mac-programaticaly
 }
 
-void Photino::GetSize(int* width, int* height)
+void Photino::GetSize(int* width, int* height) const
 {
     NSSize size = [_window frame].size;
     if (width) *width = (int)roundf(size.width);
     if (height) *height = (int)roundf(size.height);
 }
 
-AutoString Photino::GetTitle()
+AutoString Photino::GetTitle() const
 {
     return _windowTitle;
 }
 
-void Photino::GetTopmost(bool* topmost)
+void Photino::GetTopmost(bool* topmost) const
 {
     *topmost = ([_window level] & NSFloatingWindowLevel) == NSFloatingWindowLevel;
 }
 
-void Photino::GetZoom(int* zoom)
+void Photino::GetZoom(int* zoom) const
 {
 	CGFloat rawValue = [_webview magnification];
 	rawValue = (rawValue * 100.0) + 0.5;
@@ -560,46 +560,6 @@ void Photino::SetPreference(NSString *key, NSString *value)
 {
     [_webviewConfiguration.preferences setValue: value forKey: key];
 }
-
-// Fail to compile because NSUInteger and double are not "id _Nullable"?
-
-// void Photino::SetPreference(NSString *key, NSUInteger value)
-// {
-//     [_webviewConfiguration.preferences setValue: value forKey: key];
-// }
-// void Photino::SetPreference(NSString *key, double value)
-// {
-//     [_webviewConfiguration.preferences setValue: value forKey: key];
-// }
-
-// Fail to compile because value types are not available with currently linked SDKs?
-
-// void Photino::SetPreference(NSString *key, _WKEditableLinkBehavior value)
-// {
-//     [_webviewConfiguration.preferences setValue value forKey: key];
-// }
-// void Photino::SetPreference(NSString *key, _WKJavaScriptRuntimeFlags value)
-// {
-//     [_webviewConfiguration.preferences setValue value forKey: key];
-// }
-// void Photino::SetPreference(NSString *key, _WKPitchCorrectionAlgorithm value)
-// {
-//     [_webviewConfiguration.preferences setValue value forKey: key];
-// }
-// void Photino::SetPreference(NSString *key, _WKStorageBlockingPolicy value)
-// {
-//     [_webviewConfiguration.preferences setValue value forKey: key];
-// }
-// void Photino::SetPreference(NSString *key, _WKDebugOverlayRegions value)
-// {
-//     [_webviewConfiguration.preferences setValue value forKey: key];
-// }
-
-// // Get preference based on a string key
-// id Photino::GetPreference(NSString *key)
-// {
-//     return [_webviewConfiguration.preferences valueForKey: key];
-// }
 
 void Photino::SetDevToolsEnabled(bool enabled)
 {
@@ -796,7 +756,7 @@ void Photino::ShowNotification(AutoString title, AutoString body)
     [center addNotificationRequest:request withCompletionHandler:^(NSError * _Nullable error) {}];
 }
 
-void Photino::WaitForExit()
+void Photino::WaitForExit() const
 {
     [NSApp run];
 }
@@ -830,7 +790,7 @@ void Photino::GetAllMonitors(GetAllMonitorsCallback callback)
     }
 }
 
-std::vector<Monitor *> Photino::GetMonitors()
+std::vector<Monitor *> Photino::GetMonitors() const
 {
     std::vector<Monitor *> monitors;
 
@@ -863,7 +823,7 @@ std::vector<Monitor *> Photino::GetMonitors()
     return monitors;
 }
 
-void Photino::Invoke(InvokeCallback callback)
+void Photino::Invoke(InvokeCallback callback) const
 {
     dispatch_sync(dispatch_get_main_queue(), ^(void){
         callback();

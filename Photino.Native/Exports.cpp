@@ -31,6 +31,11 @@ extern "C"
 	{
 		instance->GetNotificationsEnabled(disabled);
 	}
+#elif __linux__
+    EXPORTED void Photino_register_linux()
+    {
+        Photino::Register();
+    }
 #elif __APPLE__
 	EXPORTED void Photino_register_mac()
 	{
