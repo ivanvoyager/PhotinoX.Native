@@ -1,317 +1,491 @@
 #include "Photino.Dialog.h"
+#include "Photino.h"
 
-#include <cwchar>
-#include <iostream>
+#include <Windows.h>
+#include <cassert>
 #include <shobjidl.h>
-#include <shlwapi.h>
-#include <objbase.h>
+
+#include <string>
+#include <type_traits>
 #include <vector>
 
 using namespace PhotinoX::Native;
 
-class Dll
+namespace
 {
-public:
-	explicit Dll(std::string const& name);
-	~Dll();
+    class ActivationContextHandle
+    {
+      public:
+        ActivationContextHandle()
+            : _handle(Create())
+        {
+        }
 
-	template<typename T> class Proc
-	{
-	public:
-		Proc(Dll const& lib, std::string const& sym)
-			: _mProc(static_cast<T*>((void*)GetProcAddress(lib._handle, sym.c_str())))
-		{}
+        ~ActivationContextHandle()
+        {
+            if (_handle != INVALID_HANDLE_VALUE)
+                ReleaseActCtx(_handle);
+        }
 
-		explicit operator bool() const { return _mProc != nullptr; }
-		explicit operator T* () const { return _mProc; }
+        HANDLE Get() const
+        {
+            return _handle;
+        }
 
-	private:
-		T* _mProc;
-	};
+      private:
+        static HANDLE Create()
+        {
+            const UINT len = GetSystemDirectoryW(nullptr, 0);
+            if (len == 0)
+                return INVALID_HANDLE_VALUE;
 
-private:
-	HMODULE _handle;
-};
+            std::wstring sysDir(len, L'\0');
+            if (GetSystemDirectoryW(sysDir.data(), len) == 0)
+                return INVALID_HANDLE_VALUE;
 
-inline Dll::Dll(std::string const& name)
-	: _handle(LoadLibraryA(name.c_str()))
-{}
+            const ACTCTXW actCtx =
+                {
+                    sizeof(actCtx),
+                    ACTCTX_FLAG_RESOURCE_NAME_VALID | ACTCTX_FLAG_ASSEMBLY_DIRECTORY_VALID,
+                    L"shell32.dll",
+                    0,
+                    0,
+                    sysDir.c_str(),
+                    MAKEINTRESOURCEW(124),
+                    nullptr,
+                    nullptr,
+                };
 
-inline Dll::~Dll()
-{
-	if (_handle)
-		FreeLibrary(_handle);
-}
+            return CreateActCtxW(&actCtx);
+        }
 
-class NewStyleContext
-{
-public:
-	NewStyleContext();
-	~NewStyleContext();
+        HANDLE _handle = INVALID_HANDLE_VALUE;
+    };
 
-private:
-	static HANDLE Create();
-	ULONG_PTR _cookie = 0;
-};
+    class NewStyleContext
+    {
+        public:
+            NewStyleContext();
+            ~NewStyleContext();
+    
+        private:
+            ULONG_PTR _cookie = 0;
+    };
 
-inline NewStyleContext::NewStyleContext()
-{
-	static HANDLE hctx = Create();
+    NewStyleContext::NewStyleContext()
+    {
+        static ActivationContextHandle hctx;
 
-	if (hctx != INVALID_HANDLE_VALUE)
-		ActivateActCtx(hctx, &_cookie);
-}
+        if (hctx.Get() != INVALID_HANDLE_VALUE)
+            ActivateActCtx(hctx.Get(), &_cookie);
+    }
 
-inline NewStyleContext::~NewStyleContext()
-{
-	DeactivateActCtx(0, _cookie);
-}
-
-inline HANDLE NewStyleContext::Create()
-{
-	Dll comdlg32("comdlg32.dll");
-
-	const UINT len = GetSystemDirectoryA(nullptr, 0);
-	std::string sysDir(len, '\0');
-	GetSystemDirectoryA(const_cast<LPSTR>(sysDir.data()), len);
-
-	const ACTCTXA actCtx =
-	{
-		sizeof(actCtx),
-		ACTCTX_FLAG_RESOURCE_NAME_VALID | ACTCTX_FLAG_ASSEMBLY_DIRECTORY_VALID,
-		"shell32.dll", 0, 0, sysDir.c_str(), (LPCSTR)124, nullptr, nullptr,
-	};
-
-	return CreateActCtxA(&actCtx);
+    NewStyleContext::~NewStyleContext()
+    {
+        if (_cookie != 0)
+            DeactivateActCtx(0, _cookie);
+    }
 }
 
 PhotinoDialog::PhotinoDialog(Photino* window)
 {
-	_window = window;
-	CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
+    _window = window;
+
+    const HRESULT hr = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
+    _comInitialized = SUCCEEDED(hr);
 }
 
 PhotinoDialog::~PhotinoDialog()
 {
-	CoUninitialize();
+    if (_comInitialized)
+        CoUninitialize();
 }
 
-template<typename T>
-T* Create(HRESULT* hResult, AutoString title, AutoString defaultPath)
+namespace
 {
-	static_assert(std::is_base_of<IFileDialog, T>::value, "T must inherit from IFileDialog");
-	T* pfd = nullptr;
-	const CLSID clsid = typeid(T) == typeid(IFileOpenDialog) ? CLSID_FileOpenDialog : typeid(T) == typeid(IFileSaveDialog) ? CLSID_FileSaveDialog : CLSID_FileOpenDialog;
-	HRESULT hr = CoCreateInstance(clsid, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&pfd));
-	if (SUCCEEDED(hr)) {
-		pfd->SetTitle(title);
+    template <typename T>
+    T* CreateDlg(HRESULT* hResult, const PlatformString& title, const PlatformString& defaultPath)
+    {
+        static_assert(std::is_base_of_v<IFileDialog, T>, "T must inherit from IFileDialog");
 
-		if (defaultPath) {
-			IShellItem* psiDefault = nullptr;
-			hr = SHCreateItemFromParsingName(defaultPath, nullptr, IID_PPV_ARGS(&psiDefault));
-			if (SUCCEEDED(hr)) {
-				pfd->SetFolder(psiDefault);
-				psiDefault->Release();
-			}
-		}
+        assert(hResult);
+        if (!hResult)
+            return nullptr;
 
-		*hResult = hr;
-		return pfd;
-	}
-	return nullptr;
+        T* pfd = nullptr;
+
+        const CLSID clsid = std::is_same_v<T, IFileSaveDialog>
+                                ? CLSID_FileSaveDialog
+                                : CLSID_FileOpenDialog;
+
+        HRESULT hr = CoCreateInstance(clsid, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&pfd));
+        if (FAILED(hr))
+        {
+            *hResult = hr;
+            return nullptr;
+        }
+
+        if (!title.empty())
+        {
+            hr = pfd->SetTitle(title.c_str());
+            if (FAILED(hr))
+            {
+                pfd->Release();
+                *hResult = hr;
+                return nullptr;
+            }
+        }
+
+        if (!defaultPath.empty())
+        {
+            IShellItem* psiDefault = nullptr;
+            hr = SHCreateItemFromParsingName(defaultPath.c_str(), nullptr, IID_PPV_ARGS(&psiDefault));
+            if (SUCCEEDED(hr) && psiDefault)
+            {
+                hr = pfd->SetFolder(psiDefault);
+                psiDefault->Release();
+
+                if (FAILED(hr))
+                {
+                    pfd->Release();
+                    *hResult = hr;
+                    return nullptr;
+                }
+            }
+        }
+
+        *hResult = S_OK;
+        return pfd;
+    }
+
+    bool AddFilters(IFileDialog* pfd, const std::vector<PlatformString>& filters)
+    {
+        if (!pfd || filters.empty())
+            return true;
+
+        std::vector<PlatformString> names;
+        std::vector<PlatformString> patterns;
+        std::vector<COMDLG_FILTERSPEC> specs;
+
+        names.reserve(filters.size());
+        patterns.reserve(filters.size());
+        specs.reserve(filters.size());
+
+        for (const auto& filter : filters)
+        {
+            const auto separator = filter.find(L'|');
+            if (separator == PlatformString::npos || separator == 0 || separator + 1 >= filter.size())
+                continue;
+
+            names.emplace_back(filter.substr(0, separator));
+            patterns.emplace_back(filter.substr(separator + 1));
+
+            COMDLG_FILTERSPEC spec{};
+            spec.pszName = names.back().c_str();
+            spec.pszSpec = patterns.back().c_str();
+            specs.push_back(spec);
+        }
+
+        if (specs.empty())
+            return true;
+
+        return SUCCEEDED(pfd->SetFileTypes(static_cast<UINT>(specs.size()), specs.data()));
+    }
+
+    std::vector<PlatformString> GetResults(IFileOpenDialog* pfd)
+    {
+        std::vector<PlatformString> result;
+
+        IShellItemArray* psiResults = nullptr;
+        HRESULT hr = pfd->GetResults(&psiResults);
+        if (FAILED(hr) || !psiResults)
+            return result;
+
+        DWORD count = 0;
+        hr = psiResults->GetCount(&count);
+        if (FAILED(hr))
+        {
+            psiResults->Release();
+            return result;
+        }
+
+        result.reserve(static_cast<size_t>(count));
+
+        for (DWORD i = 0; i < count; ++i)
+        {
+            IShellItem* psiItem = nullptr;
+            hr = psiResults->GetItemAt(i, &psiItem);
+            if (FAILED(hr) || !psiItem)
+                continue;
+
+            PWSTR pszName = nullptr;
+            hr = psiItem->GetDisplayName(SIGDN_FILESYSPATH, &pszName);
+
+            if (pszName)
+            {
+                if (SUCCEEDED(hr))
+                    result.emplace_back(pszName);
+
+                CoTaskMemFree(pszName);
+            }
+
+            psiItem->Release();
+        }
+
+        psiResults->Release();
+        return result;
+    }
 }
 
-void AddFilters(IFileDialog* pfd, wchar_t** filters, const int filterCount, Photino* wndInstance)
+std::vector<PlatformString> PhotinoDialog::ShowOpenFile(
+    const PlatformString& title,
+    const PlatformString& defaultPath,
+    bool multiSelect,
+    const std::vector<PlatformString>& filters) const
 {
-	std::vector<COMDLG_FILTERSPEC> specs;
-	for (int i = 0; i < filterCount; i++) {
-		auto* filter = new wchar_t[MAX_PATH];
-		AutoString wFilter = wndInstance->ToUTF16String(filters[i]);
-		wcscpy_s(filter, MAX_PATH, wFilter);
+    assert(_window);
+    if (!_window)
+        return {};
 
-		const wchar_t* filterName = wcstok_s(filter, L"|", &filter);
-		const wchar_t* filterPattern = filter;
-		COMDLG_FILTERSPEC spec;
-		spec.pszName = filterName;
-		spec.pszSpec = filterPattern;
-		specs.push_back(spec);
-	}
-	pfd->SetFileTypes(filterCount, specs.data());
+    HRESULT hr = S_OK;
+    IFileOpenDialog* pfd = CreateDlg<IFileOpenDialog>(&hr, title, defaultPath);
+    if (!pfd)
+        return {};
+
+    if (!AddFilters(pfd, filters))
+    {
+        pfd->Release();
+        return {};
+    }
+
+    DWORD dwOptions = 0;
+    hr = pfd->GetOptions(&dwOptions);
+    if (FAILED(hr))
+    {
+        pfd->Release();
+        return {};
+    }
+
+    dwOptions |= FOS_FILEMUSTEXIST | FOS_NOCHANGEDIR;
+
+    if (multiSelect)
+        dwOptions |= FOS_ALLOWMULTISELECT;
+    else
+        dwOptions &= ~FOS_ALLOWMULTISELECT;
+
+    hr = pfd->SetOptions(dwOptions);
+    if (FAILED(hr))
+    {
+        pfd->Release();
+        return {};
+    }
+
+    std::vector<PlatformString> result;
+
+    hr = pfd->Show(_window->GetHwnd());
+    if (SUCCEEDED(hr))
+        result = GetResults(pfd);
+
+    pfd->Release();
+    return result;
 }
 
-AutoString* GetResults(IFileOpenDialog* pfd, HRESULT* hr, int* resultCount)
+std::vector<PlatformString> PhotinoDialog::ShowOpenFolder(
+    const PlatformString& title,
+    const PlatformString& defaultPath,
+    bool multiSelect) const
 {
-	IShellItemArray* psiResults = nullptr;
-	*hr = pfd->GetResults(&psiResults);
-	if (SUCCEEDED(*hr)) {
-		DWORD count = 0;
-		psiResults->GetCount(&count);
-		if (count > 0) {
-			*resultCount = static_cast<int>(count);
-			auto** result = new wchar_t* [count];
-			for (DWORD i = 0; i < count; ++i) {
-				IShellItem* psiItem = nullptr;
-				*hr = psiResults->GetItemAt(i, &psiItem);
-				if (SUCCEEDED(*hr)) {
-					PWSTR pszName = nullptr;
-					*hr = psiItem->GetDisplayName(SIGDN_FILESYSPATH, &pszName);
-					if (SUCCEEDED(*hr)) {
-						const auto len = wcslen(pszName);
-						result[i] = new wchar_t[len + 1];
-						wcscpy_s(result[i], len + 1, pszName);
-						CoTaskMemFree(pszName);
-					}
-					psiItem->Release();
-				}
-			}
-			psiResults->Release();
-			pfd->Release();
-			return result;
-		}
-		psiResults->Release();
-	}
-	pfd->Release();
+    assert(_window);
+    if (!_window)
+        return {};
 
-	return nullptr;
+    HRESULT hr = S_OK;
+    IFileOpenDialog* pfd = CreateDlg<IFileOpenDialog>(&hr, title, defaultPath);
+    if (!pfd)
+        return {};
+
+    DWORD dwOptions = 0;
+    hr = pfd->GetOptions(&dwOptions);
+    if (FAILED(hr))
+    {
+        pfd->Release();
+        return {};
+    }
+
+    dwOptions |= FOS_PICKFOLDERS | FOS_NOCHANGEDIR;
+
+    if (multiSelect)
+        dwOptions |= FOS_ALLOWMULTISELECT;
+    else
+        dwOptions &= ~FOS_ALLOWMULTISELECT;
+
+    hr = pfd->SetOptions(dwOptions);
+    if (FAILED(hr))
+    {
+        pfd->Release();
+        return {};
+    }
+
+    std::vector<PlatformString> result;
+
+    hr = pfd->Show(_window->GetHwnd());
+    if (SUCCEEDED(hr))
+        result = GetResults(pfd);
+
+    pfd->Release();
+    return result;
 }
 
-AutoString* PhotinoDialog::ShowOpenFile(AutoString title, AutoString defaultPath, bool multiSelect, AutoString* filters, int filterCount, int* resultCount)
+PlatformString PhotinoDialog::ShowSaveFile(
+    const PlatformString& title,
+    const PlatformString& defaultPath,
+    const std::vector<PlatformString>& filters,
+    const PlatformString& defaultFileName) const
 {
-	HRESULT hr;
-	title = _window->ToUTF16String(title);
-	defaultPath = _window->ToUTF16String(defaultPath);
-	
-	auto* pfd = Create<IFileOpenDialog>(&hr, title, defaultPath);
+    assert(_window);
+    if (!_window)
+        return {};
 
-	if (SUCCEEDED(hr)) {
-		AddFilters(pfd, filters, filterCount, _window);
+    HRESULT hr = S_OK;
+    IFileSaveDialog* pfd = CreateDlg<IFileSaveDialog>(&hr, title, defaultPath);
+    if (!pfd)
+        return {};
 
-		DWORD dwOptions;
-		pfd->GetOptions(&dwOptions);
-		dwOptions |= FOS_FILEMUSTEXIST | FOS_NOCHANGEDIR;
-		if (multiSelect) {
-			dwOptions |= FOS_ALLOWMULTISELECT;
-		}
-		else {
-			dwOptions &= ~FOS_ALLOWMULTISELECT;
-		}
-		pfd->SetOptions(dwOptions);
+    if (!defaultFileName.empty())
+    {
+        hr = pfd->SetFileName(defaultFileName.c_str());
+        if (FAILED(hr))
+        {
+            pfd->Release();
+            return {};
+        }
+    }
 
-		hr = pfd->Show(_window->getHwnd());
-		if (SUCCEEDED(hr)) {
-			return GetResults(pfd, &hr, resultCount);
-		}
-		pfd->Release();
-	}
-	return nullptr;
+    if (!AddFilters(pfd, filters))
+    {
+        pfd->Release();
+        return {};
+    }
+
+    DWORD dwOptions = 0;
+    hr = pfd->GetOptions(&dwOptions);
+    if (FAILED(hr))
+    {
+        pfd->Release();
+        return {};
+    }
+
+    dwOptions |= FOS_NOCHANGEDIR | FOS_OVERWRITEPROMPT;
+
+    hr = pfd->SetOptions(dwOptions);
+    if (FAILED(hr))
+    {
+        pfd->Release();
+        return {};
+    }
+
+    PlatformString result;
+
+    hr = pfd->Show(_window->GetHwnd());
+    if (SUCCEEDED(hr))
+    {
+        IShellItem* psiResult = nullptr;
+        hr = pfd->GetResult(&psiResult);
+        if (SUCCEEDED(hr) && psiResult)
+        {
+            PWSTR pszName = nullptr;
+            hr = psiResult->GetDisplayName(SIGDN_FILESYSPATH, &pszName);
+
+            if (pszName)
+            {
+                if (SUCCEEDED(hr))
+                    result = pszName;
+
+                CoTaskMemFree(pszName);
+            }
+
+            psiResult->Release();
+        }
+    }
+
+    pfd->Release();
+    return result;
 }
 
-AutoString* PhotinoDialog::ShowOpenFolder(AutoString title, AutoString defaultPath, bool multiSelect, int* resultCount)
+DialogResult PhotinoDialog::ShowMessage(
+    const PlatformString& title,
+    const PlatformString& text,
+    DialogButtons buttons,
+    DialogIcon icon) const
 {
-	HRESULT hr;	
-	title = _window->ToUTF16String(title);
-	defaultPath = _window->ToUTF16String(defaultPath);
+    assert(_window);
+    if (!_window)
+        return DialogResult::Cancel;
 
-	auto* pfd = Create<IFileOpenDialog>(&hr, title, defaultPath);
+    NewStyleContext ctx;
 
-	if (SUCCEEDED(hr)) {
-		DWORD dwOptions;
-		pfd->GetOptions(&dwOptions);
-		dwOptions |= FOS_PICKFOLDERS | FOS_NOCHANGEDIR;
-		if (multiSelect) {
-			dwOptions |= FOS_ALLOWMULTISELECT;
-		}
-		else {
-			dwOptions &= ~FOS_ALLOWMULTISELECT;
-		}
-		pfd->SetOptions(dwOptions);
+    UINT flags = {};
 
-		hr = pfd->Show(_window->getHwnd());
-		if (SUCCEEDED(hr)) {
-			return GetResults(pfd, &hr, resultCount);
-		}
-		pfd->Release();
-	}
-	return nullptr;
-}
+    switch (icon)
+    {
+    case DialogIcon::Info:
+        flags |= MB_ICONINFORMATION;
+        break;
+    case DialogIcon::Warning:
+        flags |= MB_ICONWARNING;
+        break;
+    case DialogIcon::Error:
+        flags |= MB_ICONERROR;
+        break;
+    case DialogIcon::Question:
+        flags |= MB_ICONQUESTION;
+        break;
+    }
 
-AutoString PhotinoDialog::ShowSaveFile(AutoString title, AutoString defaultPath, AutoString* filters, int filterCount, AutoString defaultFileName)
-{
-	HRESULT hr;
-	title = _window->ToUTF16String(title);
-	defaultPath = _window->ToUTF16String(defaultPath);
-	defaultFileName = _window->ToUTF16String(defaultFileName);
-	auto* pfd = Create<IFileSaveDialog>(&hr, title, defaultPath);
-	if (SUCCEEDED(hr)) {
-		if (defaultFileName) {
-			pfd->SetFileName(defaultFileName);
-		}
+    switch (buttons)
+    {
+    case DialogButtons::Ok:
+        flags |= MB_OK;
+        break;
+    case DialogButtons::OkCancel:
+        flags |= MB_OKCANCEL;
+        break;
+    case DialogButtons::YesNo:
+        flags |= MB_YESNO;
+        break;
+    case DialogButtons::YesNoCancel:
+        flags |= MB_YESNOCANCEL;
+        break;
+    case DialogButtons::RetryCancel:
+        flags |= MB_RETRYCANCEL;
+        break;
+    case DialogButtons::AbortRetryIgnore:
+        flags |= MB_ABORTRETRYIGNORE;
+        break;
+    default:
+        flags |= MB_OK;
+        break;
+    }
 
-		AddFilters(pfd, filters, filterCount, _window);
+    const auto result = MessageBoxW(_window->GetHwnd(), text.c_str(), title.c_str(), flags);
 
-		DWORD dwOptions;
-		pfd->GetOptions(&dwOptions);
-		dwOptions |= FOS_NOCHANGEDIR;
-		pfd->SetOptions(dwOptions);
-
-		hr = pfd->Show(_window->getHwnd());
-		if (SUCCEEDED(hr)) {
-			IShellItem* psiResult = nullptr;
-			hr = pfd->GetResult(&psiResult);
-			if (SUCCEEDED(hr)) {
-				wchar_t* result = nullptr;
-				PWSTR pszName = nullptr;
-				hr = psiResult->GetDisplayName(SIGDN_FILESYSPATH, &pszName);
-				if (SUCCEEDED(hr)) {
-					const auto len = wcslen(pszName);
-					result = new wchar_t[len + 1];
-					wcscpy_s(result, len + 1, pszName);
-					CoTaskMemFree(pszName);
-				}
-				psiResult->Release();
-				pfd->Release();
-				return result;
-			}
-		}
-		pfd->Release();
-	}
-	return nullptr;
-}
-
-DialogResult PhotinoDialog::ShowMessage(AutoString title, AutoString text, DialogButtons buttons, DialogIcon icon)
-{
-	title = _window->ToUTF16String(title);
-	text = _window->ToUTF16String(text);
-	NewStyleContext ctx;
-
-	UINT flags = {};
-
-	switch (icon) {
-		case DialogIcon::Info:	   flags |= MB_ICONINFORMATION;	break;
-		case DialogIcon::Warning:  flags |= MB_ICONWARNING;	    break;
-		case DialogIcon::Error:	   flags |= MB_ICONERROR;	    break;
-		case DialogIcon::Question: flags |= MB_ICONQUESTION;    break;
-	}
-
-	switch (buttons) {
-		case DialogButtons::Ok:               flags |= MB_OK;               break;
-		case DialogButtons::OkCancel:         flags |= MB_OKCANCEL;         break;
-		case DialogButtons::YesNo:			  flags |= MB_YESNO;			break;
-		case DialogButtons::YesNoCancel:      flags |= MB_YESNOCANCEL;	    break;
-		case DialogButtons::RetryCancel:	  flags |= MB_RETRYCANCEL;	    break;
-		case DialogButtons::AbortRetryIgnore: flags |= MB_ABORTRETRYIGNORE; break;
-	}
-
-	const auto result = MessageBoxW(_window->getHwnd(), text, title, flags);
-
-	switch (result) {
-		case IDCANCEL: return DialogResult::Cancel;
-		case IDOK:     return DialogResult::Ok;
-		case IDYES:    return DialogResult::Yes;
-		case IDNO:     return DialogResult::No;
-		case IDABORT:  return DialogResult::Abort;
-		case IDRETRY:  return DialogResult::Retry;
-		case IDIGNORE: return DialogResult::Ignore;
-		default:	   return DialogResult::Cancel;
-	}
+    switch (result)
+    {
+    case IDCANCEL:
+        return DialogResult::Cancel;
+    case IDOK:
+        return DialogResult::Ok;
+    case IDYES:
+        return DialogResult::Yes;
+    case IDNO:
+        return DialogResult::No;
+    case IDABORT:
+        return DialogResult::Abort;
+    case IDRETRY:
+        return DialogResult::Retry;
+    case IDIGNORE:
+        return DialogResult::Ignore;
+    default:
+        return DialogResult::Cancel;
+    }
 }

@@ -1,14 +1,18 @@
 #pragma once
 
-#include "Photino.h"
+#include "Photino.Strings.h"
+
+#include <vector>
 
 #ifdef __APPLE__
 #include <Cocoa/Cocoa.h>
 #endif
 
-namespace PhotinoX::Native {
+namespace PhotinoX::Native
+{
+    class Photino;
 
-    enum class DialogResult
+    enum class DialogResult : int
     {
         Cancel = -1,
         Ok,
@@ -19,7 +23,7 @@ namespace PhotinoX::Native {
         Ignore,
     };
 
-    enum class DialogButtons
+    enum class DialogButtons : int
     {
         Ok,
         OkCancel,
@@ -29,7 +33,7 @@ namespace PhotinoX::Native {
         AbortRetryIgnore,
     };
 
-    enum class DialogIcon
+    enum class DialogIcon : int
     {
         Info,
         Warning,
@@ -41,16 +45,16 @@ namespace PhotinoX::Native {
     {
     public:
 #ifdef _WIN32
-        PhotinoDialog(Photino* window);
+        explicit PhotinoDialog(Photino* window);
 #else
         PhotinoDialog();
 #endif
         ~PhotinoDialog();
 
-        AutoString* ShowOpenFile(AutoString title, AutoString defaultPath, bool multiSelect, AutoString* filters, int filterCount, int* resultCount);
-        AutoString* ShowOpenFolder(AutoString title, AutoString defaultPath, bool multiSelect, int* resultCount);
-        AutoString ShowSaveFile(AutoString title, AutoString defaultPath, AutoString* filters, int filterCount, AutoString defaultFileName = NULL);
-        DialogResult ShowMessage(AutoString title, AutoString text, DialogButtons buttons, DialogIcon icon);
+        std::vector<PlatformString> ShowOpenFile(const PlatformString& title, const PlatformString& defaultPath, bool multiSelect, const std::vector<PlatformString>& filters) const;
+        std::vector<PlatformString> ShowOpenFolder(const PlatformString& title, const PlatformString& defaultPath, bool multiSelect) const;
+        PlatformString ShowSaveFile(const PlatformString& title, const PlatformString& defaultPath, const std::vector<PlatformString>& filters, const PlatformString& defaultFileName) const;
+        DialogResult ShowMessage(const PlatformString& title, const PlatformString& text, DialogButtons buttons, DialogIcon icon) const;
 
     protected:
 #ifdef __APPLE__
@@ -59,7 +63,8 @@ namespace PhotinoX::Native {
         NSImage* _questionIcon;
         NSImage* _warningIcon;
 #elif _WIN32
-        Photino* _window;
+        Photino* _window = nullptr;
+        bool _comInitialized = false;
 #endif
     };
 

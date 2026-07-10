@@ -1,14 +1,24 @@
-#ifdef __APPLE__
 #pragma once
-#include "Photino.h"
 
-using namespace PhotinoX::Native;
+#ifdef __APPLE__
 
-@interface UiDelegate : NSObject <WKUIDelegate, WKScriptMessageHandler> {
+#include "Photino.Callbacks.h"
+
+#include <Cocoa/Cocoa.h>
+#include <WebKit/WebKit.h>
+
+namespace PhotinoX::Native
+{
+    class Photino;
+}
+
+@interface UiDelegate : NSObject <WKUIDelegate, WKScriptMessageHandler>
+{
     @public
-    NSWindow * window;
-    Photino * photino;
-    WebMessageReceivedCallback webMessageReceivedCallback;
+        NSWindow* window;
+        PhotinoX::Native::Photino* photino;
+        PhotinoX::Native::WebMessageReceivedCallback webMessageReceivedCallback;
 }
 @end
+
 #endif

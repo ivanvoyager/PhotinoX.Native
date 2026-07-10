@@ -2,12 +2,12 @@
 
 #include <mutex>
 
-namespace PhotinoX::Native {
-
+namespace PhotinoX::Native 
+{
     using RtlGetNtVersionNumbers_f = void(WINAPI*)(LPDWORD, LPDWORD, LPDWORD);
 
     using SetWindowCompositionAttribute_f =
-        HRESULT(WINAPI*)(HWND, WINDOWCOMPOSITIONATTRIBDATA*);
+        BOOL(WINAPI*)(HWND, WINDOWCOMPOSITIONATTRIBDATA*);
 
     using ShouldAppsUseDarkMode_f = BOOLEAN(WINAPI*)();
 
@@ -131,6 +131,8 @@ namespace PhotinoX::Native {
     }
 
     void EnableDarkMode(HWND hwnd, bool enable) noexcept {
+        if (!hwnd)  return;
+
         if (AllowDarkModeForWindow == nullptr) {
             return;
         }
@@ -138,6 +140,8 @@ namespace PhotinoX::Native {
     }
 
     void RefreshNonClientArea(HWND hwnd) noexcept {
+        if (!hwnd) return;
+
         if (IsDarkModeAllowedForWindow == nullptr ||
             ShouldAppsUseDarkMode == nullptr) {
             return;
@@ -156,18 +160,26 @@ namespace PhotinoX::Native {
         }
     }
 
-    bool IsColorSchemeChange(LPARAM l_param) noexcept {
+    bool IsColorSchemeChange(LPARAM l_param) noexcept
+    {
         bool return_value = false;
-        if (l_param > 0 && CompareStringOrdinal(reinterpret_cast<LPCWCH>(l_param),
-            -1,
-            L"ImmersiveColorSet",
-            -1,
-            TRUE) == CSTR_EQUAL) {
-            RefreshImmersiveColorPolicyState();
+
+        if (l_param != 0 &&
+            CompareStringOrdinal(reinterpret_cast<LPCWCH>(l_param),
+                                 -1,
+                                 L"ImmersiveColorSet",
+                                 -1,
+                                 TRUE) == CSTR_EQUAL)
+        {
+            if (RefreshImmersiveColorPolicyState)
+                RefreshImmersiveColorPolicyState();
+
             return_value = true;
         }
 
-        GetIsImmersiveColorUsingHighContrast(IHCM_REFRESH);
+        if (GetIsImmersiveColorUsingHighContrast)
+            GetIsImmersiveColorUsingHighContrast(IHCM_REFRESH);
+
         return return_value;
     }
 }

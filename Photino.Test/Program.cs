@@ -72,7 +72,7 @@ namespace Photino.Test
 
                 //Window settings
                 //.SetIconFile(iconFile)
-                //.SetTitle($"My PhotinoX Window {_windowNumber++}")
+                .SetTitle($"My PhotinoX Window {s_windowNumber++}")
                 //.SetChromeless(true)
                 //.SetTransparent(true)
                 //.SetFullScreen(true)
@@ -98,7 +98,7 @@ namespace Photino.Test
                 //.Offset(new Point(150, 150))
                 //.Offset(250, 250)
                 .SetNotificationRegistrationId("8FDF1B15-3408-47A6-8EF5-2B0676B76277")  //Replaces the window title when registering toast notifications
-                .SetNotificationsEnabled(false)
+                .SetNotificationsEnabled(true)
 
                 //Browser settings
                 //.SetContextMenuEnabled(false)

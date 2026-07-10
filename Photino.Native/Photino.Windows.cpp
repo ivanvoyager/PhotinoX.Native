@@ -1,22 +1,23 @@
 #include "Photino.h"
 #include "Photino.Dialog.h"
+#include "Photino.Memory.h"
 #include "Photino.Windows.DarkMode.h"
 #include "Photino.Windows.ToastHandler.h"
 
-#include <mutex>
-#include <condition_variable>
-#include <comdef.h>
-#include <Shlwapi.h>
-#include <wrl.h>
-#include <windows.h>
 #include <algorithm>
+#include <atomic>
 #include <cassert>
-#include <WebView2EnvironmentOptions.h>
+#include <comdef.h>
+#include <map>
+#include <mutex>
 #include <Shellscalingapi.h>
+#include <Shlwapi.h>
+#include <WebView2EnvironmentOptions.h>
+#include <windows.h>
+#include <wrl.h>
 
 #pragma comment(lib, "Shcore.lib")
 #pragma comment(lib, "Urlmon.lib")
-#pragma warning(disable: 4996)		//disable warning about wcscpy vs. wcscpy_s
 
 #define WM_USER_INVOKE (WM_USER + 0x0002)
 
@@ -29,29 +30,14 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 namespace
 {
     constexpr LPCWSTR CLASS_NAME = L"PhotinoX";
-    wchar_t g_webview2RuntimePath[MAX_PATH];
+    PlatformString g_webview2RuntimePath;
 
     HINSTANCE g_hInstance = nullptr;
     std::atomic g_messageLoopRunning{ false };
     HWND g_uiThreadWindowHandle = nullptr;
     std::atomic g_isShuttingDown{ false };
-    std::mutex g_invokeLockMutex;
     std::map<HWND, Photino*> g_hwndToPhotino;
 }
-
-struct InvokeWaitInfo
-{
-    std::condition_variable completionNotifier;
-    bool isCompleted = false;
-};
-
-struct ShowMessageParams
-{
-    std::wstring title;
-    std::wstring body;
-    UINT type = 0;
-};
-
 
 const HBRUSH darkBrush = CreateSolidBrush(RGB(0, 0, 0));
 const HBRUSH lightBrush = CreateSolidBrush(RGB(255, 255, 255));
@@ -77,13 +63,22 @@ void Photino::Register(const HINSTANCE hInstance)
     wcx.lpszClassName = CLASS_NAME;
     wcx.hIconSm = LoadIcon(hInstance, IDI_APPLICATION);
 
-    RegisterClassEx(&wcx);
+    if (!RegisterClassExW(&wcx))
+    {
+        if (GetLastError() != ERROR_CLASS_ALREADY_EXISTS)
+            std::abort();
+    }
 
-    SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
+    DPI_AWARENESS_CONTEXT previous = SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
+    assert(previous != nullptr);
 }
 
 Photino::Photino(PhotinoInitParams* initParams)
 {
+    assert(initParams);
+    if (!initParams)
+        std::abort();
+
     //wchar_t msg[50];
     //swprintf(msg, 50, L"Size: %i", initParams->Size);
     //MessageBox(nullptr, msg, L"", MB_OK);
@@ -96,83 +91,50 @@ Photino::Photino(PhotinoInitParams* initParams)
     {
         wchar_t msg[200];
         swprintf(msg, 200, L"Initial parameters passed are %i bytes, but expected %I64i bytes.", initParams->Size, sizeof(PhotinoInitParams));
-        MessageBox(nullptr, msg, L"Native Initialization Failed", MB_OK);
-        exit(0);
+        MessageBoxW(nullptr, msg, L"Native Initialization Failed", MB_OK);
+        std::abort();
     }
 
-    _windowTitle = new wchar_t[256];
-    if (initParams->Title != nullptr)
+    _startString = ToPlatformString(initParams->StartString);
+    _startUrl = ToPlatformString(initParams->StartUrl);
+    _windowTitle = ToPlatformString(initParams->Title);
+    _temporaryFilesPath = ToPlatformString(initParams->TemporaryFilesPath);
+    _userAgent = ToPlatformString(initParams->UserAgent);
+    _browserControlInitParameters = ToPlatformString(initParams->BrowserControlInitParameters);
+    _notificationRegistrationId = ToPlatformString(initParams->NotificationRegistrationId);
+
+    for (auto& customSchemeName : initParams->CustomSchemeNames)
     {
-        AutoString wTitle = ToUTF16String(initParams->Title);
-        if (initParams->NotificationsEnabled)
-        {
-            WinToast::instance()->setAppName(wTitle);
-            if (_notificationRegistrationId == nullptr)
-                WinToast::instance()->setAppUserModelId(wTitle);
-        }
-        wcscpy(_windowTitle, wTitle);
-    }
-    else
-        _windowTitle[0] = 0;
-
-    _startUrl = nullptr;
-    if (initParams->StartUrl != nullptr)
-    {
-        _startUrl = new wchar_t[2048];
-        if (_startUrl == nullptr) exit(0);
-        //AutoString wStartUrl = ToUTF16String(initParams->StartUrl);	//Conversion is done in Navigate method. Don't do it twice
-        //wcscpy(_startUrl, wStartUrl);
-        wcscpy(_startUrl, initParams->StartUrl);
+        AddCustomSchemeName(customSchemeName);
     }
 
-    _startString = nullptr;
-    if (initParams->StartString != nullptr)
-    {
-        //AutoString wStartString = ToUTF16String(initParams->StartString);	//Conversion is done in Navigate method. Don't do it twice
-        //_startString = new wchar_t[wcslen(wStartString) + 1];
-        _startString = new wchar_t[wcslen(initParams->StartString) + 1];
-        if (_startString == nullptr) exit(0);
-        //wcscpy(_startString, wStartString);
-        wcscpy(_startString, initParams->StartString);
-    }
+    _parent = initParams->ParentInstance;
 
-    _temporaryFilesPath = nullptr;
-    if (initParams->TemporaryFilesPath != nullptr)
-    {
-        _temporaryFilesPath = new wchar_t[256];
-        if (_temporaryFilesPath == nullptr) exit(0);
-        AutoString wTemporaryFilesPath = ToUTF16String(initParams->TemporaryFilesPath);
-        wcscpy(_temporaryFilesPath, wTemporaryFilesPath);
-    }
+    // these handlers are ALWAYS hooked up
+    _closingCallback = initParams->ClosingHandler;
+    _focusInCallback = initParams->FocusInHandler;
+    _focusOutCallback = initParams->FocusOutHandler;
+    _resizedCallback = initParams->ResizedHandler;
+    _maximizedCallback = initParams->MaximizedHandler;
+    _restoredCallback = initParams->RestoredHandler;
+    _minimizedCallback = initParams->MinimizedHandler;
+    _movedCallback = initParams->MovedHandler;
+    _webMessageReceivedCallback = initParams->WebMessageReceivedHandler;
+    _customSchemeCallback = initParams->CustomSchemeHandler;
+    _closedCallback = initParams->ClosedHandler;
 
-    _userAgent = nullptr;
-    if (initParams->UserAgent != nullptr)
-    {
-        AutoString wUserAgent = ToUTF16String(initParams->UserAgent);
-        _userAgent = new wchar_t[wcslen(wUserAgent) + 1];
-        if (_userAgent == nullptr) exit(0);
-        wcscpy(_userAgent, wUserAgent);
-    }
+    _zoom = initParams->Zoom;
 
-    _browserControlInitParameters = nullptr;
-    if (initParams->BrowserControlInitParameters != nullptr)
-    {
-        AutoString wBrowserControlInitParameters = ToUTF16String(initParams->BrowserControlInitParameters);
-        _browserControlInitParameters = new wchar_t[wcslen(wBrowserControlInitParameters) + 1];
-        if (_browserControlInitParameters == nullptr) exit(0);
-        wcscpy(_browserControlInitParameters, wBrowserControlInitParameters);
-    }
+    _sizeLimits.minWidth = (std::max)(0, initParams->MinWidth);
+    _sizeLimits.minHeight = (std::max)(0, initParams->MinHeight);
+    _sizeLimits.maxWidth = (std::max)(0, initParams->MaxWidth);
+    _sizeLimits.maxHeight = (std::max)(0, initParams->MaxHeight);
 
-    _notificationRegistrationId = nullptr;
-    if (initParams->NotificationRegistrationId != nullptr)
-    {
-        AutoString wNotificationRegistrationId = ToUTF16String(initParams->NotificationRegistrationId);
-        _notificationRegistrationId = new wchar_t[wcslen(wNotificationRegistrationId) + 1];
-        if (_notificationRegistrationId == nullptr) exit(0);
-        wcscpy(_notificationRegistrationId, wNotificationRegistrationId);
-    }
+    if (_sizeLimits.maxWidth > 0 && _sizeLimits.minWidth > _sizeLimits.maxWidth)    _sizeLimits.maxWidth = _sizeLimits.minWidth;
+    if (_sizeLimits.maxHeight > 0 && _sizeLimits.minHeight > _sizeLimits.maxHeight) _sizeLimits.maxHeight = _sizeLimits.minHeight;
 
-
+    _chromeless = initParams->Chromeless;
+    _fullScreen = initParams->FullScreen;
     _transparentEnabled = initParams->Transparent;
     _contextMenuEnabled = initParams->ContextMenuEnabled;
     _zoomEnabled = initParams->ZoomEnabled;
@@ -186,39 +148,6 @@ Photino::Photino(PhotinoInitParams* initParams)
     _smoothScrollingEnabled = initParams->SmoothScrollingEnabled;
     _ignoreCertificateErrorsEnabled = initParams->IgnoreCertificateErrorsEnabled;
     _notificationsEnabled = initParams->NotificationsEnabled;
-
-    _zoom = initParams->Zoom;
-    _minWidth = initParams->MinWidth;
-    _minHeight = initParams->MinHeight;
-    _maxWidth = initParams->MaxWidth;
-    _maxHeight = initParams->MaxHeight;
-
-    //these handlers are ALWAYS hooked up
-    _webMessageReceivedCallback = reinterpret_cast<WebMessageReceivedCallback>(initParams->WebMessageReceivedHandler);
-    _resizedCallback = reinterpret_cast<ResizedCallback>(initParams->ResizedHandler);
-    _maximizedCallback = reinterpret_cast<MaximizedCallback>(initParams->MaximizedHandler);
-    _restoredCallback = reinterpret_cast<RestoredCallback>(initParams->RestoredHandler);
-    _minimizedCallback = reinterpret_cast<MinimizedCallback>(initParams->MinimizedHandler);
-    _movedCallback = reinterpret_cast<MovedCallback>(initParams->MovedHandler);
-    _closingCallback = reinterpret_cast<ClosingCallback>(initParams->ClosingHandler);
-    _closedCallback = reinterpret_cast<ClosedCallback>(initParams->ClosedHandler);
-    _focusInCallback = reinterpret_cast<FocusInCallback>(initParams->FocusInHandler);
-    _focusOutCallback = reinterpret_cast<FocusOutCallback>(initParams->FocusOutHandler);
-    _customSchemeCallback = reinterpret_cast<WebResourceRequestedCallback>(initParams->CustomSchemeHandler);
-
-    //copy strings from the fixed size array passed, but only if they have a value.
-    for (int i = 0; i < 16; ++i)
-    {
-        if (initParams->CustomSchemeNames[i] != nullptr)
-        {
-            wchar_t* name = new wchar_t[50];
-            AutoString wCustomSchemeNames = ToUTF16String(initParams->CustomSchemeNames[i]);
-            wcscpy(name, wCustomSchemeNames);
-            _customSchemeNames.push_back(name);
-        }
-    }
-
-    _parent = initParams->ParentInstance;
 
     //wchar_t msg[50];
     //swprintf(msg, 50, L"Height: %i  Width: %i  Left: %d  Top: %d", initParams->Height, initParams->Width, initParams->Left, initParams->Top);
@@ -241,7 +170,7 @@ Photino::Photino(PhotinoInitParams* initParams)
         initParams->Top = CW_USEDEFAULT;
     }
 
-    if (initParams->FullScreen == true)
+    if (initParams->FullScreen)
     {
         initParams->Left = 0;
         initParams->Top = 0;
@@ -259,33 +188,35 @@ Photino::Photino(PhotinoInitParams* initParams)
         if (initParams->Width == CW_USEDEFAULT) initParams->Width = 800;
     }
 
-    if (initParams->Height > initParams->MaxHeight) initParams->Height = initParams->MaxHeight;
-    if (initParams->Height < initParams->MinHeight && initParams->MinHeight > 0) initParams->Height = initParams->MinHeight;
-    if (initParams->Width > initParams->MaxWidth) initParams->Width = initParams->MaxWidth;
-    if (initParams->Width < initParams->MinWidth && initParams->MinWidth > 0) initParams->Width = initParams->MinWidth;
+    if (initParams->Height > initParams->MaxHeight && initParams->MaxHeight > 0)    initParams->Height = initParams->MaxHeight;
+    if (initParams->Height < initParams->MinHeight && initParams->MinHeight > 0)    initParams->Height = initParams->MinHeight;
+    if (initParams->Width > initParams->MaxWidth && initParams->MaxWidth > 0)       initParams->Width = initParams->MaxWidth;
+    if (initParams->Width < initParams->MinWidth && initParams->MinWidth > 0)       initParams->Width = initParams->MinWidth;
+
+    HWND parentHwnd = _parent ? _parent->GetHwnd() : nullptr;
 
     //Create the window
     _hWnd = CreateWindowExW(
         initParams->Transparent ? WS_EX_LAYERED : 0, //WS_EX_OVERLAPPEDWINDOW, //An optional extended window style.
         CLASS_NAME,					//Window class
-        _windowTitle,		//Window text
+        _windowTitle.c_str(),		//Window text
         initParams->Chromeless || initParams->FullScreen ? WS_POPUP : WS_OVERLAPPEDWINDOW,	//Window style
 
         // Size and position
         initParams->Left, initParams->Top, initParams->Width, initParams->Height,
 
-        nullptr,    //Parent window handle
+        parentHwnd, // Parent window handle
         nullptr,    //Menu
-        g_hInstance, //Instance handle
+        g_hInstance,//Instance handle
         this        //Additional application data
     );
+
+    if (!_hWnd)
+        std::abort();
+
     g_hwndToPhotino[_hWnd] = this;
 
-    if (initParams->WindowIconFile != nullptr)
-    {
-        AutoString wWindowIconFile = ToUTF16String(initParams->WindowIconFile);
-        SetIconFile(wWindowIconFile);
-    }
+    SetIconFile(ToPlatformString(initParams->WindowIconFile));
 
     if (initParams->CenterOnInitialize)
         Center();
@@ -296,48 +227,57 @@ Photino::Photino(PhotinoInitParams* initParams)
     if (initParams->Maximized)
         SetMaximized(true);
 
-    //if (initParams->Resizable == false)
     SetResizable(initParams->Resizable);
 
     if (initParams->Topmost)
         SetTopmost(true);
 
-    if (initParams->NotificationsEnabled)
+    if (_notificationsEnabled)
     {
-        if (_notificationRegistrationId != nullptr)
+        WinToast::instance()->setAppName(_windowTitle);
+        if (!_notificationRegistrationId.empty())
             WinToast::instance()->setAppUserModelId(_notificationRegistrationId);
+        else
+            WinToast::instance()->setAppUserModelId(_windowTitle);
 
-        this->_toastHandler = new WinToastHandler(this);
+        _toastHandler = new WinToastHandler(this);
         WinToast::instance()->initialize();
     }
 
     _dialog = new PhotinoDialog(this);
 
-    bool isAlreadyShown = initParams->Minimized || initParams->Maximized;
-    Show(isAlreadyShown);
+    _isAlreadyShown = initParams->Minimized || initParams->Maximized;
+    Show();
 }
 
 Photino::~Photino()
 {
-    delete[]_startUrl;
-    delete[]_startString;
-    delete[]_temporaryFilesPath;
-    delete[]_windowTitle;
-    if (_notificationsEnabled && _toastHandler != nullptr) delete _toastHandler;
+    delete _dialog;
+    _dialog = nullptr;
+
+    delete _toastHandler;
+    _toastHandler = nullptr;
 }
 
-HWND Photino::getHwnd() const
+HWND Photino::GetHwnd() const
 {
+    assert(_hWnd);
     return _hWnd;
+}
+
+void Photino::ApplySizeLimits(MINMAXINFO& info) const
+{
+    if (_sizeLimits.minWidth > 0)   info.ptMinTrackSize.x = _sizeLimits.minWidth;
+    if (_sizeLimits.minHeight > 0)  info.ptMinTrackSize.y = _sizeLimits.minHeight;
+    if (_sizeLimits.maxWidth > 0)   info.ptMaxTrackSize.x = _sizeLimits.maxWidth;
+    if (_sizeLimits.maxHeight > 0)  info.ptMaxTrackSize.y = _sizeLimits.maxHeight;
 }
 
 LRESULT CALLBACK WindowProc(const HWND hwnd, const UINT uMsg, const WPARAM wParam, const LPARAM lParam)
 {
     switch (uMsg)
     {
-
-    case WM_CREATE:
-    {
+    case WM_CREATE: {
         EnableDarkMode(hwnd, true);
         if (IsDarkModeEnabled())
             RefreshNonClientArea(hwnd);
@@ -346,8 +286,8 @@ LRESULT CALLBACK WindowProc(const HWND hwnd, const UINT uMsg, const WPARAM wPara
 
     case WM_DPICHANGED:
     {
-        UINT dpiX = HIWORD(wParam);
-        UINT dpiY = LOWORD(wParam);
+        //UINT dpiX = LOWORD(wParam);
+        //UINT dpiY = HIWORD(wParam);
 
         const auto newWindowRect = reinterpret_cast<const RECT*>(lParam);
 
@@ -359,7 +299,7 @@ LRESULT CALLBACK WindowProc(const HWND hwnd, const UINT uMsg, const WPARAM wPara
             newWindowRect->right - newWindowRect->left,
             newWindowRect->bottom - newWindowRect->top,
             SWP_NOZORDER | SWP_NOACTIVATE
-        );
+            );
 
         return 0;
     }
@@ -385,22 +325,21 @@ LRESULT CALLBACK WindowProc(const HWND hwnd, const UINT uMsg, const WPARAM wPara
         PAINTSTRUCT ps{};
         if (const HDC hdc = BeginPaint(hwnd, &ps))
         {
-
             // Fill the background with the current theme color
             if (IsDarkModeEnabled())
             {
                 FillRect(hdc, &ps.rcPaint, darkBrush);
-                //SetTextColor(hdc, RGB(255,255,255));
+                // SetTextColor(hdc, RGB(255,255,255));
             }
             else
             {
                 FillRect(hdc, &ps.rcPaint, lightBrush);
-                //SetTextColor(hdc, RGB(0, 0, 0));
+                // SetTextColor(hdc, RGB(0, 0, 0));
             }
 
             // Draw some text
-            //SetBkMode(hdc, TRANSPARENT);
-            //TextOut(hdc, 10, 10, L"Hello, World! (Dynamic Theme)", 31);
+            // SetBkMode(hdc, TRANSPARENT);
+            // TextOut(hdc, 10, 10, L"Hello, World! (Dynamic Theme)", 31);
 
             EndPaint(hwnd, &ps);
         }
@@ -433,31 +372,39 @@ LRESULT CALLBACK WindowProc(const HWND hwnd, const UINT uMsg, const WPARAM wPara
         {
             const auto photino = it->second;
 
-            bool doNotClose = photino->InvokeClosing();
-            if (doNotClose)
-                return 0;
+            if (!g_isShuttingDown.load(std::memory_order_acquire))
+            {
+                if (photino && photino->InvokeClosing())
+                    return 0;
+            }
 
             DestroyWindow(hwnd);
+            return 0;
         }
 
-        return 0;
+        break;
     }
 
     case WM_DESTROY:
     {
         if (const auto it = g_hwndToPhotino.find(hwnd); it != g_hwndToPhotino.end())
         {
-            const auto photino = it->second;
-
-            photino->CloseWebView();
-            photino->InvokeClose();
-
+            auto photino = it->second;
             g_hwndToPhotino.erase(it);
+
+            if (photino)
+            {
+                photino->CloseWebView();
+                photino->InvokeClose();
+                delete photino;
+            }
         }
 
         if (hwnd == g_uiThreadWindowHandle)
         {
             g_isShuttingDown.store(true, std::memory_order_release);
+            g_uiThreadWindowHandle = nullptr;
+
             PostQuitMessage(0);
         }
 
@@ -466,18 +413,12 @@ LRESULT CALLBACK WindowProc(const HWND hwnd, const UINT uMsg, const WPARAM wPara
 
     case WM_USER_INVOKE:
     {
-        const auto callback = std::bit_cast<InvokeCallback>(wParam);
-        const auto waitInfo = std::bit_cast<InvokeWaitInfo*>(lParam);
+        auto callback = reinterpret_cast<InvokeCallback>(wParam);
+        assert(callback);
 
-        assert(callback && waitInfo);
-        if (!callback || !waitInfo) return 0;
+        if (callback)
+            callback();
 
-        callback();
-
-        std::scoped_lock guard(g_invokeLockMutex);
-        waitInfo->isCompleted = true;
-
-        waitInfo->completionNotifier.notify_one();
         return 0;
     }
 
@@ -486,17 +427,8 @@ LRESULT CALLBACK WindowProc(const HWND hwnd, const UINT uMsg, const WPARAM wPara
         if (const auto it = g_hwndToPhotino.find(hwnd); it != g_hwndToPhotino.end())
         {
             const auto photino = it->second;
-
-            const auto mmi = std::bit_cast<MINMAXINFO*>(lParam);
-
-            if (photino->_minWidth > 0)
-                mmi->ptMinTrackSize.x = photino->_minWidth;
-            if (photino->_minHeight > 0)
-                mmi->ptMinTrackSize.y = photino->_minHeight;
-            if (photino->_maxWidth < INT_MAX)
-                mmi->ptMaxTrackSize.x = photino->_maxWidth;
-            if (photino->_maxHeight < INT_MAX)
-                mmi->ptMaxTrackSize.y = photino->_maxHeight;
+            if (photino)
+                photino->ApplySizeLimits(*reinterpret_cast<MINMAXINFO*>(lParam));
         }
         return 0;
     }
@@ -534,8 +466,8 @@ LRESULT CALLBACK WindowProc(const HWND hwnd, const UINT uMsg, const WPARAM wPara
         if (const auto it = g_hwndToPhotino.find(hwnd); it != g_hwndToPhotino.end())
         {
             const auto photino = it->second;
-            //photino->NotifyWebView2WindowMove();
-            //photino->RefitContent();
+            // photino->NotifyWebView2WindowMove();
+            // photino->RefitContent();
 
             int x = 0, y = 0;
             photino->GetPosition(&x, &y);
@@ -550,8 +482,8 @@ LRESULT CALLBACK WindowProc(const HWND hwnd, const UINT uMsg, const WPARAM wPara
         {
             const auto photino = it->second;
 
-            //Photino->NotifyWebView2WindowMove();
-            //Photino->RefitContent();
+            // Photino->NotifyWebView2WindowMove();
+            // Photino->RefitContent();
         }
         break;
     }
@@ -563,22 +495,25 @@ LRESULT CALLBACK WindowProc(const HWND hwnd, const UINT uMsg, const WPARAM wPara
 
 void Photino::CloseWebView()
 {
-    if (_webviewController != nullptr)
-    {
-        _webviewController->Close();
-        _webviewController = nullptr;
-    }
-
     if (_webviewWindow != nullptr)
     {
         _webviewWindow->Stop();
         _webviewWindow = nullptr;
     }
 
+    if (_webviewController != nullptr)
+    {
+        _webviewController->Close();
+        _webviewController = nullptr;
+    }
+
     if (_webviewEnvironment != nullptr)
     {
         _webviewEnvironment = nullptr;
     }
+
+    _webViewInitialized = false;
+    _scriptId.clear();
 }
 
 void Photino::Center()
@@ -601,7 +536,8 @@ void Photino::Center()
     int left = work.left + (work.right - work.left - windowWidth) / 2;
     int top = work.top + (work.bottom - work.top - windowHeight) / 2;
 
-    SetWindowPos(_hWnd, nullptr, left, top, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
+    BOOL result = SetWindowPos(_hWnd, nullptr, left, top, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
+    assert(result);
 }
 
 void Photino::Close() const
@@ -609,45 +545,42 @@ void Photino::Close() const
     assert(_hWnd);
     if (!_hWnd) return;
 
-    PostMessage(_hWnd, WM_CLOSE, 0, 0);
+    BOOL result = PostMessageW(_hWnd, WM_CLOSE, 0, 0);
+    assert(result);
 }
 
 void Photino::GetTransparentEnabled(bool* enabled) const
 {
-    assert(enabled && _webviewController);
+    assert(enabled);
     if (!enabled) return;
 
     *enabled = _transparentEnabled;
 
     if (!_webviewController) return;
 
-    ICoreWebView2Controller2* controller2 = nullptr;
+    wil::com_ptr<ICoreWebView2Controller2> controller2;
     if (FAILED(_webviewController->QueryInterface(&controller2)) || !controller2) return;
 
     COREWEBVIEW2_COLOR backgroundColor{};
     if (SUCCEEDED(controller2->get_DefaultBackgroundColor(&backgroundColor)))
         *enabled = (backgroundColor.A == 0);
-
-    controller2->Release();
 }
 
 void Photino::GetContextMenuEnabled(bool* enabled) const
 {
-    assert(enabled && _webviewWindow);
+    assert(enabled);
     if (!enabled) return;
 
     *enabled = _contextMenuEnabled;
 
     if (!_webviewWindow) return;
 
-    ICoreWebView2Settings* settings = nullptr;
+    wil::com_ptr<ICoreWebView2Settings> settings;
     if (FAILED(_webviewWindow->get_Settings(&settings)) || !settings) return;
 
     BOOL value = FALSE;
     if (SUCCEEDED(settings->get_AreDefaultContextMenusEnabled(&value)))
         *enabled = (value == TRUE);
-
-    settings->Release();
 }
 
 void Photino::GetZoomEnabled(bool* enabled) const
@@ -659,43 +592,38 @@ void Photino::GetZoomEnabled(bool* enabled) const
 
     if (!_webviewWindow) return;
 
-    ICoreWebView2Settings* settings = nullptr;
+    wil::com_ptr<ICoreWebView2Settings> settings;
     if (FAILED(_webviewWindow->get_Settings(&settings)) || !settings) return;
 
     BOOL value = FALSE;
     if (SUCCEEDED(settings->get_IsZoomControlEnabled(&value)))
         *enabled = (value == TRUE);
-
-    settings->Release();
 }
 
 void Photino::GetDevToolsEnabled(bool* enabled) const
 {
-    assert(enabled && _webviewWindow);
+    assert(enabled);
     if (!enabled) return;
 
     *enabled = _devToolsEnabled;
 
     if (!_webviewWindow) return;
 
-    ICoreWebView2Settings* settings = nullptr;
+    wil::com_ptr<ICoreWebView2Settings> settings;
     if (FAILED(_webviewWindow->get_Settings(&settings)) || !settings) return;
 
     BOOL value = FALSE;
     if (SUCCEEDED(settings->get_AreDevToolsEnabled(&value)))
         *enabled = (value == TRUE);
-
-    settings->Release();
 }
 
 void Photino::GetFullScreen(bool* fullScreen) const
 {
-    assert(fullScreen && _hWnd);
-    if (!fullScreen || !_hWnd) return;
+    assert(fullScreen);
+    if (!fullScreen)
+        return;
 
-    *fullScreen = false;
-    LONG lStyles = GetWindowLong(_hWnd, GWL_STYLE);
-    if (lStyles & WS_POPUP) *fullScreen = true;
+    *fullScreen = _fullScreen;
 }
 
 void Photino::GetGrantBrowserPermissions(bool* grant) const
@@ -706,17 +634,12 @@ void Photino::GetGrantBrowserPermissions(bool* grant) const
     *grant = _grantBrowserPermissions;
 }
 
-AutoString Photino::GetUserAgent() const
-{
-    return this->_userAgent;
-}
-
 void Photino::GetMediaAutoplayEnabled(bool* enabled) const
 {
     assert(enabled);
     if (!enabled) return;
 
-    *enabled = this->_mediaAutoplayEnabled;
+    *enabled = _mediaAutoplayEnabled;
 }
 
 void Photino::GetFileSystemAccessEnabled(bool* enabled) const
@@ -724,7 +647,7 @@ void Photino::GetFileSystemAccessEnabled(bool* enabled) const
     assert(enabled);
     if (!enabled) return;
 
-    *enabled = this->_fileSystemAccessEnabled;
+    *enabled = _fileSystemAccessEnabled;
 }
 
 void Photino::GetWebSecurityEnabled(bool* enabled) const
@@ -732,7 +655,7 @@ void Photino::GetWebSecurityEnabled(bool* enabled) const
     assert(enabled);
     if (!enabled) return;
 
-    *enabled = this->_webSecurityEnabled;
+    *enabled = _webSecurityEnabled;
 }
 
 void Photino::GetJavascriptClipboardAccessEnabled(bool* enabled) const
@@ -740,7 +663,7 @@ void Photino::GetJavascriptClipboardAccessEnabled(bool* enabled) const
     assert(enabled);
     if (!enabled) return;
 
-    *enabled = this->_javascriptClipboardAccessEnabled;
+    *enabled = _javascriptClipboardAccessEnabled;
 }
 
 void Photino::GetMediaStreamEnabled(bool* enabled) const
@@ -748,7 +671,7 @@ void Photino::GetMediaStreamEnabled(bool* enabled) const
     assert(enabled);
     if (!enabled) return;
 
-    *enabled = this->_mediaStreamEnabled;
+    *enabled = _mediaStreamEnabled;
 }
 
 void Photino::GetSmoothScrollingEnabled(bool* enabled) const
@@ -756,7 +679,7 @@ void Photino::GetSmoothScrollingEnabled(bool* enabled) const
     assert(enabled);
     if (!enabled) return;
 
-    *enabled = this->_smoothScrollingEnabled;
+    *enabled = _smoothScrollingEnabled;
 }
 
 void Photino::GetIgnoreCertificateErrorsEnabled(bool* enabled) const
@@ -764,7 +687,7 @@ void Photino::GetIgnoreCertificateErrorsEnabled(bool* enabled) const
     assert(enabled);
     if (!enabled) return;
 
-    *enabled = this->_ignoreCertificateErrorsEnabled;
+    *enabled = _ignoreCertificateErrorsEnabled;
 }
 
 void Photino::GetNotificationsEnabled(bool* enabled) const
@@ -772,12 +695,7 @@ void Photino::GetNotificationsEnabled(bool* enabled) const
     assert(enabled);
     if (!enabled) return;
 
-    *enabled = this->_notificationsEnabled;
-}
-
-AutoString Photino::GetIconFileName() const
-{
-    return this->_iconFileName;
+    *enabled = _notificationsEnabled;
 }
 
 void Photino::GetMaximized(bool* isMaximized) const
@@ -863,7 +781,7 @@ void Photino::GetSize(int* width, int* height) const
     if (height) *height = rect.bottom - rect.top;
 }
 
-AutoString Photino::GetTitle() const
+/*AutoString Photino::GetTitle() const
 {
     //int titleLength = GetWindowTextLength(_hWnd) + 1;
     //wchar_t* title = new wchar_t[titleLength];
@@ -871,10 +789,11 @@ AutoString Photino::GetTitle() const
     //MessageBox(nullptr, title, L"", MB_OK);
     return _windowTitle;
 }
+*/
 
 void Photino::GetTopmost(bool* topmost) const
 {
-    assert(topmost && _hWnd);
+    assert(topmost);
     if (!topmost) return;
 
     *topmost = false;
@@ -887,7 +806,7 @@ void Photino::GetTopmost(bool* topmost) const
 
 void Photino::GetZoom(int* zoom) const
 {
-    assert(zoom && _webviewController);
+    assert(zoom);
     if (!zoom) return;
 
     *zoom = _zoom;
@@ -905,74 +824,77 @@ void Photino::GetZoom(int* zoom) const
  * The htmlContent parameter may not be larger than 2 MB (2 * 1024 * 1024 bytes) in total size.
  * The origin of the new page is about:blank.
  */
-void Photino::NavigateToString(AutoString content)
+void Photino::NavigateToString(const PlatformString &content) const
 {
     assert(_webviewWindow);
     if (!_webviewWindow) return;
 
-    content = ToUTF16String(content);
-    _webviewWindow->NavigateToString(content);
+    HRESULT hr = _webviewWindow->NavigateToString(content.c_str());
+    assert(SUCCEEDED(hr));
 }
 
-void Photino::NavigateToUrl(AutoString url)
+void Photino::NavigateToUrl(const PlatformString &url) const
 {
     assert(_webviewWindow);
-    if (!_webviewWindow) return;
+    if (!_webviewWindow || url.empty()) return;
 
-    url = ToUTF16String(url);
-    _webviewWindow->Navigate(url);
+    HRESULT hr = _webviewWindow->Navigate(url.c_str());
+    assert(SUCCEEDED(hr));
 }
 
-void Photino::Restore()
+void Photino::Restore() const
 {
     assert(_hWnd);
-    if (!_hWnd)  return;
+    if (!_hWnd) return;
 
     ShowWindow(_hWnd, SW_RESTORE);
 }
 
-void Photino::SendWebMessage(AutoString message)
+void Photino::SendWebMessage(const PlatformString &message) const
 {
     assert(_webviewWindow);
     if (!_webviewWindow) return;
 
-    message = ToUTF16String(message);
-    _webviewWindow->PostWebMessageAsString(message);
+    HRESULT hr = _webviewWindow->PostWebMessageAsString(message.c_str());
+    assert(SUCCEEDED(hr));
 }
 
 void Photino::SetTransparentEnabled(const bool enabled)
 {
     _transparentEnabled = enabled;
+
     assert(_webviewController && _webviewWindow);
     if (!_webviewController || !_webviewWindow) return;
 
-    ICoreWebView2Controller2* controller2 = nullptr;
+    wil::com_ptr<ICoreWebView2Controller2> controller2;
     if (FAILED(_webviewController->QueryInterface(&controller2)) || !controller2) return;
 
     COREWEBVIEW2_COLOR backgroundColor{};
-    if (SUCCEEDED(controller2->get_DefaultBackgroundColor(&backgroundColor)))
+    HRESULT hr = controller2->get_DefaultBackgroundColor(&backgroundColor);
+    if (SUCCEEDED(hr))
     {
         backgroundColor.A = enabled ? 0 : 255;
-        controller2->put_DefaultBackgroundColor(backgroundColor);
+        hr = controller2->put_DefaultBackgroundColor(backgroundColor);
+        assert(SUCCEEDED(hr));
     }
 
-    controller2->Release();
-    _webviewWindow->Reload();
+    hr = _webviewWindow->Reload();
+    assert(SUCCEEDED(hr));
 }
 
 void Photino::SetContextMenuEnabled(const bool enabled)
 {
     _contextMenuEnabled = enabled;
-    assert(_webviewWindow);
     if (!_webviewWindow) return;
 
-    ICoreWebView2Settings* settings = nullptr;
+    wil::com_ptr<ICoreWebView2Settings> settings;
     if (FAILED(_webviewWindow->get_Settings(&settings)) || !settings) return;
 
-    settings->put_AreDefaultContextMenusEnabled(enabled ? TRUE : FALSE);
-    settings->Release();
+    HRESULT hr = settings->put_AreDefaultContextMenusEnabled(enabled ? TRUE : FALSE);
+    assert(SUCCEEDED(hr));
 
-    _webviewWindow->Reload();
+    hr = _webviewWindow->Reload();
+    assert(SUCCEEDED(hr));
 }
 
 void Photino::SetZoomEnabled(const bool enabled)
@@ -981,28 +903,30 @@ void Photino::SetZoomEnabled(const bool enabled)
     assert(_webviewWindow);
     if (!_webviewWindow) return;
 
-    ICoreWebView2Settings* settings = nullptr;
+    wil::com_ptr<ICoreWebView2Settings> settings;
     if (FAILED(_webviewWindow->get_Settings(&settings)) || !settings) return;
 
-    settings->put_IsZoomControlEnabled(enabled ? TRUE : FALSE);
-    settings->Release();
+    HRESULT hr = settings->put_IsZoomControlEnabled(enabled ? TRUE : FALSE);
+    assert(SUCCEEDED(hr));
 
-    _webviewWindow->Reload();
+    hr = _webviewWindow->Reload();
+    assert(SUCCEEDED(hr));
 }
 
 void Photino::SetDevToolsEnabled(const bool enabled)
 {
     _devToolsEnabled = enabled;
-    assert(_webviewWindow);
+
     if (!_webviewWindow) return;
 
-    ICoreWebView2Settings* settings = nullptr;
+    wil::com_ptr<ICoreWebView2Settings> settings;
     if (FAILED(_webviewWindow->get_Settings(&settings)) || !settings) return;
 
-    settings->put_AreDevToolsEnabled(enabled ? TRUE : FALSE);
-    settings->Release();
+    HRESULT hr = settings->put_AreDevToolsEnabled(enabled ? TRUE : FALSE);
+    if (FAILED(hr)) return;
 
-    _webviewWindow->Reload();
+    hr = _webviewWindow->Reload();
+    assert(SUCCEEDED(hr));
 }
 
 void Photino::SetFullScreen(const bool fullScreen)
@@ -1010,7 +934,8 @@ void Photino::SetFullScreen(const bool fullScreen)
     assert(_hWnd);
     if (!_hWnd) return;
 
-    LONG_PTR style = GetWindowLongPtr(_hWnd, GWL_STYLE);
+    _fullScreen = fullScreen;
+    LONG_PTR style = GetWindowLongPtrW(_hWnd, GWL_STYLE);
     if (fullScreen)
     {
         style |= WS_POPUP;
@@ -1018,12 +943,21 @@ void Photino::SetFullScreen(const bool fullScreen)
     }
     else
     {
-        style |= WS_OVERLAPPEDWINDOW;
-        style &= ~WS_POPUP;
+        if (_chromeless)
+        {
+            style |= WS_POPUP;
+            style &= ~WS_OVERLAPPEDWINDOW;
+        }
+        else
+        {
+            style |= WS_OVERLAPPEDWINDOW;
+            style &= ~WS_POPUP;
+        }
     }
 
-    SetWindowLongPtr(_hWnd, GWL_STYLE, style);
-
+    SetLastError(0);
+    LONG_PTR previousStyle = SetWindowLongPtrW(_hWnd, GWL_STYLE, style);
+    assert(previousStyle != 0 || GetLastError() == ERROR_SUCCESS);
 
     HMONITOR monitor = MonitorFromWindow(_hWnd, MONITOR_DEFAULTTONEAREST);
     MONITORINFO monitorInfo{ sizeof(monitorInfo) };
@@ -1034,25 +968,42 @@ void Photino::SetFullScreen(const bool fullScreen)
             ? monitorInfo.rcMonitor
             : monitorInfo.rcWork;
 
-        SetWindowPos(_hWnd, HWND_TOP, rc.left, rc.top, rc.right - rc.left, rc.bottom - rc.top, SWP_FRAMECHANGED);
+        HRESULT hr = SetWindowPos(_hWnd, HWND_TOP, rc.left, rc.top, rc.right - rc.left, rc.bottom - rc.top, SWP_FRAMECHANGED);
+        assert(SUCCEEDED(hr));
     }
     else
     {
-        SetWindowPos(_hWnd, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_FRAMECHANGED);
+        HRESULT hr = SetWindowPos(_hWnd, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_FRAMECHANGED);
+        assert(SUCCEEDED(hr));
     }
 }
 
-void Photino::SetIconFile(const AutoString filename)
+void Photino::SetIconFile(const PlatformString& filename)
 {
-    AutoString path = ToUTF16String(filename);
-    _iconFileName = path;
-
     assert(_hWnd);
-    if (!_hWnd) return;
+    if (!_hWnd || filename.empty())
+        return;
 
-    HICON iconSmall = static_cast<HICON>(LoadImageW(nullptr, path, IMAGE_ICON, GetSystemMetrics(SM_CXSMICON), GetSystemMetrics(SM_CYSMICON), LR_LOADFROMFILE | LR_SHARED));
+    HICON iconSmall = static_cast<HICON>(LoadImageW(
+        nullptr,
+        filename.c_str(),
+        IMAGE_ICON,
+        GetSystemMetrics(SM_CXSMICON),
+        GetSystemMetrics(SM_CYSMICON),
+        LR_LOADFROMFILE | LR_SHARED));
 
-    HICON iconBig = static_cast<HICON>(LoadImageW(nullptr, path, IMAGE_ICON, GetSystemMetrics(SM_CXICON), GetSystemMetrics(SM_CYICON), LR_LOADFROMFILE | LR_SHARED));
+    HICON iconBig = static_cast<HICON>(LoadImageW(
+        nullptr,
+        filename.c_str(),
+        IMAGE_ICON,
+        GetSystemMetrics(SM_CXICON),
+        GetSystemMetrics(SM_CYICON),
+        LR_LOADFROMFILE | LR_SHARED));
+
+    if (!iconSmall && !iconBig)
+        return;
+
+    _iconFileName = filename;
 
     if (iconSmall)
         SendMessageW(_hWnd, WM_SETICON, ICON_SMALL, reinterpret_cast<LPARAM>(iconSmall));
@@ -1066,22 +1017,27 @@ void Photino::SetMinimized(const bool minimized)
     assert(_hWnd);
     if (!_hWnd) return;
 
-    ShowWindow(_hWnd, minimized ? SW_MINIMIZE : SW_NORMAL);
+    ShowWindow(_hWnd, minimized ? SW_MINIMIZE : SW_RESTORE);
 }
 
 void Photino::SetMinSize(const int width, const int height)
 {
-    _minWidth = width;
-    _minHeight = height;
+    _sizeLimits.minWidth = (std::max)(0, width);
+    _sizeLimits.minHeight = (std::max)(0, height);
+
+    if (_sizeLimits.maxWidth > 0 && _sizeLimits.minWidth > _sizeLimits.maxWidth)
+        _sizeLimits.maxWidth = _sizeLimits.minWidth;
+    if (_sizeLimits.maxHeight > 0 && _sizeLimits.minHeight > _sizeLimits.maxHeight)
+        _sizeLimits.maxHeight = _sizeLimits.minHeight;
 
     assert(_hWnd);
-    if (!_hWnd)  return;
+    if (!_hWnd) return;
 
     int currWidth = 0, currHeight = 0;
     GetSize(&currWidth, &currHeight);
 
-    int newWidth = currWidth < _minWidth ? _minWidth : currWidth;
-    int newHeight = currHeight < _minHeight ? _minHeight : currHeight;
+    int newWidth = currWidth < _sizeLimits.minWidth ? _sizeLimits.minWidth : currWidth;
+    int newHeight = currHeight < _sizeLimits.minHeight ? _sizeLimits.minHeight : currHeight;
 
     if (newWidth != currWidth || newHeight != currHeight)
         SetSize(newWidth, newHeight);
@@ -1092,13 +1048,19 @@ void Photino::SetMaximized(const bool maximized)
     assert(_hWnd);
     if (!_hWnd) return;
 
-    ShowWindow(_hWnd, maximized ? SW_MAXIMIZE : SW_NORMAL);
+    ShowWindow(_hWnd, maximized ? SW_MAXIMIZE : SW_RESTORE);
 }
 
 void Photino::SetMaxSize(const int width, const int height)
 {
-    _maxWidth = width;
-    _maxHeight = height;
+    _sizeLimits.maxWidth = (std::max)(0, width);
+    _sizeLimits.maxHeight = (std::max)(0, height);
+
+    if (_sizeLimits.maxWidth > 0 && _sizeLimits.maxWidth < _sizeLimits.minWidth)
+        _sizeLimits.minWidth = _sizeLimits.maxWidth;
+
+    if (_sizeLimits.maxHeight > 0 && _sizeLimits.maxHeight < _sizeLimits.minHeight)
+        _sizeLimits.minHeight = _sizeLimits.maxHeight;
 
     assert(_hWnd);
     if (!_hWnd) return;
@@ -1106,8 +1068,8 @@ void Photino::SetMaxSize(const int width, const int height)
     int currWidth = 0, currHeight = 0;
     GetSize(&currWidth, &currHeight);
 
-    int newWidth = (currWidth > _maxWidth) ? _maxWidth : currWidth;
-    int newHeight = (currHeight > _maxHeight) ? _maxHeight : currHeight;
+    int newWidth = _sizeLimits.maxWidth > 0 && currWidth > _sizeLimits.maxWidth ? _sizeLimits.maxWidth : currWidth;
+    int newHeight = _sizeLimits.maxHeight > 0 && currHeight > _sizeLimits.maxHeight ? _sizeLimits.maxHeight : currHeight;
 
     if (newWidth != currWidth || newHeight != currHeight)
         SetSize(newWidth, newHeight);
@@ -1118,50 +1080,72 @@ void Photino::SetPosition(const int x, const int y)
     assert(_hWnd);
     if (!_hWnd) return;
 
-    SetWindowPos(_hWnd, nullptr, x, y, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
+    BOOL result = SetWindowPos(_hWnd, nullptr, x, y, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
+    assert(result);
 }
 
 void Photino::SetResizable(const bool resizable)
 {
     assert(_hWnd);
-    if (!_hWnd)  return;
+    if (!_hWnd) return;
 
-    LONG_PTR style = GetWindowLongPtr(_hWnd, GWL_STYLE);
+    LONG_PTR style = GetWindowLongPtrW(_hWnd, GWL_STYLE);
 
     if (resizable)
         style |= (WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX);
     else
         style &= ~(WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX);
 
-    SetWindowLongPtr(_hWnd, GWL_STYLE, style);
+    SetLastError(0);
+    LONG_PTR previousStyle = SetWindowLongPtrW(_hWnd, GWL_STYLE, style);
+    assert(previousStyle != 0 || GetLastError() == ERROR_SUCCESS);
     // force non-client recalculation
-    SetWindowPos(_hWnd, nullptr, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
+    BOOL result = SetWindowPos(_hWnd, nullptr, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
+    assert(result);
 }
 
 void Photino::SetSize(const int width, const int height)
 {
     assert(_hWnd);
-    if (!_hWnd)  return;
+    if (!_hWnd) return;
 
-    SetWindowPos(_hWnd, nullptr, 0, 0, width, height, SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE);
+    if (width <= 0 || height <= 0)
+        return;
+
+    int newWidth = width;
+    int newHeight = height;
+
+    if (_sizeLimits.minWidth > 0 && newWidth < _sizeLimits.minWidth)
+        newWidth = _sizeLimits.minWidth;
+
+    if (_sizeLimits.minHeight > 0 && newHeight < _sizeLimits.minHeight)
+        newHeight = _sizeLimits.minHeight;
+
+    if (_sizeLimits.maxWidth > 0 && newWidth > _sizeLimits.maxWidth)
+        newWidth = _sizeLimits.maxWidth;
+
+    if (_sizeLimits.maxHeight > 0 && newHeight > _sizeLimits.maxHeight)
+        newHeight = _sizeLimits.maxHeight;
+
+    BOOL result = SetWindowPos(_hWnd, nullptr, 0, 0, newWidth, newHeight, SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE);
+    assert(result);
 }
 
-void Photino::SetTitle(AutoString title)
+void Photino::SetTitle(const PlatformString& title)
 {
-    title = ToUTF16String(title);
-    if (wcslen(title) > 255)
-    {
-        for (int i = 0; i < 256; i++)
-            _windowTitle[i] = title[i];
-        _windowTitle[255] = 0;
-    }
-    else
-        wcscpy(_windowTitle, title);
-    SetWindowText(_hWnd, title);
+    assert(_hWnd);
+    if (!_hWnd) return;
+
+    if (!SetWindowTextW(_hWnd, title.c_str()))
+        return;
+
+    _windowTitle = title;
+
     if (_notificationsEnabled)
     {
         WinToast::instance()->setAppName(title);
-        if (_notificationRegistrationId == nullptr)
+
+        if (_notificationRegistrationId.empty())
             WinToast::instance()->setAppUserModelId(title);
     }
 }
@@ -1171,14 +1155,16 @@ void Photino::SetTopmost(const bool topmost)
     assert(_hWnd);
     if (!_hWnd) return;
 
-    LONG_PTR exStyle = GetWindowLongPtr(_hWnd, GWL_EXSTYLE);
+    BOOL result = SetWindowPos(
+        _hWnd,
+        topmost ? HWND_TOPMOST : HWND_NOTOPMOST,
+        0,
+        0,
+        0,
+        0,
+        SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
 
-    if (topmost)    exStyle |= WS_EX_TOPMOST;
-    else            exStyle &= ~WS_EX_TOPMOST;
-
-    SetWindowLongPtr(_hWnd, GWL_EXSTYLE, exStyle);
-
-    SetWindowPos(_hWnd, topmost ? HWND_TOPMOST : HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+    assert(result);
 }
 
 void Photino::SetZoom(int zoom)
@@ -1192,22 +1178,24 @@ void Photino::SetZoom(int zoom)
     if (!_webviewController) return;
 
     double newZoom = static_cast<double>(zoom) / 100.0;
-    _webviewController->put_ZoomFactor(newZoom);
+    HRESULT hr = _webviewController->put_ZoomFactor(newZoom);
+    assert(SUCCEEDED(hr));
 }
 
-void Photino::ShowNotification(AutoString title, AutoString message)
+void Photino::ShowNotification(const PlatformString& title, const PlatformString& message) const
 {
-    title = ToUTF16String(title);
-    message = ToUTF16String(message);
-    if (_notificationsEnabled && WinToast::isCompatible())
-    {
-        WinToastTemplate toast = WinToastTemplate(WinToastTemplate::ImageAndText02);
-        toast.setTextField(title, WinToastTemplate::FirstLine);
-        toast.setTextField(message, WinToastTemplate::SecondLine);
-        if (this->_iconFileName != nullptr)
-            toast.setImagePath(this->_iconFileName);
-        WinToast::instance()->showToast(toast, _toastHandler);
-    }
+    if (!_notificationsEnabled || !_toastHandler || !WinToast::isCompatible())
+        return;
+
+    WinToastTemplate toast = WinToastTemplate(WinToastTemplate::ImageAndText02);
+    toast.setTextField(title, WinToastTemplate::FirstLine);
+    toast.setTextField(message, WinToastTemplate::SecondLine);
+
+    if (!_iconFileName.empty())
+        toast.setImagePath(_iconFileName);
+
+    INT64 result = WinToast::instance()->showToast(toast, _toastHandler);
+    assert(result >= 0);
 }
 
 void Photino::WaitForExit() const
@@ -1234,6 +1222,7 @@ void Photino::WaitForExit() const
     }
 
     g_uiThreadWindowHandle = nullptr;
+    g_isShuttingDown.store(true, std::memory_order_release);
     g_messageLoopRunning.store(false, std::memory_order_release);
 }
 
@@ -1268,12 +1257,13 @@ BOOL MonitorEnum(const HMONITOR hMonitor, HDC hdcMonitor, LPRECT lprcMonitor, co
     return callback(&props) ? TRUE : FALSE;
 }
 
-void Photino::GetAllMonitors(GetAllMonitorsCallback callback)
+void Photino::GetAllMonitors(GetAllMonitorsCallback callback) const
 {
     assert(callback);
     if (!callback) return;
 
-    EnumDisplayMonitors(nullptr, nullptr, MonitorEnum, reinterpret_cast<LPARAM>(callback));
+    BOOL result = EnumDisplayMonitors(nullptr, nullptr, MonitorEnum, reinterpret_cast<LPARAM>(callback));
+    assert(result);
 }
 
 void Photino::Invoke(InvokeCallback callback) const
@@ -1283,224 +1273,363 @@ void Photino::Invoke(InvokeCallback callback) const
 
     if (g_isShuttingDown.load(std::memory_order_acquire)) return;
 
-    InvokeWaitInfo waitInfo{};
-    if (!PostMessageW(_hWnd, WM_USER_INVOKE, reinterpret_cast<WPARAM>(callback), reinterpret_cast<LPARAM>(&waitInfo))) return;
+    DWORD windowThreadId = GetWindowThreadProcessId(_hWnd, nullptr);
+    DWORD currentThreadId = GetCurrentThreadId();
+    if (windowThreadId == currentThreadId)
+    {
+        callback();
+        return;
+    }
+
+    if (!IsWindow(_hWnd))
+        return;
 
     // Block until the callback is actually executed and completed
-    // TODO: Add return values, exception handling, etc.
-    std::unique_lock lock(g_invokeLockMutex);
-    waitInfo.completionNotifier.wait(lock, [&waitInfo] { return waitInfo.isCompleted || g_isShuttingDown.load(std::memory_order_acquire); });
+    LRESULT result = SendMessageW(_hWnd, WM_USER_INVOKE, reinterpret_cast<WPARAM>(callback), 0);
 }
 
-
-//private methods
-
-AutoString Photino::ToUTF8String(const AutoString source)
+PlatformString Photino::BuildStartupString() const
 {
-    AutoString response;
-    std::string* stringBuffer = new std::string();
-    int inLen = (int)wcslen(source);
-    int result = WideCharToMultiByte(CP_UTF8, 0, (LPCWCH)source, inLen, nullptr, 0, nullptr, nullptr);
-    if (result < 0)
+    // TODO: Implement special startup strings.
+    // https://peter.sh/experiments/chromium-command-line-switches/
+    // https://learn.microsoft.com/en-us/dotnet/api/microsoft.web.webview2.core.corewebview2environmentoptions.additionalbrowserarguments?view=webview2-dotnet-1.0.1938.49&viewFallbackFrom=webview2-dotnet-1.0.1901.177view%3Dwebview2-1.0.1901.177
+    // https://www.chromium.org/developers/how-tos/run-chromium-with-flags/
+    // Add together all 7 special startup strings, plus the generic one passed by the user to make one big string. Try not to duplicate anything. Separate with spaces.
+
+    PlatformString startupString;
+
+    if (!_userAgent.empty())
     {
-        response = (AutoString)"UTF8 to UTF16 convert failed";
+        PlatformString userAgent = _userAgent;
+        std::ranges::replace(userAgent, L'"', L'\'');
+        startupString += L"--user-agent=\"" + userAgent + L"\" ";
+    }
+
+    if (_mediaAutoplayEnabled)
+        startupString += L"--autoplay-policy=no-user-gesture-required ";
+
+    if (_fileSystemAccessEnabled)
+        startupString += L"--allow-file-access-from-files ";
+
+    if (!_webSecurityEnabled)
+        startupString += L"--disable-web-security ";
+
+    if (_javascriptClipboardAccessEnabled)
+        startupString += L"--enable-javascript-clipboard-access ";
+
+    if (_mediaStreamEnabled)
+        startupString += L"--enable-usermedia-screen-capturing ";
+
+    if (!_smoothScrollingEnabled)
+        startupString += L"--disable-smooth-scrolling ";
+
+    if (_ignoreCertificateErrorsEnabled)
+        startupString += L"--ignore-certificate-errors ";
+
+    if (!_browserControlInitParameters.empty())
+    {
+        if (!startupString.empty() && startupString.back() != L' ')
+            startupString += L' ';
+        startupString += _browserControlInitParameters; // e.g.--hide-scrollbars
+    }
+
+    return startupString;
+}
+
+HRESULT Photino::CompleteWebViewInitialization()
+{
+    assert(!_webViewInitialized);
+    if (_webViewInitialized)
+        return S_OK;
+
+    _webViewInitialized = true;
+
+    if (!_startUrl.empty())
+    {
+        NavigateToUrl(_startUrl);
+    }
+    else if (!_startString.empty())
+    {
+        NavigateToString(_startString);
     }
     else
     {
-        stringBuffer->resize(result, 0);
-        result = WideCharToMultiByte(CP_UTF8, 0, (LPCWCH)source, inLen, &(*stringBuffer)[0], result, nullptr, nullptr);
-        response = (AutoString)stringBuffer->c_str();
+        MessageBoxW(nullptr, L"Neither StartUrl nor StartString was specified", L"Native Initialization Failed", MB_OK);
+        std::abort();
     }
-    return response;
+
+    if (_contextMenuEnabled == false)
+        SetContextMenuEnabled(false);
+
+    if (_zoomEnabled == false)
+        SetZoomEnabled(false);
+
+    if (_devToolsEnabled == false)
+        SetDevToolsEnabled(false);
+
+    if (_transparentEnabled == true)
+        SetTransparentEnabled(true);
+
+    if (_zoom != 100)
+        SetZoom(_zoom);
+
+    RefitContent();
+    FocusWebView2();
+
+    return S_OK;
 }
-AutoString Photino::ToUTF16String(const AutoString source)
+
+HRESULT Photino::HandleScriptAddedOnDocumentCreated(HRESULT result, LPCWSTR id)
 {
-    AutoString response;
-    std::wstring* wideBuffer = new std::wstring();
-    int inLen = (int)strlen((char*)source);
-    int result = MultiByteToWideChar(CP_UTF8, 0, (char*)source, inLen, nullptr, 0);
-    if (result < 0)
+   if (FAILED(result)) return result;
+
+   _scriptId = id ? id : L"";
+
+    return CompleteWebViewInitialization();
+}
+
+HRESULT Photino::HandleWebMessageReceived(ICoreWebView2* webview, ICoreWebView2WebMessageReceivedEventArgs* args)
+{
+    if (!args) return E_POINTER;
+    if (!_webMessageReceivedCallback) return S_OK;
+
+    wil::unique_cotaskmem_string message;
+    HRESULT hr = args->TryGetWebMessageAsString(&message);
+    if (FAILED(hr))
+        return hr;
+
+    wil::unique_cotaskmem_string sourceUri;
+    hr = args->get_Source(&sourceUri);
+    if (FAILED(hr))
+        return hr;
+
+    std::string utf8Message = ToUtf8String(message ? PlatformString(message.get()) : PlatformString());
+    _webMessageReceivedCallback(utf8Message.c_str());
+
+    return S_OK;
+}
+
+HRESULT Photino::HandleWebResourceRequested(ICoreWebView2* webview, ICoreWebView2WebResourceRequestedEventArgs* args)
+{
+    if (!args) return E_POINTER;
+
+    wil::com_ptr<ICoreWebView2WebResourceRequest> request;
+    HRESULT hr = args->get_Request(&request);
+    if (FAILED(hr)) return hr;
+    if (!request) return E_POINTER;
+
+    wil::unique_cotaskmem_string uri;
+    hr = request->get_Uri(&uri);
+    if (FAILED(hr)) return hr;
+    if (!uri) return E_POINTER;
+
+    PlatformString uriString(uri.get());
+    size_t colonPos = uriString.find(L':');
+
+    if (colonPos == PlatformString::npos || colonPos == 0)
+        return S_OK;
+
+    PlatformString scheme = uriString.substr(0, colonPos);
+
+    if (!_customSchemeCallback || !IsCustomScheme(scheme))
+        return S_OK;
+
+    std::string uriUtf8 = ToUtf8String(uriString);
+
+    int numBytes = 0;
+    Utf8String contentType = nullptr;
+    void* responseData = _customSchemeCallback(uriUtf8.c_str(), &numBytes, &contentType);
+
+    if (!_webviewEnvironment)
     {
-        response = (AutoString)"UTF8 to UTF16 convert failed";
+        FreeMemory(responseData);
+        FreeString(const_cast<char*>(contentType));
+        return E_POINTER;
+    }
+
+    HRESULT responseResult = S_OK;
+    if (!responseData || numBytes <= 0)
+    {
+        wil::com_ptr<IStream> emptyStream;
+        emptyStream.attach(SHCreateMemStream(nullptr, 0));
+
+        if (!emptyStream)
+        {
+            FreeMemory(responseData);
+            FreeString(const_cast<char*>(contentType));
+            return E_OUTOFMEMORY;
+        }
+
+        wil::com_ptr<ICoreWebView2WebResourceResponse> response;
+        responseResult = _webviewEnvironment->CreateWebResourceResponse(
+            emptyStream.get(),
+            404,
+            L"Not Found",
+            nullptr,
+            &response);
+
+        if (SUCCEEDED(responseResult))
+            responseResult = args->put_Response(response.get());
     }
     else
     {
-        wideBuffer->resize(result, 0);
-        result = MultiByteToWideChar(CP_UTF8, 0, (char*)source, inLen, &(*wideBuffer)[0], result);
-        response = (AutoString)wideBuffer->c_str();
+        PlatformString headers;
+
+        if (contentType && *contentType)
+            headers = L"Content-Type: " + ToPlatformString(contentType);
+
+        wil::com_ptr<IStream> dataStream;
+        dataStream.attach(SHCreateMemStream(static_cast<const BYTE*>(responseData), static_cast<UINT>(numBytes)));
+
+        if (dataStream)
+        {
+            wil::com_ptr<ICoreWebView2WebResourceResponse> response;
+            responseResult = _webviewEnvironment->CreateWebResourceResponse(
+                dataStream.get(),
+                200,
+                L"OK",
+                headers.empty() ? nullptr : headers.c_str(),
+                &response);
+
+            if (SUCCEEDED(responseResult))
+                responseResult = args->put_Response(response.get());
+        }
+        else
+        {
+            responseResult = E_OUTOFMEMORY;
+        }
     }
-    return response;
+
+    FreeMemory(responseData);
+    FreeString(const_cast<char*>(contentType));
+
+    return responseResult;
+}
+
+HRESULT Photino::HandlePermissionRequested(ICoreWebView2* webview, ICoreWebView2PermissionRequestedEventArgs* args)
+{
+    if (!args) return E_POINTER;
+
+    if (_grantBrowserPermissions)
+        return args->put_State(COREWEBVIEW2_PERMISSION_STATE_ALLOW);
+
+    return S_OK;
+}
+
+HRESULT Photino::HandleWebViewControllerCreated(HRESULT result, ICoreWebView2Controller* controller)
+{
+    if (FAILED(result)) return result;
+    if (!controller) return E_POINTER;
+
+    HRESULT hr = controller->QueryInterface(&_webviewController);
+    if (FAILED(hr)) return hr;
+
+    hr = _webviewController->get_CoreWebView2(&_webviewWindow);
+    if (FAILED(hr)) return hr;
+    if (!_webviewWindow) return E_POINTER;
+
+    wil::com_ptr<ICoreWebView2Settings> settings;
+    hr = _webviewWindow->get_Settings(&settings);
+    if (FAILED(hr)) return hr;
+    if (!settings) return E_POINTER;
+
+    hr = settings->put_AreHostObjectsAllowed(TRUE);
+    if (FAILED(hr)) return hr;
+    hr = settings->put_IsScriptEnabled(TRUE);
+    if (FAILED(hr)) return hr;
+    hr = settings->put_AreDefaultScriptDialogsEnabled(TRUE);
+    if (FAILED(hr)) return hr;
+    hr = settings->put_IsWebMessageEnabled(TRUE);
+    if (FAILED(hr)) return hr;
+
+    EventRegistrationToken webMessageToken;
+    hr = _webviewWindow->add_WebMessageReceived(
+        Callback<ICoreWebView2WebMessageReceivedEventHandler>(this, &Photino::HandleWebMessageReceived)
+        .Get(), &webMessageToken);
+    if (FAILED(hr)) return hr;
+
+    hr = _webviewWindow->AddWebResourceRequestedFilter(L"*", COREWEBVIEW2_WEB_RESOURCE_CONTEXT_ALL);
+    if (FAILED(hr)) return hr;
+
+    EventRegistrationToken webResourceRequestedToken;
+    hr = _webviewWindow->add_WebResourceRequested(
+        Callback<ICoreWebView2WebResourceRequestedEventHandler>(this, &Photino::HandleWebResourceRequested)
+        .Get(), &webResourceRequestedToken);
+    if (FAILED(hr)) return hr;
+
+    EventRegistrationToken permissionRequestedToken;
+    hr = _webviewWindow->add_PermissionRequested(
+        Callback<ICoreWebView2PermissionRequestedEventHandler>(this, &Photino::HandlePermissionRequested)
+        .Get(), &permissionRequestedToken);
+    if (FAILED(hr)) return hr;
+
+    hr = _webviewWindow->AddScriptToExecuteOnDocumentCreated(
+        L"window.external = { sendMessage: function(message) { window.chrome.webview.postMessage(message); }, receiveMessage: function(callback) { window.chrome.webview.addEventListener('message', function(e) { callback(e.data); }); } };",
+        Callback<ICoreWebView2AddScriptToExecuteOnDocumentCreatedCompletedHandler>(this, &Photino::HandleScriptAddedOnDocumentCreated)
+            .Get());
+    if (FAILED(hr)) return hr;
+
+    return S_OK;
+}
+
+HRESULT Photino::HandleWebViewEnvironmentCreated(HRESULT result, ICoreWebView2Environment* environment)
+{
+    if (FAILED(result)) return result;
+    if (!environment) return E_POINTER;
+
+    HRESULT hr = environment->QueryInterface(&_webviewEnvironment);
+    if (FAILED(hr)) return hr;
+
+    return environment->CreateCoreWebView2Controller(_hWnd,
+        Callback<ICoreWebView2CreateCoreWebView2ControllerCompletedHandler>(this, &Photino::HandleWebViewControllerCreated)
+        .Get());
 }
 
 void Photino::AttachWebView()
 {
-    size_t runtimePathLen = wcsnlen(g_webview2RuntimePath, _countof(g_webview2RuntimePath));
-    PCWSTR runtimePath = runtimePathLen > 0 ? &g_webview2RuntimePath[0] : nullptr;
-
-    //TODO: Implement special startup strings.
-    //https://peter.sh/experiments/chromium-command-line-switches/
-    //https://learn.microsoft.com/en-us/dotnet/api/microsoft.web.webview2.core.corewebview2environmentoptions.additionalbrowserarguments?view=webview2-dotnet-1.0.1938.49&viewFallbackFrom=webview2-dotnet-1.0.1901.177view%3Dwebview2-1.0.1901.177
-    //https://www.chromium.org/developers/how-tos/run-chromium-with-flags/
-    //Add together all 7 special startup strings, plus the generic one passed by the user to make one big string. Try not to duplicate anything. Separate with spaces.
-
-    std::wstring startupString = L"";
-    if (_userAgent != nullptr && wcslen(_userAgent) > 0)
-        startupString += L"--user-agent=\"" + std::wstring(_userAgent) + L"\" ";
-    if (_mediaAutoplayEnabled)
-        startupString += L"--autoplay-policy=no-user-gesture-required ";
-    if (_fileSystemAccessEnabled)
-        startupString += L"--allow-file-access-from-files ";
-    if (!_webSecurityEnabled)
-        startupString += L"--disable-web-security ";
-    if (_javascriptClipboardAccessEnabled)
-        startupString += L"--enable-javascript-clipboard-access ";
-    if (_mediaStreamEnabled)
-        startupString += L"--enable-usermedia-screen-capturing ";
-    if (!_smoothScrollingEnabled)
-        startupString += L"--disable-smooth-scrolling ";
-    if (_ignoreCertificateErrorsEnabled)
-        startupString += L"--ignore-certificate-errors ";
-    if (_browserControlInitParameters != nullptr)
-        startupString += _browserControlInitParameters;	//e.g.--hide-scrollbars
-
     auto options = Microsoft::WRL::Make<CoreWebView2EnvironmentOptions>();
-    if (startupString.length() > 0)
-        options->put_AdditionalBrowserArguments(startupString.c_str());
+    if (!options)
+    {
+        MessageBoxW(_hWnd, L"Failed to allocate WebView2 environment options.", L"Error configuring webview", MB_OK);
+        return;
+    }
 
-    HRESULT envResult = CreateCoreWebView2EnvironmentWithOptions(runtimePath, _temporaryFilesPath, options.Get(),
-        Callback<ICoreWebView2CreateCoreWebView2EnvironmentCompletedHandler>(
-            [&](const HRESULT result, ICoreWebView2Environment* env) -> HRESULT {
-                if (result != S_OK) { return result; }
-                HRESULT envResult = env->QueryInterface(&_webviewEnvironment);
-                if (envResult != S_OK) { return envResult; }
+    PlatformString startupString = BuildStartupString();
+    if (!startupString.empty())
+    {
+        HRESULT hr = options->put_AdditionalBrowserArguments(startupString.c_str());
+        if (FAILED(hr))
+        {
+            _com_error err(hr);
+            MessageBoxW(_hWnd, err.ErrorMessage(), L"Error configuring webview", MB_OK);
+            return;
+        }
+    }
 
-                env->CreateCoreWebView2Controller(_hWnd, Callback<ICoreWebView2CreateCoreWebView2ControllerCompletedHandler>(
-                    [&](const HRESULT result, ICoreWebView2Controller* controller) -> HRESULT {
+    PCWSTR runtimePath = g_webview2RuntimePath.empty() ? nullptr : g_webview2RuntimePath.c_str();
+    PCWSTR userDataFolder = _temporaryFilesPath.empty() ? nullptr : _temporaryFilesPath.c_str();
 
-                        if (result != S_OK) { return result; }
+    HRESULT envResult = CreateCoreWebView2EnvironmentWithOptions(runtimePath, userDataFolder, options.Get(),
+        Callback<ICoreWebView2CreateCoreWebView2EnvironmentCompletedHandler>(this, &Photino::HandleWebViewEnvironmentCreated)
+        .Get());
 
-                        HRESULT envResult = controller->QueryInterface(&_webviewController);
-                        if (envResult != S_OK) { return envResult; }
-                        _webviewController->get_CoreWebView2(&_webviewWindow);
-
-                        ICoreWebView2Settings* Settings;
-                        _webviewWindow->get_Settings(&Settings);
-                        Settings->put_AreHostObjectsAllowed(TRUE);
-                        Settings->put_IsScriptEnabled(TRUE);
-                        Settings->put_AreDefaultScriptDialogsEnabled(TRUE);
-                        Settings->put_IsWebMessageEnabled(TRUE);
-
-                        EventRegistrationToken webMessageToken;
-                        _webviewWindow->AddScriptToExecuteOnDocumentCreated(L"window.external = { sendMessage: function(message) { window.chrome.webview.postMessage(message); }, receiveMessage: function(callback) { window.chrome.webview.addEventListener(\'message\', function(e) { callback(e.data); }); } };", nullptr);
-                        _webviewWindow->add_WebMessageReceived(Callback<ICoreWebView2WebMessageReceivedEventHandler>(
-                            [&](ICoreWebView2* webview, ICoreWebView2WebMessageReceivedEventArgs* args) -> HRESULT {
-                                wil::unique_cotaskmem_string message;
-                                args->TryGetWebMessageAsString(&message);
-                                _webMessageReceivedCallback(message.get());
-                                return S_OK;
-                            }).Get(), &webMessageToken);
-
-                        EventRegistrationToken webResourceRequestedToken;
-                        _webviewWindow->AddWebResourceRequestedFilter(L"*", COREWEBVIEW2_WEB_RESOURCE_CONTEXT_ALL);
-                        _webviewWindow->add_WebResourceRequested(Callback<ICoreWebView2WebResourceRequestedEventHandler>(
-                            [&](ICoreWebView2* sender, ICoreWebView2WebResourceRequestedEventArgs* args)
-                            {
-                                ICoreWebView2WebResourceRequest* req;
-                                args->get_Request(&req);
-
-                                wil::unique_cotaskmem_string uri;
-                                req->get_Uri(&uri);
-                                std::wstring uriString = uri.get();
-                                size_t colonPos = uriString.find(L':', 0);
-                                if (colonPos > 0)
-                                {
-                                    std::wstring scheme = uriString.substr(0, colonPos);
-                                    std::vector<wchar_t*>::iterator it = std::find(_customSchemeNames.begin(), _customSchemeNames.end(), scheme);
-
-                                    if (it != _customSchemeNames.end() && _customSchemeCallback != nullptr)
-                                    {
-                                        int numBytes;
-                                        AutoString contentType;
-                                        wil::unique_cotaskmem dotNetResponse(_customSchemeCallback((AutoString)uriString.c_str(), &numBytes, &contentType));
-
-                                        if (dotNetResponse != nullptr && contentType != nullptr)
-                                        {
-                                            std::wstring contentTypeWS = contentType;
-
-                                            IStream* dataStream = SHCreateMemStream((BYTE*)dotNetResponse.get(), numBytes);
-                                            wil::com_ptr<ICoreWebView2WebResourceResponse> response;
-                                            _webviewEnvironment->CreateWebResourceResponse(
-                                                dataStream, 200, L"OK", (L"Content-Type: " + contentTypeWS).c_str(),
-                                                &response);
-                                            args->put_Response(response.get());
-                                        }
-                                    }
-                                }
-
-                                return S_OK;
-                            }
-                        ).Get(), &webResourceRequestedToken);
-
-                        EventRegistrationToken permissionRequestedToken;
-                        _webviewWindow->add_PermissionRequested(
-                            Callback<ICoreWebView2PermissionRequestedEventHandler>(
-                                [&](ICoreWebView2* sender, ICoreWebView2PermissionRequestedEventArgs* args)	-> HRESULT {
-                                    if (_grantBrowserPermissions)
-                                        args->put_State(COREWEBVIEW2_PERMISSION_STATE_ALLOW);
-                                    return S_OK;
-                                })
-                            .Get(),
-                            &permissionRequestedToken);
-
-                        if (_startUrl != nullptr)
-                            NavigateToUrl(_startUrl);
-                        else if (_startString != nullptr)
-                            NavigateToString(_startString);
-                        else
-                        {
-                            MessageBox(nullptr, L"Neither StartUrl nor StartString was specified", L"Native Initialization Failed", MB_OK);
-                            exit(0);
-                        }
-
-                        if (_contextMenuEnabled == false)
-                            SetContextMenuEnabled(false);
-
-                        if (_zoomEnabled == false)
-                            SetZoomEnabled(false);
-
-                        if (_devToolsEnabled == false)
-                            SetDevToolsEnabled(false);
-
-                        if (_transparentEnabled == true)
-                            SetTransparentEnabled(true);
-
-                        if (_zoom != 100)
-                            SetZoom(_zoom);
-
-                        RefitContent();
-
-                        FocusWebView2();
-
-                        return S_OK;
-                    }).Get());
-                return S_OK;
-            }).Get());
-
-    if (envResult != S_OK)
+    if (FAILED(envResult))
     {
         _com_error err(envResult);
         LPCTSTR errMsg = err.ErrorMessage();
-        MessageBox(_hWnd, errMsg, L"Error instantiating webview", MB_OK);
+        MessageBoxW(_hWnd, errMsg, L"Error instantiating webview", MB_OK);
     }
 }
 
-
 bool Photino::EnsureWebViewIsInstalled()
 {
-    LPWSTR* versionInfo = new wchar_t* [100];
-    HRESULT ensureInstalledResult = GetAvailableCoreWebView2BrowserVersionString(nullptr, versionInfo);
+    LPWSTR versionInfo = nullptr;
+    HRESULT hr = GetAvailableCoreWebView2BrowserVersionString(nullptr, &versionInfo);
 
-    if (ensureInstalledResult != S_OK)
+    if (versionInfo)
+        CoTaskMemFree(versionInfo);
+
+    if (FAILED(hr))
         return InstallWebView2();
 
     return true;
@@ -1508,54 +1637,76 @@ bool Photino::EnsureWebViewIsInstalled()
 
 bool Photino::InstallWebView2()
 {
-    const wchar_t* srcURL = L"https://go.microsoft.com/fwlink/p/?LinkId=2124703";
-    const wchar_t* destFile = L"MicrosoftEdgeWebview2Setup.exe";
+    const wchar_t* srcUrl = L"https://go.microsoft.com/fwlink/p/?LinkId=2124703";
 
-    if (S_OK == URLDownloadToFile(nullptr, srcURL, destFile, 0, nullptr))
+    wchar_t tempPath[MAX_PATH];
+    if (!GetTempPathW(_countof(tempPath), tempPath))
+        return false;
+
+    wchar_t destFile[MAX_PATH];
+    if (wcscpy_s(destFile, tempPath) != 0)
+        return false;
+
+    if (wcscat_s(destFile, L"MicrosoftEdgeWebview2Setup.exe") != 0)
+        return false;
+
+    if (URLDownloadToFileW(nullptr, srcUrl, destFile, 0, nullptr) != S_OK)
+        return false;
+
+    wchar_t command[MAX_PATH + 3];
+    if (swprintf_s(command, L"\"%s\"", destFile) < 0)
     {
-        LPWSTR command = new wchar_t[100] { L"MicrosoftEdgeWebview2Setup.exe\0" };	//add these switches? /silent /install
-
-        STARTUPINFO si;
-        PROCESS_INFORMATION pi;
-
-        ZeroMemory(&si, sizeof(si));
-        si.cb = sizeof(si);
-        ZeroMemory(&pi, sizeof(pi));
-
-        bool success = CreateProcess(
-            nullptr,		// No module name (use command line)
-            command,	// Command line
-            nullptr,       // Process handle not inheritable
-            nullptr,       // Thread handle not inheritable
-            FALSE,      // Set handle inheritance to FALSE
-            0,          // No creation flags
-            nullptr,       // Use parent's environment block
-            nullptr,       // Use parent's starting directory
-            &si,        // Pointer to STARTUPINFO structure
-            &pi);		// Pointer to PROCESS_INFORMATION structure
-
-        if (success)
-        {
-            // wait for the installation to complete
-            WaitForSingleObject(pi.hProcess, INFINITE);
-            CloseHandle(pi.hProcess);
-            CloseHandle(pi.hThread);
-        }
-
-        return success;
+        DeleteFileW(destFile);
+        return false;
     }
 
-    return false;
+    STARTUPINFOW si{};
+    si.cb = sizeof(si);
+    PROCESS_INFORMATION pi{};
+
+    BOOL success = CreateProcessW(
+        nullptr, // No module name (use command line)
+        command, // Command line
+        nullptr, // Process handle not inheritable
+        nullptr, // Thread handle not inheritable
+        FALSE,   // Set handle inheritance to FALSE
+        0,       // No creation flags
+        nullptr, // Use parent's environment block
+        nullptr, // Use parent's starting directory
+        &si,     // Pointer to STARTUPINFO structure
+        &pi);    // Pointer to PROCESS_INFORMATION structure
+
+    if (!success)
+    {
+        DeleteFileW(destFile);
+        return false;
+    }
+
+    DWORD waitResult = WaitForSingleObject(pi.hProcess, INFINITE);
+
+    DWORD exitCode = 0;
+    BOOL gotExitCode = waitResult == WAIT_OBJECT_0 &&
+                       GetExitCodeProcess(pi.hProcess, &exitCode);
+
+    CloseHandle(pi.hProcess);
+    CloseHandle(pi.hThread);
+
+    DeleteFileW(destFile);
+
+    return gotExitCode && exitCode == 0;
 }
 
 void Photino::RefitContent() const
 {
-    if (_webviewController)
-    {
-        RECT bounds;
-        GetClientRect(_hWnd, &bounds);
-        _webviewController->put_Bounds(bounds);
-    }
+    if (!_webviewController || !_hWnd)
+        return;
+
+    RECT bounds{};
+    if (!GetClientRect(_hWnd, &bounds))
+        return;
+
+    HRESULT hr = _webviewController->put_Bounds(bounds);
+    assert(SUCCEEDED(hr));
 }
 
 void Photino::FocusWebView2() const
@@ -1581,43 +1732,45 @@ void Photino::ClearBrowserAutoFill() const
         return;
 
     auto webview15 = _webviewWindow.try_query<ICoreWebView2_15>();
-    if (webview15)
-    {
-        wil::com_ptr<ICoreWebView2Profile> profile;
-        webview15->get_Profile(&profile);
-        auto profile2 = profile.try_query<ICoreWebView2Profile2>();
+    if (!webview15)
+        return;
 
-        if (profile2)
-        {
-            COREWEBVIEW2_BROWSING_DATA_KINDS dataKinds =
-                (COREWEBVIEW2_BROWSING_DATA_KINDS)
-                (COREWEBVIEW2_BROWSING_DATA_KINDS_GENERAL_AUTOFILL |
-                    COREWEBVIEW2_BROWSING_DATA_KINDS_PASSWORD_AUTOSAVE);
+    wil::com_ptr<ICoreWebView2Profile> profile;
+    HRESULT hr = webview15->get_Profile(&profile);
+    if (FAILED(hr) || !profile)
+        return;
 
-            profile2->ClearBrowsingData(
-                dataKinds,
-                Callback<ICoreWebView2ClearBrowsingDataCompletedHandler>(
-                    [this](HRESULT error)
-                    -> HRESULT {
-                        return S_OK;
-                    })
-                .Get());
-        }
-    }
+    auto profile2 = profile.try_query<ICoreWebView2Profile2>();
+    if (!profile2)
+        return;
+
+    COREWEBVIEW2_BROWSING_DATA_KINDS dataKinds =
+        COREWEBVIEW2_BROWSING_DATA_KINDS_GENERAL_AUTOFILL |
+        COREWEBVIEW2_BROWSING_DATA_KINDS_PASSWORD_AUTOSAVE;
+
+    hr = profile2->ClearBrowsingData(dataKinds,
+        Callback<ICoreWebView2ClearBrowsingDataCompletedHandler>(
+            [](HRESULT error)-> HRESULT {
+                return S_OK;
+            }).Get());
+    assert(SUCCEEDED(hr));
 }
 
-void Photino::SetWebView2RuntimePath(const AutoString pathToWebView2)
+void Photino::SetWebView2RuntimePath(const PlatformString& pathToWebView2)
 {
-    if (pathToWebView2 != nullptr)
-    {
-        wcsncpy(g_webview2RuntimePath, pathToWebView2, _countof(g_webview2RuntimePath));
-    }
+    g_webview2RuntimePath = pathToWebView2;
 }
 
-void Photino::Show(const bool isAlreadyShown)
+void Photino::Show()
 {
-    if (!isAlreadyShown)
+    if (!_hWnd)
+        std::abort();
+
+    if (!_isAlreadyShown)
+    {
         ShowWindow(_hWnd, SW_SHOWDEFAULT);	//causes maximized and minimized to not work
+        _isAlreadyShown = true;
+    }
 
     UpdateWindow(_hWnd);
 
@@ -1626,9 +1779,14 @@ void Photino::Show(const bool isAlreadyShown)
     // until the window is shown.
     if (!_webviewController)
     {
-        if (wcsnlen(g_webview2RuntimePath, _countof(g_webview2RuntimePath)) > 0 || EnsureWebViewIsInstalled())
+        if (!g_webview2RuntimePath.empty() || EnsureWebViewIsInstalled())
             AttachWebView();
         else
-            exit(0);
+            std::abort();
     }
+}
+
+bool Photino::RegisterCustomSchemeName(const PlatformString& scheme)
+{
+    return true;
 }

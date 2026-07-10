@@ -30,6 +30,12 @@
     <ClCompile Include="Photino.Windows.Dialog.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Photino.Strings.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Photino.Memory.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="Photino.Mac.AppDelegate.mm">
@@ -60,6 +66,9 @@
       <Filter>Source Files</Filter>
     </None>
     <None Include="Photino.Linux.Dialog.cpp">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="Photino.Mac.Dialog.Icons.mm">
       <Filter>Source Files</Filter>
     </None>
   </ItemGroup>
@@ -101,6 +110,27 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="resource.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Photino.Strings.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Photino.InitParams.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Photino.Callbacks.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Photino.Monitor.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Photino.Mac.Dialog.Icons.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Photino.Memory.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Photino.Mac.State.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -1,7 +1,8 @@
 #ifdef __APPLE__
 #import "Photino.Mac.NSWindowBorderless.h"
 
-@implementation NSWindowBorderless : NSWindow
+@implementation NSWindowBorderless
+
 - (BOOL)canBecomeKeyWindow
 {
     return YES;
@@ -11,5 +12,6 @@
 {
     return YES;
 }
+
 @end
 #endif
