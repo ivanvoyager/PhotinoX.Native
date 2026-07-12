@@ -12,8 +12,8 @@
     <RestoreProjectStyle>PackageReference</RestoreProjectStyle>
     <NuGetTargetMoniker Condition="'$(NuGetTargetMoniker)' == ''">native,Version=v0.0</NuGetTargetMoniker>
     <VerMajor>4</VerMajor>
-    <VerMinor>2</VerMinor>
-    <VerPatch>2</VerPatch>
+    <VerMinor>3</VerMinor>
+    <VerPatch>0</VerPatch>
     <VerBuild>
     </VerBuild>
   </PropertyGroup>
