@@ -157,7 +157,7 @@ namespace PhotinoX::Native
         static bool InstallWebView2();
         void NotifyWebView2WindowMove() const;
 
-#elif __linux__
+#elif defined(__linux__)
         GtkWidget* _window = nullptr;
         GtkWidget* _webview = nullptr;
         GdkGeometry _hints{};
@@ -170,7 +170,7 @@ namespace PhotinoX::Native
         void SetWebKitSettings();
         void SetWebKitCustomSettings(WebKitSettings* settings);
 
-#elif __APPLE__
+#elif defined(__APPLE__)
         NSWindow* _window = nullptr;
         WKWebView* _webview = nullptr;
         WKWebViewConfiguration* _webviewConfiguration = nullptr;
@@ -191,24 +191,44 @@ namespace PhotinoX::Native
 #endif
     public:
 #ifdef _WIN32
+
         static void Register(HINSTANCE hInstance);
         static void SetWebView2RuntimePath(const PlatformString& pathToWebView2);
-        HWND GetHwnd() const;
-        void ApplySizeLimits(MINMAXINFO& info) const;
+        HWND GetHwnd() const noexcept
+        {
+            return _hWnd;
+        }
+        void ApplySizeLimits(MINMAXINFO& info) const noexcept;
         void FocusWebView2() const;
         void RefitContent() const;
         void CloseWebView();
-#elif __linux__
+
+#elif defined(__linux__)
+
         static void Register();
         void HandleConfigureEvent(int x, int y, int width, int height);
-#elif __APPLE__
+        void* GetGtkWidget() const noexcept
+        {
+            return _window;
+        }
+
+#elif defined(__APPLE__) && defined(__OBJC__)
+
         static void Register();
+        void* GetNSWindow() const noexcept
+        {
+            return (__bridge void*)_window;
+        }
+
 #endif
 
         Photino(PhotinoInitParams* initParams);
         ~Photino();
 
-        PhotinoDialog* GetDialog() const { return _dialog; }
+        PhotinoDialog* GetDialog() const noexcept
+        {
+            return _dialog;
+        }
 
         void Center();
         void ClearBrowserAutoFill() const;

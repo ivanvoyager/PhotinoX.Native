@@ -5,7 +5,6 @@
 #include "Photino.Strings.h"
 
 #include <cassert>
-#include <new>
 
 #ifdef _WIN32
 #define EXPORTED __declspec(dllexport)
@@ -35,16 +34,37 @@ extern "C"
     {
         Photino::SetWebView2RuntimePath(webView2RuntimePath ? PlatformString(webView2RuntimePath) : PlatformString());
     }
-#elif __linux__
+
+#elif defined(__linux__)
+
     EXPORTED void Photino_register_linux()
     {
         Photino::Register();
     }
-#elif __APPLE__
+
+    EXPORTED void* Photino_getGtkWidget_linux(const Photino* instance)
+    {
+        assert(instance);
+        if (!instance) return nullptr;
+
+        return instance->GetGtkWidget();
+    }
+
+#elif defined(__APPLE__)
+
     EXPORTED void Photino_register_mac()
     {
         Photino::Register();
     }
+
+    EXPORTED void* Photino_getNSWindow_mac(const Photino* instance)
+    {
+        assert(instance);
+        if (!instance) return nullptr;
+
+        return instance->GetNSWindow();
+    }
+
 #endif
 
     EXPORTED Photino* Photino_ctor(PhotinoInitParams* initParams)

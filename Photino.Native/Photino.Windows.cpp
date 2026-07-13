@@ -259,13 +259,7 @@ Photino::~Photino()
     _toastHandler = nullptr;
 }
 
-HWND Photino::GetHwnd() const
-{
-    assert(_hWnd);
-    return _hWnd;
-}
-
-void Photino::ApplySizeLimits(MINMAXINFO& info) const
+void Photino::ApplySizeLimits(MINMAXINFO& info) const noexcept
 {
     if (_sizeLimits.minWidth > 0)   info.ptMinTrackSize.x = _sizeLimits.minWidth;
     if (_sizeLimits.minHeight > 0)  info.ptMinTrackSize.y = _sizeLimits.minHeight;
