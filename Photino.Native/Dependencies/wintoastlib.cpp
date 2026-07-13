@@ -927,15 +927,21 @@ bool WinToast::hideToast(_In_ INT64 id) {
         return false;
     }
 
-    auto& notifyData = iter->second;
-    auto result      = notify->Hide(notifyData.notification());
+    ComPtr<IToastNotification> notificationObj = iter->second.notification();
+
+    auto result = notify->Hide(notificationObj.Get());
     if (FAILED(result)) {
         DEBUG_MSG("Error when hiding the toast. Error code: " << result);
         return false;
     }
 
-    notifyData.RemoveTokens();
-    _buffer.erase(iter);
+    iter = _buffer.find(id);
+    if (iter != _buffer.end()) {
+        iter->second.markAsReadyForDeletion();
+        iter->second.RemoveTokens();
+        _buffer.erase(iter);
+    }
+
     return SUCCEEDED(result);
 }
 
@@ -948,9 +954,12 @@ void WinToast::clear() {
 
     auto safeCopy = _buffer;
     for (auto& data : safeCopy) {
-        auto& notifyData = data.second;
-        notify->Hide(notifyData.notification());
-        notifyData.RemoveTokens();
+        notify->Hide(data.second.notification());
+    }
+
+    for (auto& data : _buffer) {
+        data.second.markAsReadyForDeletion();
+        data.second.RemoveTokens();
     }
     _buffer.clear();
 }
