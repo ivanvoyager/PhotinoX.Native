@@ -45,12 +45,10 @@ These repositories provide the managed .NET surface around the native binaries:
 
 - [**PhotinoX**](https://github.com/ivanvoyager/PhotinoX) - .NET wrapper around the native layer.
 - [**PhotinoX.Blazor**](https://github.com/ivanvoyager/PhotinoX.Blazor) - Blazor integration for native desktop apps.
-- [**PhotinoX.Server**](https://github.com/ivanvoyager/PhotinoX.Server) - optional static-file server (avoids CORS/ESM issues).
+- [**PhotinoX.Server**](https://github.com/ivanvoyager/PhotinoX.Server) - optional local static-file server for SPA/static assets.
 - [**PhotinoX.Samples**](https://github.com/ivanvoyager/PhotinoX.Samples) - sample projects showcasing common scenarios.
 
-This package is intended for developers building modern desktop apps with  
-web‑based UI frameworks (Blazor, React, Vue, Angular, etc.) on top of  
-native OS windows with minimal dependencies.
+This package is intended for developers building modern desktop apps with web‑based UI frameworks (Blazor, React, Vue, Angular, etc.) on top of native OS windows with minimal dependencies.
 
 > If you are looking for the main project, see:  
 > https://github.com/ivanvoyager/PhotinoX
@@ -85,8 +83,7 @@ The build system for PhotinoX.Native uses a combination of MSBuild (Windows)
 and the included `makefile` (Linux, macOS).
 
 > **Toolset note:** The project targets **MSVC v145** (Visual Studio 2026).  
-> The examples below show how to build with **v143** for Visual Studio 2022.  
-> CI also uses **v143** for compatibility with hosted runners.
+> CI also uses **v145**.
 
 > CI: see  
 > - [`.github/workflows/photinox-native-win.yml`](https://github.com/ivanvoyager/PhotinoX.Native/blob/master/.github/workflows/photinox-native-win.yml) (build + pack + upload `win-x64`/`win-ARM64`)  
@@ -102,20 +99,20 @@ Requirements:
   - `Release | x64`
   - `Release | ARM64`
 
-To build manually with MSVC Toolset v143:
+To build manually with MSVC Toolset v145:
 
 ```powershell
 msbuild .\Photino.Native\Photino.Native.vcxproj ^
   /p:Configuration=Release ^
   /p:Platform=x64 ^
-  /p:PlatformToolset=v143
+  /p:PlatformToolset=v145
 ```
 or for ARM64:
 ```powershell
 msbuild .\Photino.Native\Photino.Native.vcxproj ^
   /p:Configuration=Release ^
   /p:Platform=ARM64 ^
-  /p:PlatformToolset=v143
+  /p:PlatformToolset=v145
 ```
 
 ## Linux
