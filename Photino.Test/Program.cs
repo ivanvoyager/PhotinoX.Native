@@ -1,4 +1,5 @@
-﻿using System.ComponentModel;
+﻿#if UseLocalProjects
+using System.ComponentModel;
 using System.Drawing;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -6,16 +7,20 @@ using Photino.NET;
 using Photino.NET.Utils;
 
 namespace Photino.Test;
-
+#endif
 class Program
 {
+#if !UseLocalProjects
+    private static void Main() { }
+}
+#else
     private static readonly bool s_logEvents = true;
     private static int s_windowNumber = 1;
 
     private static PhotinoWindow? s_mainWindow;
 
     [STAThread]
-    static void Main(string[] args)
+    private static void Main(string[] args)
     {
         try
         {
@@ -574,3 +579,4 @@ class Program
         Console.WriteLine($"-Client App: \"{windowTitle}\" {message}");
     }
 }
+#endif

@@ -31,6 +31,7 @@
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(PhotinoX_UseLocalProjects)' == 'true'">
+    <DefineConstants>$(DefineConstants);UseLocalProjects</DefineConstants>
     <PhotinoNetSourceDir Condition="'$(PhotinoNetSourceDir)' == ''">..\..\PhotinoX\Photino.NET</PhotinoNetSourceDir>
   </PropertyGroup>
 
