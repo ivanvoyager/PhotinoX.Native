@@ -1,203 +1,295 @@
 #ifdef __linux__
 #include "Photino.Dialog.h"
 
+#include <gtk/gtk.h>
+
 using namespace PhotinoX::Native;
 
-enum DialogType {
-    OpenFile,
-    OpenFolder,
-    SaveFile
-};
-
-void AddFilters(GtkWidget* dialog, AutoString* filters, int filterCount)
+namespace
 {
-    for (int i = 0; i < filterCount; i++) {
-        GtkFileFilter *filter = gtk_file_filter_new();
-        char *name = strtok(filters[i], "|");
-        gtk_file_filter_set_name(filter, name);
-        char *patterns = strtok(NULL, "|");
-        while (patterns != NULL) {
-            gtk_file_filter_add_pattern(filter, patterns);
-            patterns = strtok(NULL, ";");
-        }
-        gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
-    }
-}
+    enum class DialogType
+    {
+        OpenFile,
+        OpenFolder,
+        SaveFile
+    };
 
-AutoString* ShowDialog(DialogType type, AutoString title, AutoString defaultPath, bool multiSelect, AutoString* filters, int filterCount, int* resultCount, AutoString defaultFileName = NULL) {
-    GtkFileChooserAction action;
-    const char* buttonText;
-    switch (type) {
-        case OpenFile:
+    void AddFilters(GtkWidget* dialog, const std::vector<PlatformString>& filters)
+    {
+        if (!dialog || filters.empty())
+            return;
+
+        for (const auto& filterValue : filters)
+        {
+            const auto separator = filterValue.find('|');
+            if (separator == PlatformString::npos || separator == 0 || separator + 1 >= filterValue.size())
+                continue;
+
+            PlatformString name = filterValue.substr(0, separator);
+            PlatformString patterns = filterValue.substr(separator + 1);
+
+            GtkFileFilter* filter = gtk_file_filter_new();
+            gtk_file_filter_set_name(filter, name.c_str());
+
+            bool hasPattern = false;
+            size_t start = 0;
+
+            while (start < patterns.size())
+            {
+                const auto end = patterns.find(';', start);
+                PlatformString pattern = patterns.substr(
+                    start,
+                    end == PlatformString::npos ? PlatformString::npos : end - start);
+
+                if (!pattern.empty())
+                {
+                    gtk_file_filter_add_pattern(filter, pattern.c_str());
+                    hasPattern = true;
+                }
+
+                if (end == PlatformString::npos)
+                    break;
+
+                start = end + 1;
+            }
+
+            if (hasPattern)
+                gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
+            else
+                g_object_unref(filter);
+        }
+    }
+
+    std::vector<PlatformString> ShowDialog(
+        DialogType type,
+        const PlatformString& title,
+        const PlatformString& defaultPath,
+        bool multiSelect,
+        const std::vector<PlatformString>& filters,
+        const PlatformString& defaultFileName = {})
+    {
+        GtkFileChooserAction action;
+        const char* buttonText = nullptr;
+
+        switch (type)
+        {
+        case DialogType::OpenFile:
             action = GTK_FILE_CHOOSER_ACTION_OPEN;
             buttonText = "_Open";
             break;
-        case OpenFolder:
+        case DialogType::OpenFolder:
             action = GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER;
             buttonText = "_Select";
             break;
-        case SaveFile:
+        case DialogType::SaveFile:
             action = GTK_FILE_CHOOSER_ACTION_SAVE;
             buttonText = "_Save";
             break;
-    }
-
-    GtkWidget* dialog = gtk_file_chooser_dialog_new(
-        title, NULL, action,
-        "_Cancel", GTK_RESPONSE_CANCEL, 
-        buttonText, GTK_RESPONSE_ACCEPT,
-        NULL);
-
-    if (defaultPath != NULL) {
-        gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(dialog), defaultPath);
-    }
-    if (type == OpenFile || type == OpenFolder) {
-        gtk_file_chooser_set_select_multiple(GTK_FILE_CHOOSER(dialog), multiSelect);
-    }
-    if (type == SaveFile) {
-        gtk_file_chooser_set_do_overwrite_confirmation(GTK_FILE_CHOOSER(dialog), TRUE);
-        if (defaultFileName != NULL) {
-            gtk_file_chooser_set_current_name(GTK_FILE_CHOOSER(dialog), defaultFileName);
+        default:
+            return {};
         }
-    }
-    if (type == OpenFile || type == SaveFile) {
-        AddFilters(dialog, filters, filterCount);
-    }
 
-    gint res = gtk_dialog_run(GTK_DIALOG(dialog));
+        GtkWidget* dialog = gtk_file_chooser_dialog_new(
+            title.c_str(),
+            nullptr,//GTK_WINDOW(parent_window)
+            action,
+            "_Cancel",
+            GTK_RESPONSE_CANCEL,
+            buttonText,
+            GTK_RESPONSE_ACCEPT,
+            nullptr);
 
-    if (res != GTK_RESPONSE_ACCEPT) {
-        if (type == OpenFile || type == OpenFolder)
-            *resultCount = 0;
+        if (!dialog)
+            return {};
 
-        gtk_widget_destroy(dialog);
-        return NULL;
-    }
+        //gtk_window_set_transient_for(GTK_WINDOW(dialog), GTK_WINDOW(parent_window));
+        gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
 
-    if (type == OpenFile || type == OpenFolder) {
-        GSList* pathList = gtk_file_chooser_get_filenames(GTK_FILE_CHOOSER(dialog));
-        int count = g_slist_length(pathList);
-        char** results = new char*[count];
-        for (int i = 0; i < count; i++) {
-            results[i] = g_strdup((char*)g_slist_nth_data(pathList, i));
+        if (!defaultPath.empty())
+            gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(dialog), defaultPath.c_str());
+
+        if (type == DialogType::OpenFile || type == DialogType::OpenFolder)
+            gtk_file_chooser_set_select_multiple(GTK_FILE_CHOOSER(dialog), multiSelect ? TRUE : FALSE);
+
+        if (type == DialogType::SaveFile)
+        {
+            gtk_file_chooser_set_do_overwrite_confirmation(GTK_FILE_CHOOSER(dialog), TRUE);
+
+            if (!defaultFileName.empty())
+                gtk_file_chooser_set_current_name(GTK_FILE_CHOOSER(dialog), defaultFileName.c_str());
         }
-        g_slist_free(pathList);
-        *resultCount = count;
+
+        if (type == DialogType::OpenFile || type == DialogType::SaveFile)
+            AddFilters(dialog, filters);
+
+        std::vector<PlatformString> result;
+
+        const gint response = gtk_dialog_run(GTK_DIALOG(dialog));
+        if (response == GTK_RESPONSE_ACCEPT)
+        {
+            if (type == DialogType::OpenFile || type == DialogType::OpenFolder)
+            {
+                GSList* pathList = gtk_file_chooser_get_filenames(GTK_FILE_CHOOSER(dialog));
+
+                for (GSList* item = pathList; item; item = item->next)
+                {
+                    auto* path = static_cast<char*>(item->data);
+                    if (path)
+                    {
+                        result.emplace_back(path);
+                        g_free(path);
+                    }
+                }
+
+                g_slist_free(pathList);
+            }
+            else
+            {
+                char* path = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
+                if (path)
+                {
+                    result.emplace_back(path);
+                    g_free(path);
+                }
+            }
+        }
+
         gtk_widget_destroy(dialog);
-        return results;
-    }
-    else {
-        char* result = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
-        gtk_widget_destroy(dialog);
-        return new char*[1] { result };
+        return result;
     }
 }
 
-PhotinoDialog::PhotinoDialog() {}
-
-PhotinoDialog::~PhotinoDialog() {}
-
-AutoString* PhotinoDialog::ShowOpenFile(AutoString title, AutoString defaultPath, bool multiSelect, AutoString* filters, int filterCount, int* resultCount)
+PhotinoDialog::PhotinoDialog()
 {
-    return ShowDialog(OpenFile, title, defaultPath, multiSelect, filters, filterCount, resultCount);
 }
 
-AutoString* PhotinoDialog::ShowOpenFolder(AutoString title, AutoString defaultPath, bool multiSelect, int* resultCount)
+PhotinoDialog::~PhotinoDialog()
 {
-    return ShowDialog(OpenFolder, title, defaultPath, multiSelect, NULL, 0, resultCount);
 }
 
-AutoString PhotinoDialog::ShowSaveFile(AutoString title, AutoString defaultPath, AutoString* filters, int filterCount, AutoString defaultFileName)
+std::vector<PlatformString> PhotinoDialog::ShowOpenFile(
+    const PlatformString& title,
+    const PlatformString& defaultPath,
+    bool multiSelect,
+    const std::vector<PlatformString>& filters) const
 {
-    char** result = ShowDialog(SaveFile, title, defaultPath, false, filters, filterCount, NULL, defaultFileName);
-    if (result != NULL) return result[0];
-    return NULL;
+    return ShowDialog(DialogType::OpenFile, title, defaultPath, multiSelect, filters);
 }
 
-DialogResult PhotinoDialog::ShowMessage(AutoString title, AutoString text, DialogButtons buttons, DialogIcon icon)
+std::vector<PlatformString> PhotinoDialog::ShowOpenFolder(
+    const PlatformString& title,
+    const PlatformString& defaultPath,
+    bool multiSelect) const
 {
-    GtkWidget* dialog;
+    return ShowDialog(DialogType::OpenFolder, title, defaultPath, multiSelect, {});
+}
+
+PlatformString PhotinoDialog::ShowSaveFile(
+    const PlatformString& title,
+    const PlatformString& defaultPath,
+    const std::vector<PlatformString>& filters,
+    const PlatformString& defaultFileName) const
+{
+    auto result = ShowDialog(DialogType::SaveFile, title, defaultPath, false, filters, defaultFileName);
+    return result.empty() ? PlatformString() : result.front();
+}
+
+DialogResult PhotinoDialog::ShowMessage(
+    const PlatformString& title,
+    const PlatformString& text,
+    DialogButtons buttons,
+    DialogIcon icon) const
+{
     GtkMessageType type;
 
-    switch (icon) {
-        case DialogIcon::Info:
-            type = GTK_MESSAGE_INFO;
-            break;
-        case DialogIcon::Warning:
-            type = GTK_MESSAGE_WARNING;
-            break;
-        case DialogIcon::Error:
-            type = GTK_MESSAGE_ERROR;
-            break;
-        case DialogIcon::Question:
-            type = GTK_MESSAGE_QUESTION;
-            break;
-        default:
-            type = GTK_MESSAGE_OTHER;
-            break;
+    switch (icon)
+    {
+    case DialogIcon::Info:
+        type = GTK_MESSAGE_INFO;
+        break;
+    case DialogIcon::Warning:
+        type = GTK_MESSAGE_WARNING;
+        break;
+    case DialogIcon::Error:
+        type = GTK_MESSAGE_ERROR;
+        break;
+    case DialogIcon::Question:
+        type = GTK_MESSAGE_QUESTION;
+        break;
+    default:
+        type = GTK_MESSAGE_OTHER;
+        break;
     }
 
-    dialog = gtk_message_dialog_new(nullptr,
-                                    GTK_DIALOG_MODAL,
-                                    type,
-                                    GTK_BUTTONS_NONE,
-                                    "%s",
-                                    title);
-    gtk_message_dialog_set_markup(GTK_MESSAGE_DIALOG(dialog), text);
+    GtkWidget* dialog = gtk_message_dialog_new(
+        nullptr,
+        GTK_DIALOG_MODAL,
+        type,
+        GTK_BUTTONS_NONE,
+        "%s",
+        text.c_str());
 
-    switch (buttons) {
-        case DialogButtons::Ok:
-            gtk_dialog_add_button(GTK_DIALOG(dialog), "_Ok", (gint)DialogResult::Ok);
-            break;
-        case DialogButtons::OkCancel:
-            gtk_dialog_add_button(GTK_DIALOG(dialog), "_Ok", (gint)DialogResult::Ok);
-            gtk_dialog_add_button(GTK_DIALOG(dialog), "_Cancel", (gint)DialogResult::Cancel);
-            break;
-        case DialogButtons::YesNo:
-            gtk_dialog_add_button(GTK_DIALOG(dialog), "_Yes", (gint)DialogResult::Yes);
-            gtk_dialog_add_button(GTK_DIALOG(dialog), "_No", (gint)DialogResult::No);
-            break;
-        case DialogButtons::YesNoCancel:
-            gtk_dialog_add_button(GTK_DIALOG(dialog), "_Yes", (gint)DialogResult::Yes);
-            gtk_dialog_add_button(GTK_DIALOG(dialog), "_No", (gint)DialogResult::No);
-            gtk_dialog_add_button(GTK_DIALOG(dialog), "_Cancel", (gint)DialogResult::Cancel);
-            break;
-        case DialogButtons::RetryCancel:
-            gtk_dialog_add_button(GTK_DIALOG(dialog), "_Retry", (gint)DialogResult::Retry);
-            gtk_dialog_add_button(GTK_DIALOG(dialog), "_Cancel", (gint)DialogResult::Cancel);
-            break;
-        case DialogButtons::AbortRetryIgnore:
-            gtk_dialog_add_button(GTK_DIALOG(dialog), "_Abort", (gint)DialogResult::Abort);
-            gtk_dialog_add_button(GTK_DIALOG(dialog), "_Retry", (gint)DialogResult::Retry);
-            gtk_dialog_add_button(GTK_DIALOG(dialog), "_Ignore", (gint)DialogResult::Ignore);
-            break;
-        default:
-            gtk_dialog_add_button(GTK_DIALOG(dialog), "_Ok", (gint)DialogResult::Ok);
-            break;
+    if (!dialog)
+        return DialogResult::Cancel;
+
+    if (!title.empty())
+        gtk_window_set_title(GTK_WINDOW(dialog), title.c_str());
+
+    switch (buttons)
+    {
+    case DialogButtons::Ok:
+        gtk_dialog_add_button(GTK_DIALOG(dialog), "_Ok", static_cast<gint>(DialogResult::Ok));
+        break;
+    case DialogButtons::OkCancel:
+        gtk_dialog_add_button(GTK_DIALOG(dialog), "_Ok", static_cast<gint>(DialogResult::Ok));
+        gtk_dialog_add_button(GTK_DIALOG(dialog), "_Cancel", static_cast<gint>(DialogResult::Cancel));
+        break;
+    case DialogButtons::YesNo:
+        gtk_dialog_add_button(GTK_DIALOG(dialog), "_Yes", static_cast<gint>(DialogResult::Yes));
+        gtk_dialog_add_button(GTK_DIALOG(dialog), "_No", static_cast<gint>(DialogResult::No));
+        break;
+    case DialogButtons::YesNoCancel:
+        gtk_dialog_add_button(GTK_DIALOG(dialog), "_Yes", static_cast<gint>(DialogResult::Yes));
+        gtk_dialog_add_button(GTK_DIALOG(dialog), "_No", static_cast<gint>(DialogResult::No));
+        gtk_dialog_add_button(GTK_DIALOG(dialog), "_Cancel", static_cast<gint>(DialogResult::Cancel));
+        break;
+    case DialogButtons::RetryCancel:
+        gtk_dialog_add_button(GTK_DIALOG(dialog), "_Retry", static_cast<gint>(DialogResult::Retry));
+        gtk_dialog_add_button(GTK_DIALOG(dialog), "_Cancel", static_cast<gint>(DialogResult::Cancel));
+        break;
+    case DialogButtons::AbortRetryIgnore:
+        gtk_dialog_add_button(GTK_DIALOG(dialog), "_Abort", static_cast<gint>(DialogResult::Abort));
+        gtk_dialog_add_button(GTK_DIALOG(dialog), "_Retry", static_cast<gint>(DialogResult::Retry));
+        gtk_dialog_add_button(GTK_DIALOG(dialog), "_Ignore", static_cast<gint>(DialogResult::Ignore));
+        break;
+    default:
+        gtk_dialog_add_button(GTK_DIALOG(dialog), "_Ok", static_cast<gint>(DialogResult::Ok));
+        break;
     }
 
-    gint result = gtk_dialog_run(GTK_DIALOG(dialog));
+    const gint response = gtk_dialog_run(GTK_DIALOG(dialog));
     gtk_widget_destroy(dialog);
 
-    switch (result) {
-        case GTK_RESPONSE_CLOSE:
-            return DialogResult::Cancel;
-        case (gint)DialogResult::Ok:
-            return DialogResult::Ok;
-        case (gint)DialogResult::Yes:
-            return DialogResult::Yes;
-        case (gint)DialogResult::No:
-            return DialogResult::No;
-        case (gint)DialogResult::Cancel:
-            return DialogResult::Cancel;
-        case (gint)DialogResult::Abort:
-            return DialogResult::Abort;
-        case (gint)DialogResult::Retry:
-            return DialogResult::Retry;
-        case (gint)DialogResult::Ignore:
-            return DialogResult::Ignore;
-        default:
-            return DialogResult::Cancel;
+    switch (response)
+    {
+    case static_cast<gint>(DialogResult::Ok):
+        return DialogResult::Ok;
+    case static_cast<gint>(DialogResult::Yes):
+        return DialogResult::Yes;
+    case static_cast<gint>(DialogResult::No):
+        return DialogResult::No;
+    case static_cast<gint>(DialogResult::Cancel):
+    case GTK_RESPONSE_CLOSE:
+    case GTK_RESPONSE_DELETE_EVENT:
+        return DialogResult::Cancel;
+    case static_cast<gint>(DialogResult::Abort):
+        return DialogResult::Abort;
+    case static_cast<gint>(DialogResult::Retry):
+        return DialogResult::Retry;
+    case static_cast<gint>(DialogResult::Ignore):
+        return DialogResult::Ignore;
+    default:
+        return DialogResult::Cancel;
     }
 }
 #endif

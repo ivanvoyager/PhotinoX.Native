@@ -1,13 +1,19 @@
-#ifdef __APPLE__
 #pragma once
-#include "Photino.h"
 
-using namespace PhotinoX::Native;
+#ifdef __APPLE__
+
+#include <Cocoa/Cocoa.h>
+
+namespace PhotinoX::Native
+{
+    class Photino;
+} // namespace PhotinoX::Native
 
 @interface WindowDelegate : NSObject <NSWindowDelegate>
 {
     @public
-        Photino * photino;
+        PhotinoX::Native::Photino* photino;
 }
 @end
+
 #endif

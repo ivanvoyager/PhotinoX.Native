@@ -1,13 +1,21 @@
-#ifdef __APPLE__
 #pragma once
-#include "Photino.h"
 
-using namespace PhotinoX::Native;
+#ifdef __APPLE__
 
-@interface NavigationDelegate: NSObject<WKNavigationDelegate>{
+#include <Cocoa/Cocoa.h>
+#include <WebKit/WebKit.h>
+
+namespace PhotinoX::Native
+{
+    class Photino;
+}
+
+@interface NavigationDelegate : NSObject <WKNavigationDelegate>
+{
     @public
-    NSWindow * window;
-    Photino * photino;
+        NSWindow* window;
+        PhotinoX::Native::Photino* photino;
 }
 @end
+
 #endif

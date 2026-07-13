@@ -4,24 +4,21 @@
 #include "Dependencies/wintoastlib.h"
 #include <WinUser.h>
 
-using namespace WinToastLib;
-using namespace PhotinoX::Native;
-
-class WinToastHandler final : public IWinToastHandler
+class WinToastHandler final : public WinToastLib::IWinToastHandler
 {
 private:
-    Photino* window_;
+    PhotinoX::Native::Photino* photino_;
 
 public:
-    explicit WinToastHandler(Photino* window) : window_(window)
+    explicit WinToastHandler(PhotinoX::Native::Photino* photino) : photino_(photino)
     {
     }
 
     void toastActivated() const override
     {
-        ShowWindow(this->window_->getHwnd(), SW_SHOW);    // Make the window visible if it was hidden
-        ShowWindow(this->window_->getHwnd(), SW_RESTORE); // Next, restore it if it was minimized
-        SetForegroundWindow(this->window_->getHwnd());    // Finally, activate the window
+        ShowWindow(photino_->GetHwnd(), SW_SHOW);    // Make the window visible if it was hidden
+        ShowWindow(photino_->GetHwnd(), SW_RESTORE); // Next, restore it if it was minimized
+        SetForegroundWindow(photino_->GetHwnd());    // Finally, activate the window
     }
 
     void toastActivated(int actionIndex) const override

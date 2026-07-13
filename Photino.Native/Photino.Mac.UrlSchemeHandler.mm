@@ -1,35 +1,106 @@
 #ifdef __APPLE__
 #import "Photino.Mac.UrlSchemeHandler.h"
 
-@implementation UrlSchemeHandler : NSObject
+#include "Photino.Memory.h"
+#include "Photino.Strings.h"
 
-- (void)webView:(WKWebView *)webView startURLSchemeTask:(id <WKURLSchemeTask>)urlSchemeTask
+using namespace PhotinoX::Native;
+
+@implementation UrlSchemeHandler
+
+- (id)init
+{
+    self = [super init];
+    if (self)
+        requestHandler = nullptr;
+
+    return self;
+}
+
+- (void)webView:(WKWebView*)webView startURLSchemeTask:(id <WKURLSchemeTask>)urlSchemeTask
 { 
     //NSAlert *alert = [[[NSAlert alloc] init] autorelease];
     //[alert setMessageText:@"startURLSchemeTask"];
     //[alert runModal];
 
-    NSURL *url = [[urlSchemeTask request] URL];
-    char *urlUtf8 = (char *)[url.absoluteString UTF8String];
-    int numBytes;
-    char* contentType;
-    void* dotNetResponse = requestHandler(urlUtf8, &numBytes, &contentType);
+    if (!urlSchemeTask)
+        return;
 
-    NSInteger statusCode = dotNetResponse == NULL ? 404 : 200;
+    if (!requestHandler)
+    {
+        [urlSchemeTask didFailWithError:[NSError errorWithDomain:NSURLErrorDomain
+                                                            code:NSURLErrorUnsupportedURL
+                                                            userInfo:nil]];
+        return;
+    }
 
-    NSString* nsContentType = [[NSString stringWithUTF8String:contentType] autorelease];
+    NSURL* url = [[urlSchemeTask request] URL];
+    NSString* absoluteString = [url absoluteString];
 
-    NSDictionary* headers = @{ @"Content-Type" : nsContentType, @"Cache-Control": @"no-cache" };
-    NSHTTPURLResponse *response = [[NSHTTPURLResponse alloc] initWithURL:url statusCode:statusCode HTTPVersion:nil headerFields:headers];
+    if (!absoluteString)
+    {
+        [urlSchemeTask didFailWithError:[NSError errorWithDomain:NSURLErrorDomain
+                                                            code:NSURLErrorBadURL
+                                                            userInfo:nil]];
+        return;
+    }
+
+    const char* urlUtf8 = [absoluteString UTF8String];
+    if (!urlUtf8)
+    {
+        [urlSchemeTask didFailWithError:[NSError errorWithDomain:NSURLErrorDomain
+                                                            code:NSURLErrorBadURL
+                                                        userInfo:nil]];
+        return;
+    }
+
+    int numBytes = 0;
+    Utf8String contentType = nullptr;
+    void* responseData = requestHandler(urlUtf8, &numBytes, &contentType);
+
+    NSInteger statusCode = responseData && numBytes > 0 ? 200 : 404;
+
+    NSString* nsContentType = contentType
+        ? [NSString stringWithUTF8String:contentType]
+        : nil;
+
+    if (!nsContentType)
+        nsContentType = @"application/octet-stream";
+
+    NSDictionary* headers = @{
+        @"Content-Type": nsContentType,
+        @"Cache-Control": @"no-cache"
+    };
+
+    NSHTTPURLResponse* response =
+        [[NSHTTPURLResponse alloc] initWithURL:url
+                                   statusCode:statusCode
+                                   HTTPVersion:nil
+                                   headerFields:headers];
+
+    if (!response)
+    {
+        FreeMemory(responseData);
+        FreeString(const_cast<char*>(contentType));
+
+        [urlSchemeTask didFailWithError:[NSError errorWithDomain:NSURLErrorDomain
+                                                            code:NSURLErrorCannotParseResponse
+                                                            userInfo:nil]];
+        return;
+    }
+
     [urlSchemeTask didReceiveResponse:response];
-    [urlSchemeTask didReceiveData:[NSData dataWithBytes:dotNetResponse length:numBytes]];
+    if (responseData && numBytes > 0)
+        [urlSchemeTask didReceiveData:[NSData dataWithBytes:responseData length:numBytes]];
     [urlSchemeTask didFinish];
 
-    free(dotNetResponse);
-    free(contentType);
+    [response release];
+
+    FreeMemory(responseData);
+    FreeString(const_cast<char*>(contentType));
 }
 
-- (void)webView:(WKWebView *)webView stopURLSchemeTask:(id <WKURLSchemeTask>)urlSchemeTask
+- (void)webView:(WKWebView*)webView stopURLSchemeTask:(id <WKURLSchemeTask>)urlSchemeTask
 {
 
 }

@@ -1,9 +1,10 @@
-#ifdef __APPLE__
 #pragma once
-#include "Photino.h"
+
+#ifdef __APPLE__
+
+#include <Cocoa/Cocoa.h>
 
 @interface NSWindowBorderless : NSWindow
-{
-}
 @end
+
 #endif
