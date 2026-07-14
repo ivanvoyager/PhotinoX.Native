@@ -1,6 +1,8 @@
 #include "Photino.h"
 #include "Photino.Mac.Internal.h"
 
+using namespace PhotinoX::Native;
+
 void Photino::Close() const
 {
     assert(_window);
