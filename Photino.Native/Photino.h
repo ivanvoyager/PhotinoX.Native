@@ -3,10 +3,9 @@
 #include "Photino.Callbacks.h"
 #include "Photino.InitParams.h"
 #include "Photino.Strings.h"
+#include "Photino.Geometry.h"
+#include "Photino.Monitor.h"
 
-#ifndef _WIN32
-#include <strings.h>
-#endif
 #include <utility>
 #include <vector>
 
@@ -38,23 +37,6 @@ class WinToastHandler;
 
 namespace PhotinoX::Native 
 {
-    struct WindowSizeLimits
-    {
-        int minWidth = 0;
-        int minHeight = 0;
-        int maxWidth = 0;
-        int maxHeight = 0;
-    };
-
-    struct WindowGeometry
-    {
-        int left = 0;
-        int top = 0;
-        int width = 0;
-        int height = 0;
-    };
-
-    struct Monitor;
     class PhotinoDialog;
 
     class Photino
@@ -192,12 +174,6 @@ namespace PhotinoX::Native
     public:
 #ifdef _WIN32
 
-        static void Register(HINSTANCE hInstance);
-        static void SetWebView2RuntimePath(const PlatformString& pathToWebView2);
-        HWND GetHwnd() const noexcept
-        {
-            return _hWnd;
-        }
         void ApplySizeLimits(MINMAXINFO& info) const noexcept;
         void FocusWebView2() const;
         void RefitContent() const;
@@ -205,30 +181,32 @@ namespace PhotinoX::Native
 
 #elif defined(__linux__)
 
-        static void Register();
         void HandleConfigureEvent(int x, int y, int width, int height);
-        void* GetGtkWidget() const noexcept
-        {
-            return _window;
-        }
-
-#elif defined(__APPLE__) && defined(__OBJC__)
-
-        static void Register();
-        void* GetNSWindow() const noexcept
-        {
-            return (__bridge void*)_window;
-        }
 
 #endif
 
         Photino(PhotinoInitParams* initParams);
         ~Photino();
 
-        PhotinoDialog* GetDialog() const noexcept
-        {
-            return _dialog;
-        }
+#ifdef _WIN32
+        static void Register(HINSTANCE hInstance);
+        static void SetWebView2RuntimePath(const PlatformString& pathToWebView2);
+#elif defined(__linux__)
+        static void Register();
+#elif defined(__APPLE__)
+        static void Register();
+#endif
+
+        // Platform handles
+#ifdef _WIN32
+        HWND GetHwnd() const noexcept { return _hWnd; }
+#elif defined(__linux__)
+        void* GetGtkWidget() const noexcept { return _window; }
+#elif defined(__APPLE__) && defined(__OBJC__)
+        void* GetNSWindow() const noexcept { return (__bridge void*)_window; }
+#endif
+        // Misc
+        PhotinoDialog* GetDialog() const noexcept { return _dialog; }
 
         void Center();
         void ClearBrowserAutoFill() const;
@@ -247,10 +225,7 @@ namespace PhotinoX::Native
         void GetJavascriptClipboardAccessEnabled(bool* enabled) const;
         void GetMediaStreamEnabled(bool* enabled) const;
         void GetSmoothScrollingEnabled(bool* enabled) const;
-        const PlatformString& GetIconFile() const noexcept
-        {
-            return _iconFileName;
-        }
+        const PlatformString& GetIconFile() const noexcept { return _iconFileName; }
         void GetMaximized(bool* isMaximized) const;
         void GetMinimized(bool* isMinimized) const;
         void GetPosition(int* x, int* y) const;
@@ -288,7 +263,7 @@ namespace PhotinoX::Native
         void ShowNotification(const PlatformString& title, const PlatformString& message) const;
         void WaitForExit() const;
 
-        // Callbacks
+        // Custom schemes
         bool AddCustomSchemeName(Utf8String scheme)
         {
             if (!scheme || *scheme == '\0') return false;
@@ -305,20 +280,22 @@ namespace PhotinoX::Native
             return RegisterCustomSchemeName(_customSchemeNames.back());
         }
 
-        void GetAllMonitors(GetAllMonitorsCallback callback) const;
-        void SetClosingCallback(ClosingCallback callback) { _closingCallback = callback; }
-        void SetClosedCallback(ClosedCallback callback) { _closedCallback = callback; }
-        void SetFocusInCallback(FocusInCallback callback) { _focusInCallback = callback; }
-        void SetFocusOutCallback(FocusOutCallback callback) { _focusOutCallback = callback; }
-        void SetMovedCallback(MovedCallback callback) { _movedCallback = callback; }
-        void SetResizedCallback(ResizedCallback callback) { _resizedCallback = callback; }
-        void SetMaximizedCallback(MaximizedCallback callback) { _maximizedCallback = callback; }
-        void SetRestoredCallback(RestoredCallback callback) { _restoredCallback = callback; }
-        void SetMinimizedCallback(MinimizedCallback callback) { _minimizedCallback = callback; }
+        // Monitors
+        void GetAllMonitors(GetAllMonitorsCallback callback) const noexcept;
+        // Callbacks
+        void SetClosingCallback(ClosingCallback callback) noexcept { _closingCallback = callback; }
+        void SetClosedCallback(ClosedCallback callback) noexcept { _closedCallback = callback; }
+        void SetFocusInCallback(FocusInCallback callback) noexcept { _focusInCallback = callback; }
+        void SetFocusOutCallback(FocusOutCallback callback) noexcept { _focusOutCallback = callback; }
+        void SetMovedCallback(MovedCallback callback) noexcept { _movedCallback = callback; }
+        void SetResizedCallback(ResizedCallback callback) noexcept { _resizedCallback = callback; }
+        void SetMaximizedCallback(MaximizedCallback callback) noexcept { _maximizedCallback = callback; }
+        void SetRestoredCallback(RestoredCallback callback) noexcept { _restoredCallback = callback; }
+        void SetMinimizedCallback(MinimizedCallback callback) noexcept { _minimizedCallback = callback; }
 
         void Invoke(InvokeCallback callback) const;
 
-        bool InvokeClosing() const
+        bool InvokeClosing() const noexcept
         {
             if (!_closingCallback || _isClosing)
                 return false;
@@ -330,42 +307,35 @@ namespace PhotinoX::Native
             return result;
         }
 
-        void InvokeClose() const
+        void InvokeClose() const noexcept
         {
             if (_closedCallback) _closedCallback();
         }
-
-        void InvokeFocusIn() const
+        void InvokeFocusIn() const noexcept
         {
             if (_focusInCallback) _focusInCallback();
         }
-
-        void InvokeFocusOut() const
+        void InvokeFocusOut() const noexcept
         {
             if (_focusOutCallback) _focusOutCallback();
         }
-
-        void InvokeMove(int x, int y) const
+        void InvokeMove(int x, int y) const noexcept
         {
             if (_movedCallback) _movedCallback(x, y);
         }
-
-        void InvokeResize(int width, int height) const
+        void InvokeResize(int width, int height) const noexcept
         {
             if (_resizedCallback) _resizedCallback(width, height);
         }
-
-        void InvokeMaximized() const
+        void InvokeMaximized() const noexcept
         {
             if (_maximizedCallback) _maximizedCallback();
         }
-
-        void InvokeRestored() const
+        void InvokeRestored() const noexcept
         {
             if (_restoredCallback) _restoredCallback();
         }
-
-        void InvokeMinimized() const
+        void InvokeMinimized() const noexcept
         {
             if (_minimizedCallback) _minimizedCallback();
         }

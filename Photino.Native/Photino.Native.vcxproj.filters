@@ -36,6 +36,24 @@
     <ClCompile Include="Photino.Memory.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Exports.Callbacks.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Exports.Browser.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Photino.Windows.Window.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Exports.Dialogs.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Exports.Memory.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Exports.Window.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="Photino.Mac.AppDelegate.mm">
@@ -69,6 +87,13 @@
       <Filter>Source Files</Filter>
     </None>
     <None Include="Photino.Mac.Dialog.Icons.mm">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="Photino.Linux.Window.cpp">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="cpp.hint" />
+    <None Include="Photino.Mac.Window.mm">
       <Filter>Source Files</Filter>
     </None>
   </ItemGroup>
@@ -131,6 +156,15 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Photino.Mac.State.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Photino.Export.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Photino.Geometry.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Photino.Mac.Internal.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

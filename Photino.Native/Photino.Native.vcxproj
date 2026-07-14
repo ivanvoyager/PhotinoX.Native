@@ -121,6 +121,7 @@
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="PhotinoX.Native.props" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
@@ -280,6 +281,8 @@
     <ClCompile Include="Exports.Browser.cpp" />
     <ClCompile Include="Exports.cpp" />
     <ClCompile Include="Dependencies\wintoastlib.cpp" />
+    <None Include="Photino.Linux.Window.cpp" />
+    <ClCompile Include="Photino.Windows.Window.cpp" />
     <None Include="cpp.hint" />
     <None Include="Photino.Linux.cpp" />
     <None Include="Photino.Linux.Dialog.cpp" />
@@ -297,10 +300,12 @@
     <ClInclude Include="Dependencies\json.hpp" />
     <ClInclude Include="Photino.Export.h" />
     <ClInclude Include="Photino.Callbacks.h" />
+    <ClInclude Include="Photino.Geometry.h" />
     <ClInclude Include="Photino.h" />
     <ClInclude Include="Photino.InitParams.h" />
     <ClInclude Include="Photino.Mac.AppDelegate.h" />
     <ClInclude Include="Photino.Mac.Dialog.Icons.h" />
+    <ClInclude Include="Photino.Mac.Internal.h" />
     <ClInclude Include="Photino.Mac.NavigationDelegate.h" />
     <ClInclude Include="Photino.Mac.NSWindowBorderless.h" />
     <ClInclude Include="Photino.Mac.State.h" />
@@ -323,6 +328,7 @@
     <None Include="Photino.Mac.NavigationDelegate.mm" />
     <None Include="Photino.Mac.NSWindowBorderless.mm" />
     <None Include="Photino.Mac.UiDelegate.mm" />
+    <None Include="Photino.Mac.Window.mm" />
     <None Include="Photino.Mac.WindowDelegate.mm" />
     <None Include="Photino.Mac.UrlSchemeHandler.mm" />
   </ItemGroup>

@@ -1,4 +1,3 @@
-#ifdef __linux__
 #include "Photino.h"
 #include "Photino.Dialog.h"
 #include "Photino.Memory.h"
@@ -13,9 +12,9 @@
 #include <mutex>
 #include <JavaScriptCore/JavaScript.h>
 #include <X11/Xlib.h>
-#include <dlfcn.h> //for dynamically calling functions from shared libraries
 #include <libnotify/notify.h>
 #include <webkit2/webkit2.h>
+
 using json = nlohmann::json;
 
 using namespace PhotinoX::Native;
@@ -381,13 +380,7 @@ void Photino::ClearBrowserAutoFill() const
     // TODO
 }
 
-void Photino::Close() const
-{
-    assert(_window);
-    if (!_window) return;
 
-    gtk_window_close(GTK_WINDOW(_window));
-}
 
 void Photino::GetTransparentEnabled(bool* enabled) const
 {
@@ -998,7 +991,7 @@ void Photino::WaitForExit() const
 }
 
 // Callbacks
-void Photino::GetAllMonitors(GetAllMonitorsCallback callback) const
+void Photino::GetAllMonitors(GetAllMonitorsCallback callback) const noexcept
 {
     assert(callback);
     if (!callback) return;
@@ -1583,5 +1576,3 @@ bool Photino::RegisterCustomSchemeName(const PlatformString& scheme)
 
     return true;
 }
-
-#endif

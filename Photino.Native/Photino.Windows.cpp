@@ -73,6 +73,11 @@ void Photino::Register(const HINSTANCE hInstance)
     assert(previous != nullptr);
 }
 
+void Photino::SetWebView2RuntimePath(const PlatformString& pathToWebView2)
+{
+    g_webview2RuntimePath = pathToWebView2;
+}
+
 Photino::Photino(PhotinoInitParams* initParams)
 {
     assert(initParams);
@@ -534,14 +539,7 @@ void Photino::Center()
     assert(result);
 }
 
-void Photino::Close() const
-{
-    assert(_hWnd);
-    if (!_hWnd) return;
 
-    BOOL result = PostMessageW(_hWnd, WM_CLOSE, 0, 0);
-    assert(result);
-}
 
 void Photino::GetTransparentEnabled(bool* enabled) const
 {
@@ -1251,7 +1249,7 @@ BOOL MonitorEnum(const HMONITOR hMonitor, HDC hdcMonitor, LPRECT lprcMonitor, co
     return callback(&props) ? TRUE : FALSE;
 }
 
-void Photino::GetAllMonitors(GetAllMonitorsCallback callback) const
+void Photino::GetAllMonitors(GetAllMonitorsCallback callback) const noexcept
 {
     assert(callback);
     if (!callback) return;
@@ -1750,10 +1748,7 @@ void Photino::ClearBrowserAutoFill() const
     assert(SUCCEEDED(hr));
 }
 
-void Photino::SetWebView2RuntimePath(const PlatformString& pathToWebView2)
-{
-    g_webview2RuntimePath = pathToWebView2;
-}
+
 
 void Photino::Show()
 {
