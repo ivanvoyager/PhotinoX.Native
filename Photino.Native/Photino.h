@@ -247,7 +247,10 @@ namespace PhotinoX::Native
         void GetJavascriptClipboardAccessEnabled(bool* enabled) const;
         void GetMediaStreamEnabled(bool* enabled) const;
         void GetSmoothScrollingEnabled(bool* enabled) const;
-        const PlatformString& GetIconFileName() const { return _iconFileName; }
+        const PlatformString& GetIconFile() const noexcept
+        {
+            return _iconFileName;
+        }
         void GetMaximized(bool* isMaximized) const;
         void GetMinimized(bool* isMinimized) const;
         void GetPosition(int* x, int* y) const;

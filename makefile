@@ -39,7 +39,6 @@ build-photino-windows:
 
 # macOS: universal dylib (x86_64 + arm64)
 build-photino-mac-universal: | $(DEST_PATH_X64)
-	cp $(SRC)/Exports.cpp $(SRC)/Exports.mm && \
 	$(CXX) $(CXXFLAGS) $(SOFLAGS) $(LDFLAGS) \
 		-arch x86_64 \
 		-arch arm64 \
@@ -59,8 +58,12 @@ build-photino-mac-universal: | $(DEST_PATH_X64)
 		$(SRC)/Photino.Memory.cpp \
 		$(SRC)/Photino.Strings.cpp \
 		$(SRC)/Photino.Mac.mm \
-		$(SRC)/Exports.mm && \
-	rm $(SRC)/Exports.mm
+		$(SRC)/Exports.cpp \
+		$(SRC)/Exports.Browser.cpp \
+		$(SRC)/Exports.Callbacks.cpp \
+		$(SRC)/Exports.Dialogs.cpp \
+		$(SRC)/Exports.Memory.cpp \
+		$(SRC)/Exports.Window.cpp
 
 install-linux-dependencies:
 	sudo apt-get update && \
@@ -75,6 +78,11 @@ build-photino-linux-x64: | $(DEST_PATH_X64)
 		$(SRC)/Photino.Memory.cpp \
 		$(SRC)/Photino.Strings.cpp \
 		$(SRC)/Exports.cpp \
+		$(SRC)/Exports.Browser.cpp \
+		$(SRC)/Exports.Callbacks.cpp \
+		$(SRC)/Exports.Dialogs.cpp \
+		$(SRC)/Exports.Memory.cpp \
+		$(SRC)/Exports.Window.cpp \
 		`pkg-config --cflags --libs gtk+-3.0 webkit2gtk-4.1 libnotify`
 
 # Linux arm64 .so (native on arm64 host; for cross, override CXX/PKG_CONFIG_PATH)
@@ -86,6 +94,11 @@ build-photino-linux-arm64: | $(DEST_PATH_ARM64)
 		$(SRC)/Photino.Memory.cpp \
 		$(SRC)/Photino.Strings.cpp \
 		$(SRC)/Exports.cpp \
+		$(SRC)/Exports.Browser.cpp \
+		$(SRC)/Exports.Callbacks.cpp \
+		$(SRC)/Exports.Dialogs.cpp \
+		$(SRC)/Exports.Memory.cpp \
+		$(SRC)/Exports.Window.cpp \
 		`pkg-config --cflags --libs gtk+-3.0 webkit2gtk-4.1 libnotify`
 
 # Ensure output directories exist before link steps
