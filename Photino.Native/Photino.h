@@ -55,11 +55,13 @@ namespace PhotinoX::Native
         std::vector<PlatformString> _customSchemeNames;
         WebResourceRequestedCallback _customSchemeCallback = nullptr;
 
+        // Window metadata
+        PlatformString _windowTitle;
+        PlatformString _iconFileName;
+
         PlatformString _startUrl;
         PlatformString _startString;
         PlatformString _temporaryFilesPath;
-        PlatformString _windowTitle;
-        PlatformString _iconFileName;
         PlatformString _userAgent;
         PlatformString _browserControlInitParameters;
         PlatformString _notificationRegistrationId;
@@ -205,12 +207,21 @@ namespace PhotinoX::Native
 #elif defined(__APPLE__) && defined(__OBJC__)
         void* GetNSWindow() const noexcept { return (__bridge void*)_window; }
 #endif
+
+        void Close() const;
+        // Window metadata
+        const PlatformString& GetTitle() const noexcept { return _windowTitle; }
+        void SetTitle(const PlatformString& title);
+
+        const PlatformString& GetIconFile() const noexcept { return _iconFileName; }
+        void SetIconFile(const PlatformString& filename);
+
         // Misc
         PhotinoDialog* GetDialog() const noexcept { return _dialog; }
 
         void Center();
         void ClearBrowserAutoFill() const;
-        void Close() const;
+
 
         void GetTransparentEnabled(bool* enabled) const;
         void GetContextMenuEnabled(bool* enabled) const;
@@ -225,14 +236,12 @@ namespace PhotinoX::Native
         void GetJavascriptClipboardAccessEnabled(bool* enabled) const;
         void GetMediaStreamEnabled(bool* enabled) const;
         void GetSmoothScrollingEnabled(bool* enabled) const;
-        const PlatformString& GetIconFile() const noexcept { return _iconFileName; }
         void GetMaximized(bool* isMaximized) const;
         void GetMinimized(bool* isMinimized) const;
         void GetPosition(int* x, int* y) const;
         void GetResizable(bool* resizable) const;
         unsigned int GetScreenDpi() const;
         void GetSize(int* width, int* height) const;
-        const PlatformString& GetTitle() const { return _windowTitle; }
         void GetTopmost(bool* topmost) const;
         void GetZoom(int* zoom) const;
         void GetIgnoreCertificateErrorsEnabled(bool* enabled) const;
@@ -247,7 +256,7 @@ namespace PhotinoX::Native
         void SetContextMenuEnabled(bool enabled);
         void SetZoomEnabled(bool enabled);
         void SetDevToolsEnabled(bool enabled);
-        void SetIconFile(const PlatformString& filename);
+        
         void SetFullScreen(bool fullScreen);
         void SetMaximized(bool maximized);
         void SetMaxSize(int width, int height);
@@ -256,7 +265,6 @@ namespace PhotinoX::Native
         void SetPosition(int x, int y);
         void SetResizable(bool resizable);
         void SetSize(int width, int height);
-        void SetTitle(const PlatformString& title);
         void SetTopmost(bool topmost);
         void SetZoom(int zoom);
 

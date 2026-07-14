@@ -1,6 +1,7 @@
 #include "Photino.h"
 #include "Photino.Dialog.h"
 #include "Photino.Memory.h"
+#include "Photino.Strings.h"
 #include "Dependencies/json.hpp"
 
 #include <algorithm>
@@ -10,8 +11,10 @@
 #include <csignal>
 #include <memory>
 #include <mutex>
+
 #include <JavaScriptCore/JavaScript.h>
 #include <X11/Xlib.h>
+#include <gtk/gtk.h>
 #include <libnotify/notify.h>
 #include <webkit2/webkit2.h>
 
@@ -771,25 +774,6 @@ void Photino::SetFullScreen(bool fullScreen)
         gtk_window_unfullscreen(GTK_WINDOW(_window));
 }
 
-void Photino::SetIconFile(const PlatformString& filename)
-{
-    assert(_window);
-    if (!_window || filename.empty()) return;
-
-    GError *error = nullptr;
-    if (gtk_window_set_icon_from_file(GTK_WINDOW(_window), filename.c_str(), &error))
-    {
-        _iconFileName = filename;
-        return;
-    }
-
-    if (error)
-    {
-        g_warning("Failed to set window icon: %s", error->message);
-        g_error_free(error);
-    }
-}
-
 void Photino::SetMinimized(bool minimized)
 {
     assert(_window);
@@ -889,15 +873,6 @@ void Photino::ApplyGeometryHints()
         nullptr,
         &_hints,
         static_cast<GdkWindowHints>(GDK_HINT_MIN_SIZE | GDK_HINT_MAX_SIZE));
-}
-
-void Photino::SetTitle(const PlatformString& title)
-{
-    assert(_window);
-    if (!_window)  return;
-
-    gtk_window_set_title(GTK_WINDOW(_window), title.c_str());
-    _windowTitle = title;
 }
 
 void Photino::SetTopmost(bool topmost)

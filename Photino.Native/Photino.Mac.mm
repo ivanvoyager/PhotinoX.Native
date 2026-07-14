@@ -2,6 +2,7 @@
 #ifdef __APPLE__
 #include "Photino.h"
 #include "Photino.Dialog.h"
+#include "Photino.Strings.h"
 #include "Photino.Mac.AppDelegate.h"
 #include "Photino.Mac.UiDelegate.h"
 #include "Photino.Mac.WindowDelegate.h"
@@ -825,28 +826,6 @@ void Photino::SetZoomEnabled(bool enabled)
     //! Not implemented (supported?) on macOS
 }
 
-void Photino::SetIconFile(const PlatformString& filename)
-{
-    assert(_window);
-    if (!_window || filename.empty()) return;
-
-    NSString* path = ToNSString(filename);
-    if (!path) return;
-
-    NSImage* icon = [[NSImage alloc] initWithContentsOfFile:path];
-    if (!icon) return;
-
-    NSButton* iconButton = [_window standardWindowButton:NSWindowDocumentIconButton];
-    if (iconButton)
-    {
-        [iconButton setImage:icon];
-        //[NSApp setApplicationIconImage:icon];
-        _iconFileName = filename;
-    }
-
-    [icon release];
-}
-
 void Photino::SetFullScreen(bool fullScreen)
 {
     assert(_window);
@@ -990,18 +969,6 @@ void Photino::SetMaxSize(int width, int height)
 
     [_window setMinSize:minSize];
     [_window setMaxSize:NSMakeSize(width, height)];
-}
-
-void Photino::SetTitle(const PlatformString& title)
-{
-    assert(_window);
-    if (!_window) return;
-
-    NSString* nsTitle = ToNSString(title);
-    if (!nsTitle) return;
-
-    [_window setTitle:nsTitle];
-    _windowTitle = title;
 }
 
 void Photino::SetTopmost(bool topmost)

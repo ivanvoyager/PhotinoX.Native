@@ -48,7 +48,7 @@
     <Compile Include="$(PhotinoNetSourceDir)\PhotinoNativeDelegates.cs" Link="PhotinoNativeDelegates.cs" />
     <Compile Include="$(PhotinoNetSourceDir)\PhotinoNativeParameters.cs" Link="PhotinoNativeParameters.cs" />
     <Compile Include="$(PhotinoNetSourceDir)\PhotinoNetDelegates.cs" Link="PhotinoNetDelegates.cs" />
-    <Compile Include="$(PhotinoNetSourceDir)\PhotinoWindow.NET.cs" Link="PhotinoWindow.NET.cs" />
+    <Compile Include="$(PhotinoNetSourceDir)\PhotinoWindow.cs" Link="PhotinoWindow.cs" />
   </ItemGroup>
 
   <ItemGroup>
@@ -80,8 +80,8 @@
         Condition="'$(PhotinoX_UseLocalProjects)' == 'true'
                    AND '$(DesignTimeBuild)' != 'true'">
     <Error
-      Text="PhotinoNetSourceDir does not exist or does not contain PhotinoWindow.NET.cs: $(PhotinoNetSourceDir)"
-      Condition="!Exists('$(PhotinoNetSourceDir)\PhotinoWindow.NET.cs')" />
+      Text="PhotinoNetSourceDir does not exist or does not contain PhotinoWindow.cs: $(PhotinoNetSourceDir)"
+      Condition="!Exists('$(PhotinoNetSourceDir)\PhotinoWindow.cs')" />
   </Target>
 
   <Target Name="Photino_BuildNativeWindows"
