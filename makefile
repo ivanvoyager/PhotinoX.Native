@@ -39,6 +39,12 @@ build-photino-windows:
 
 # macOS: universal dylib (x86_64 + arm64)
 build-photino-mac-universal: | $(DEST_PATH_X64)
+	cp $(SRC)/Exports.cpp $(SRC)/Exports.mm && \
+	cp $(SRC)/Exports.Browser.cpp $(SRC)/Exports.Browser.mm && \
+	cp $(SRC)/Exports.Callbacks.cpp $(SRC)/Exports.Callbacks.mm && \
+	cp $(SRC)/Exports.Dialogs.cpp $(SRC)/Exports.Dialogs.mm && \
+	cp $(SRC)/Exports.Memory.cpp $(SRC)/Exports.Memory.mm && \
+	cp $(SRC)/Exports.Window.cpp $(SRC)/Exports.Window.mm && \
 	$(CXX) $(CXXFLAGS) $(SOFLAGS) $(LDFLAGS) \
 		-arch x86_64 \
 		-arch arm64 \
@@ -58,12 +64,19 @@ build-photino-mac-universal: | $(DEST_PATH_X64)
 		$(SRC)/Photino.Memory.cpp \
 		$(SRC)/Photino.Strings.cpp \
 		$(SRC)/Photino.Mac.mm \
-		$(SRC)/Exports.cpp \
-		$(SRC)/Exports.Browser.cpp \
-		$(SRC)/Exports.Callbacks.cpp \
-		$(SRC)/Exports.Dialogs.cpp \
-		$(SRC)/Exports.Memory.cpp \
-		$(SRC)/Exports.Window.cpp
+		$(SRC)/Exports.mm \
+		$(SRC)/Exports.Browser.mm \
+		$(SRC)/Exports.Callbacks.mm \
+		$(SRC)/Exports.Dialogs.mm \
+		$(SRC)/Exports.Memory.mm \
+		$(SRC)/Exports.Window.mm && \
+	rm -f \
+		$(SRC)/Exports.mm \
+		$(SRC)/Exports.Browser.mm \
+		$(SRC)/Exports.Callbacks.mm \
+		$(SRC)/Exports.Dialogs.mm \
+		$(SRC)/Exports.Memory.mm \
+		$(SRC)/Exports.Window.mm
 
 install-linux-dependencies:
 	sudo apt-get update && \
