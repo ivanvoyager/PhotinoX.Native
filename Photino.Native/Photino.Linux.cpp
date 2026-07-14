@@ -541,24 +541,6 @@ void Photino::GetMinimized(bool* isMinimized) const
     *isMinimized = (flags & GDK_WINDOW_STATE_ICONIFIED) != 0;
 }
 
-void Photino::GetPosition(int* x, int* y) const
-{
-    assert(x || y);
-    if (!x && !y) return;
-
-    if (x) *x = 0;
-    if (y) *y = 0;
-
-    if (!_window) return;
-
-    gint windowX = 0;
-    gint windowY = 0;
-    gtk_window_get_position(GTK_WINDOW(_window), &windowX, &windowY);
-
-    if (x) *x = windowX;
-    if (y) *y = windowY;
-}
-
 void Photino::GetResizable(bool* resizable) const
 {
     assert(resizable);
@@ -580,37 +562,6 @@ unsigned int Photino::GetScreenDpi() const
 
     gdouble dpi = gdk_screen_get_resolution(screen);
     return dpi < 0 ? 96 : static_cast<unsigned int>(dpi);
-}
-
-void Photino::GetSize(int* width, int* height) const
-{
-    assert(width || height);
-    if (!width && !height) return;
-
-    if (width)  *width = 0;
-    if (height) *height = 0;
-
-    if (!_window) return;
-
-    gint windowWidth = 0;
-    gint windowHeight = 0;
-    gtk_window_get_size(GTK_WINDOW(_window), &windowWidth, &windowHeight);
-
-    if (width) *width = windowWidth;
-    if (height) *height = windowHeight;
-
-    // TODO: When calling set height, then set width...
-    // calling set size works fine.
-    // Uncomment this and it works properly. Commented, it only changes width.
-    // GtkWidget* dialog = gtk_message_dialog_new(
-    // 	nullptr
-    // 	, GTK_DIALOG_DESTROY_WITH_PARENT
-    // 	, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE
-    // 	, "width: %i bytes, height %i"
-    // 	, *width
-    // 	, *height);
-    // gtk_dialog_run(GTK_DIALOG(dialog));
-    // gtk_widget_destroy(dialog);
 }
 
 /*AutoString Photino::GetTitle() const
@@ -796,83 +747,12 @@ void Photino::SetMaximized(bool maximized)
         gtk_window_unmaximize(GTK_WINDOW(_window));
 }
 
-void Photino::SetPosition(int x, int y)
-{
-    assert(_window);
-    if (!_window) return;
-
-    gtk_window_move(GTK_WINDOW(_window), x, y);
-}
-
 void Photino::SetResizable(bool resizable)
 {
     assert(_window);
     if (!_window) return;
 
     gtk_window_set_resizable(GTK_WINDOW(_window), resizable);
-}
-
-void Photino::SetMinSize(int width, int height)
-{
-    _sizeLimits.minWidth = (std::max)(0, width);
-    _sizeLimits.minHeight = (std::max)(0, height);
-
-    if (_sizeLimits.maxWidth > 0 && _sizeLimits.minWidth > _sizeLimits.maxWidth)
-        _sizeLimits.maxWidth = _sizeLimits.minWidth;
-
-    if (_sizeLimits.maxHeight > 0 && _sizeLimits.minHeight > _sizeLimits.maxHeight)
-        _sizeLimits.maxHeight = _sizeLimits.minHeight;
-
-    ApplyGeometryHints();
-}
-
-void Photino::SetMaxSize(int width, int height)
-{
-
-    _sizeLimits.maxWidth = (std::max)(0, width);
-    _sizeLimits.maxHeight = (std::max)(0, height);
-
-    if (_sizeLimits.maxWidth > 0 && _sizeLimits.maxWidth < _sizeLimits.minWidth)
-        _sizeLimits.minWidth = _sizeLimits.maxWidth;
-
-    if (_sizeLimits.maxHeight > 0 && _sizeLimits.maxHeight < _sizeLimits.minHeight)
-        _sizeLimits.minHeight = _sizeLimits.maxHeight;
-
-    ApplyGeometryHints();
-}
-
-void Photino::SetSize(int width, int height)
-{
-    assert(_window);
-    if (!_window) return;
-
-    if (width <= 0 || height <= 0) return;
-
-    int newWidth = width;
-    int newHeight = height;
-
-    if (_sizeLimits.minWidth > 0 && newWidth < _sizeLimits.minWidth)    newWidth = _sizeLimits.minWidth;
-    if (_sizeLimits.minHeight > 0 && newHeight < _sizeLimits.minHeight) newHeight = _sizeLimits.minHeight;
-    if (_sizeLimits.maxWidth > 0 && newWidth > _sizeLimits.maxWidth)    newWidth = _sizeLimits.maxWidth;
-    if (_sizeLimits.maxHeight > 0 && newHeight > _sizeLimits.maxHeight) newHeight = _sizeLimits.maxHeight;
-
-    gtk_window_resize(GTK_WINDOW(_window), newWidth, newHeight);
-}
-
-void Photino::ApplyGeometryHints()
-{
-    if (!_window) return;
-
-    _hints.min_width = _sizeLimits.minWidth;
-    _hints.min_height = _sizeLimits.minHeight;
-    _hints.max_width = _sizeLimits.maxWidth > 0 ? _sizeLimits.maxWidth : G_MAXINT;
-    _hints.max_height = _sizeLimits.maxHeight > 0 ? _sizeLimits.maxHeight : G_MAXINT;
-
-    gtk_window_set_geometry_hints(
-        GTK_WINDOW(_window),
-        nullptr,
-        &_hints,
-        static_cast<GdkWindowHints>(GDK_HINT_MIN_SIZE | GDK_HINT_MAX_SIZE));
 }
 
 void Photino::SetTopmost(bool topmost)

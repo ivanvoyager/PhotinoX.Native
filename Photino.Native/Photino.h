@@ -209,12 +209,23 @@ namespace PhotinoX::Native
 #endif
 
         void Close() const;
+
         // Window metadata
         const PlatformString& GetTitle() const noexcept { return _windowTitle; }
         void SetTitle(const PlatformString& title);
 
         const PlatformString& GetIconFile() const noexcept { return _iconFileName; }
         void SetIconFile(const PlatformString& filename);
+
+         // Window geometry
+        void GetPosition(int* x, int* y) const;
+        void SetPosition(int x, int y);
+
+        void GetSize(int* width, int* height) const;
+        void SetSize(int width, int height);
+
+        void SetMinSize(int width, int height);
+        void SetMaxSize(int width, int height);
 
         // Misc
         PhotinoDialog* GetDialog() const noexcept { return _dialog; }
@@ -238,10 +249,8 @@ namespace PhotinoX::Native
         void GetSmoothScrollingEnabled(bool* enabled) const;
         void GetMaximized(bool* isMaximized) const;
         void GetMinimized(bool* isMinimized) const;
-        void GetPosition(int* x, int* y) const;
         void GetResizable(bool* resizable) const;
         unsigned int GetScreenDpi() const;
-        void GetSize(int* width, int* height) const;
         void GetTopmost(bool* topmost) const;
         void GetZoom(int* zoom) const;
         void GetIgnoreCertificateErrorsEnabled(bool* enabled) const;
@@ -259,12 +268,8 @@ namespace PhotinoX::Native
         
         void SetFullScreen(bool fullScreen);
         void SetMaximized(bool maximized);
-        void SetMaxSize(int width, int height);
         void SetMinimized(bool minimized);
-        void SetMinSize(int width, int height);
-        void SetPosition(int x, int y);
         void SetResizable(bool resizable);
-        void SetSize(int width, int height);
         void SetTopmost(bool topmost);
         void SetZoom(int zoom);
 
