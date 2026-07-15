@@ -57,6 +57,9 @@
     <ClCompile Include="Photino.Windows.Browser.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Photino.CustomSchemes.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="Photino.Mac.AppDelegate.mm">
@@ -177,6 +180,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Photino.Linux.Internal.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Photino.Linux.State.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Photino.Windows.State.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

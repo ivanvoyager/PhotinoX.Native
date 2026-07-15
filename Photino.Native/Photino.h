@@ -18,8 +18,12 @@ class WinToastHandler;
 #endif
 
 #ifdef __linux__
-#include <gtk/gtk.h>
-#include <webkit2/webkit2.h>
+typedef struct _WebKitSettings WebKitSettings;
+#endif
+
+#if defined(__APPLE__) && defined(__OBJC__)
+@class NSString;
+@class NSNumber;
 #endif
 
 namespace PhotinoX::Native 
@@ -101,26 +105,7 @@ namespace PhotinoX::Native
 
         void Show();
 
-        bool IsCustomScheme(const PlatformString& scheme) const
-        {
-            if (scheme.empty())
-                return false;
-
-#ifdef _WIN32
-            for (const auto& existing : _customSchemeNames)
-            {
-                if (_wcsicmp(existing.c_str(), scheme.c_str()) == 0)
-                    return true;
-            }
-#else
-            for (const auto& existing : _customSchemeNames)
-            {
-                if (strcasecmp(existing.c_str(), scheme.c_str()) == 0)
-                    return true;
-            }
-#endif
-            return false;
-        }
+        bool IsCustomScheme(const PlatformString& scheme) const;
 
         bool RegisterCustomSchemeName(const PlatformString& scheme);
 
@@ -150,9 +135,6 @@ namespace PhotinoX::Native
         void NotifyWebView2WindowMove() const;
 
 #elif defined(__linux__)
-        GtkWidget* _window = nullptr;
-        GtkWidget* _webview = nullptr;
-        GdkGeometry _hints{};
         WindowGeometry _lastGeometry;
         WindowSizeLimits _sizeLimits;
         bool _notifyInitialized = false;
@@ -170,9 +152,10 @@ namespace PhotinoX::Native
         void AddCustomSchemeHandlers();
 
         void SetUserAgent(const PlatformString& userAgent);
-
+#if defined(__OBJC__)
         bool SetPreference(NSString* key, NSNumber* value);
         bool SetPreference(NSString* key, NSString* value);
+#endif
 #endif
     public:
 #ifdef _WIN32
@@ -204,7 +187,7 @@ namespace PhotinoX::Native
 #ifdef _WIN32
         HWND GetHwnd() const noexcept { return _hWnd; }
 #elif defined(__linux__)
-        void* GetGtkWidget() const noexcept { return _window; }
+        void* GetGtkWidget() const noexcept;
 #elif defined(__APPLE__)
         void* GetNSWindow() const noexcept;
 #endif

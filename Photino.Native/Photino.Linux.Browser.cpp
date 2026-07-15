@@ -1,5 +1,6 @@
 #include "Photino.h"
 #include "Photino.Linux.Internal.h"
+#include "Photino.Linux.State.h"
 #include "Photino.Callbacks.h"
 #include "Photino.Memory.h"
 #include "Photino.Strings.h"
@@ -31,28 +32,28 @@ void Photino::SetTransparentEnabled(bool enabled)
 {
     _transparentEnabled = enabled;
 
-    assert(_window);
-    if (!_window) return;
+    assert(platform_->window);
+    if (!platform_->window) return;
 
-    gtk_window_set_decorated(GTK_WINDOW(_window), !_chromeless && !enabled); // hide/show window chrome
+    gtk_window_set_decorated(GTK_WINDOW(platform_->window), !_chromeless && !enabled); // hide/show window chrome
 
-    GdkScreen* screen = gtk_window_get_screen(GTK_WINDOW(_window));
+    GdkScreen* screen = gtk_window_get_screen(GTK_WINDOW(platform_->window));
     if (!screen) return;
 
     GdkVisual* rgbaVisual = gdk_screen_get_rgba_visual(screen);
     if (!rgbaVisual) return;
 
-    gtk_widget_set_visual(GTK_WIDGET(_window), rgbaVisual);
-    gtk_widget_set_app_paintable(GTK_WIDGET(_window), true);
+    gtk_widget_set_visual(GTK_WIDGET(platform_->window), rgbaVisual);
+    gtk_widget_set_app_paintable(GTK_WIDGET(platform_->window), true);
 
-    if (!_webview) return;
+    if (!platform_->webview) return;
 
     GdkRGBA color;
-    webkit_web_view_get_background_color(WEBKIT_WEB_VIEW(_webview), &color);
+    webkit_web_view_get_background_color(WEBKIT_WEB_VIEW(platform_->webview), &color);
 
     color.alpha = enabled ? 0 : 1;
 
-    webkit_web_view_set_background_color(WEBKIT_WEB_VIEW(_webview), &color);
+    webkit_web_view_set_background_color(WEBKIT_WEB_VIEW(platform_->webview), &color);
 }
 
 void Photino::ClearBrowserAutoFill() const
@@ -62,18 +63,18 @@ void Photino::ClearBrowserAutoFill() const
 
 void Photino::NavigateToString(const PlatformString& content) const
 {
-    assert(_webview);
-    if (!_webview) return;
+    assert(platform_->webview);
+    if (!platform_->webview) return;
 
-    webkit_web_view_load_html(WEBKIT_WEB_VIEW(_webview), content.c_str(), nullptr);
+    webkit_web_view_load_html(WEBKIT_WEB_VIEW(platform_->webview), content.c_str(), nullptr);
 }
 
 void Photino::NavigateToUrl(const PlatformString& url) const
 {
-    assert(_webview);
-    if (!_webview || url.empty()) return;
+    assert(platform_->webview);
+    if (!platform_->webview || url.empty()) return;
 
-    webkit_web_view_load_uri(WEBKIT_WEB_VIEW(_webview), url.c_str());
+    webkit_web_view_load_uri(WEBKIT_WEB_VIEW(platform_->webview), url.c_str());
 }
 
 static void webview_eval_finished(GObject* object, GAsyncResult* result, gpointer userdata)
@@ -98,9 +99,8 @@ static void webview_eval_finished(GObject* object, GAsyncResult* result, gpointe
 
 void Photino::SendWebMessage(const PlatformString& message) const
 {
-    assert(_webview);
-    if (!_webview)
-        return;
+    assert(platform_->webview);
+    if (!platform_->webview) return;
 
     PlatformString js;
     js.append("__dispatchMessageCallback(");
@@ -110,7 +110,7 @@ void Photino::SendWebMessage(const PlatformString& message) const
     InvokeJSWaitInfo invokeJsWaitInfo{};
 
     webkit_web_view_evaluate_javascript(
-        WEBKIT_WEB_VIEW(_webview),
+        WEBKIT_WEB_VIEW(platform_->webview),
         js.c_str(),
         -1,
         nullptr,
@@ -157,9 +157,9 @@ void Photino::GetZoom(int* zoom) const
 
     *zoom = _zoom;
 
-    if (!_webview) return;
+    if (!platform_->webview) return;
 
-    double rawValue = webkit_web_view_get_zoom_level(WEBKIT_WEB_VIEW(_webview));
+    double rawValue = webkit_web_view_get_zoom_level(WEBKIT_WEB_VIEW(platform_->webview));
     rawValue = (rawValue * 100.0) + 0.5;
     *zoom = static_cast<int>(rawValue);
 }
@@ -172,10 +172,10 @@ void Photino::SetZoom(int zoom)
         zoom = 500;
     _zoom = zoom;
 
-    if (!_webview) return;
+    if (!platform_->webview) return;
 
     double newZoom = static_cast<double>(zoom) / 100.0;
-    webkit_web_view_set_zoom_level(WEBKIT_WEB_VIEW(_webview), newZoom);
+    webkit_web_view_set_zoom_level(WEBKIT_WEB_VIEW(platform_->webview), newZoom);
 }
 
 void Photino::GetDevToolsEnabled(bool* enabled) const
@@ -185,9 +185,9 @@ void Photino::GetDevToolsEnabled(bool* enabled) const
 
     *enabled = _devToolsEnabled;
 
-    if (!_webview) return;
+    if (!platform_->webview) return;
 
-    WebKitSettings* settings = webkit_web_view_get_settings(WEBKIT_WEB_VIEW(_webview));
+    WebKitSettings* settings = webkit_web_view_get_settings(WEBKIT_WEB_VIEW(platform_->webview));
     if (!settings)
         return;
 
@@ -198,9 +198,9 @@ void Photino::SetDevToolsEnabled(bool enabled)
 {
     _devToolsEnabled = enabled;
 
-    if (!_webview) return;
+    if (!platform_->webview) return;
 
-    WebKitSettings* settings = webkit_web_view_get_settings(WEBKIT_WEB_VIEW(_webview));
+    WebKitSettings* settings = webkit_web_view_get_settings(WEBKIT_WEB_VIEW(platform_->webview));
     if (!settings) return;
 
     webkit_settings_set_enable_developer_extras(settings, enabled);
@@ -272,8 +272,8 @@ void Photino::GetIgnoreCertificateErrorsEnabled(bool* enabled) const
 
 void Photino::SetWebKitSettings()
 {
-    assert(_webview);
-    if (!_webview) return;
+    assert(platform_->webview);
+    if (!platform_->webview) return;
 
     // Rely on webkit_settings_new_with_settings to set the default settings
     // instead of using the webkit2gtk API to set the properties.
@@ -351,14 +351,14 @@ void Photino::SetWebKitSettings()
     if (!_browserControlInitParameters.empty())
         SetWebKitCustomSettings(settings.get()); // if any custom init parameters were passed, set them now.
 
-    WebKitWebsiteDataManager* manager = webkit_web_view_get_website_data_manager(WEBKIT_WEB_VIEW(_webview));
+    WebKitWebsiteDataManager* manager = webkit_web_view_get_website_data_manager(WEBKIT_WEB_VIEW(platform_->webview));
     if (manager)
     {
         webkit_website_data_manager_set_tls_errors_policy(manager,
                                                           _ignoreCertificateErrorsEnabled ? WEBKIT_TLS_ERRORS_POLICY_IGNORE : WEBKIT_TLS_ERRORS_POLICY_FAIL);
     }
 
-    webkit_web_view_set_settings(WEBKIT_WEB_VIEW(_webview), settings.get()); // apply the settings to the webview
+    webkit_web_view_set_settings(WEBKIT_WEB_VIEW(platform_->webview), settings.get()); // apply the settings to the webview
 }
 
 void Photino::SetWebKitCustomSettings(WebKitSettings* settings)
@@ -487,10 +487,10 @@ void HandleCustomSchemeRequest(WebKitURISchemeRequest* request, gpointer userDat
 
 void Photino::AddCustomSchemeHandlers()
 {
-    assert(_webview);
-    if (!_webview || !_customSchemeCallback) return;
+    assert(platform_->webview);
+    if (!platform_->webview || !_customSchemeCallback) return;
 
-    WebKitWebContext* context = webkit_web_view_get_context(WEBKIT_WEB_VIEW(_webview));
+    WebKitWebContext* context = webkit_web_view_get_context(WEBKIT_WEB_VIEW(platform_->webview));
     if (!context) return;
 
     for (const auto& scheme : _customSchemeNames)
@@ -506,11 +506,11 @@ void Photino::AddCustomSchemeHandlers()
 
 bool Photino::RegisterCustomSchemeName(const PlatformString& scheme)
 {
-    if (!_webview) return true;
+    if (!platform_->webview) return true;
 
     if (!_customSchemeCallback) return false;
 
-    WebKitWebContext* context = webkit_web_view_get_context(WEBKIT_WEB_VIEW(_webview));
+    WebKitWebContext* context = webkit_web_view_get_context(WEBKIT_WEB_VIEW(platform_->webview));
     if (!context) return false;
 
     if (scheme.empty()) return false;

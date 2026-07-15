@@ -183,8 +183,8 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Lin
     _ignoreCertificateErrorsEnabled = initParams->IgnoreCertificateErrorsEnabled;
     _notificationsEnabled = initParams->NotificationsEnabled;
 
-    _window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-    if (!_window)
+    platform_->window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+    if (!platform_->window)
         std::abort();
 
     _dialog = new PhotinoDialog();
@@ -199,7 +199,7 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Lin
     {
         if (initParams->UseOsDefaultSize)
         {
-            gtk_window_set_default_size(GTK_WINDOW(_window), -1, -1);
+            gtk_window_set_default_size(GTK_WINDOW(platform_->window), -1, -1);
         }
         else
         {
@@ -215,24 +215,24 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Lin
 
             if (initParams->Width < 0)  initParams->Width = -1;
             if (initParams->Height < 0) initParams->Height = -1;
-            gtk_window_set_default_size(GTK_WINDOW(_window), initParams->Width, initParams->Height);
+            gtk_window_set_default_size(GTK_WINDOW(platform_->window), initParams->Width, initParams->Height);
         }
 
         SetMinSize(_sizeLimits.minWidth, _sizeLimits.minHeight);
         SetMaxSize(_sizeLimits.maxWidth, _sizeLimits.maxHeight);
 
         if (initParams->UseOsDefaultLocation)
-            gtk_window_set_position(GTK_WINDOW(_window), GTK_WIN_POS_NONE);
+            gtk_window_set_position(GTK_WINDOW(platform_->window), GTK_WIN_POS_NONE);
         else if (initParams->CenterOnInitialize && !initParams->FullScreen)
-            gtk_window_set_position(GTK_WINDOW(_window), GTK_WIN_POS_CENTER);
+            gtk_window_set_position(GTK_WINDOW(platform_->window), GTK_WIN_POS_CENTER);
         else
-            gtk_window_move(GTK_WINDOW(_window), initParams->Left, initParams->Top);
+            gtk_window_move(GTK_WINDOW(platform_->window), initParams->Left, initParams->Top);
     }
 
     SetTitle(_windowTitle);
 
     if (initParams->Chromeless)
-        gtk_window_set_decorated(GTK_WINDOW(_window), false);
+        gtk_window_set_decorated(GTK_WINDOW(platform_->window), false);
 
     SetIconFile(ToPlatformString(initParams->WindowIconFile));
 
@@ -248,23 +248,23 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Lin
     if (initParams->Topmost)
         SetTopmost(true);
 
-    // g_signal_connect(G_OBJECT(_window), "size-allocate",
+    // g_signal_connect(G_OBJECT(platform_->window), "size-allocate",
     //	G_CALLBACK(on_size_allocate),
     //	this);
 
-    g_signal_connect(G_OBJECT(_window), "configure-event",
+    g_signal_connect(G_OBJECT(platform_->window), "configure-event",
                      G_CALLBACK(on_configure_event),
                      this);
 
-    g_signal_connect(G_OBJECT(_window), "window-state-event",
+    g_signal_connect(G_OBJECT(platform_->window), "window-state-event",
                      G_CALLBACK(on_window_state_event),
                      this);
 
-    g_signal_connect(G_OBJECT(_window), "delete-event",
+    g_signal_connect(G_OBJECT(platform_->window), "delete-event",
                      G_CALLBACK(on_widget_deleted),
                      this);
 
-    g_signal_connect(G_OBJECT(_window), "destroy",
+    g_signal_connect(G_OBJECT(platform_->window), "destroy",
                      G_CALLBACK(on_widget_destroyed),
                      this);
 
@@ -273,17 +273,17 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Lin
 
     Show();
 
-    if (!_webview)
+    if (!platform_->webview)
         std::abort();
 
     if (initParams->Transparent)
         SetTransparentEnabled(true);//WebKit background alpha
 
-    g_signal_connect(G_OBJECT(_window), "focus-in-event",
+    g_signal_connect(G_OBJECT(platform_->window), "focus-in-event",
                      G_CALLBACK(on_focus_in_event),
                      this);
 
-    g_signal_connect(G_OBJECT(_window), "focus-out-event",
+    g_signal_connect(G_OBJECT(platform_->window), "focus-out-event",
                      G_CALLBACK(on_focus_out_event),
                      this);
 
@@ -319,9 +319,9 @@ void Photino::ShowNotification(const PlatformString& title, const PlatformString
     if (!notification)
         return;
 
-    if (_window)
+    if (platform_->window)
     {
-        GdkPixbuf* icon = gtk_window_get_icon(GTK_WINDOW(_window));
+        GdkPixbuf* icon = gtk_window_get_icon(GTK_WINDOW(platform_->window));
         if (icon)
             notify_notification_set_icon_from_pixbuf(notification, icon);
     }
@@ -416,7 +416,7 @@ void HandleWebMessage(WebKitUserContentManager* contentManager, WebKitJavascript
 
 void Photino::Show()
 {
-    if (!_webview)
+    if (!platform_->webview)
     {
         struct sigaction old_action{};
         bool hasOldSigchldAction = sigaction(SIGCHLD, nullptr, &old_action) == 0;
@@ -425,8 +425,8 @@ void Photino::Show()
         if (!contentManager)
             std::abort();
 
-        _webview = webkit_web_view_new_with_user_content_manager(contentManager.get());
-        if (!_webview)
+        platform_->webview = webkit_web_view_new_with_user_content_manager(contentManager.get());
+        if (!platform_->webview)
             std::abort();
 
         SetWebKitSettings();
@@ -434,7 +434,7 @@ void Photino::Show()
         // this may or may not work
         // g_object_set(G_OBJECT(settings), "enable-auto-fill-form", TRUE, NULL);
 
-        gtk_container_add(GTK_CONTAINER(_window), _webview);
+        gtk_container_add(GTK_CONTAINER(platform_->window), platform_->webview);
 
         WebKitUserScriptPtr script(webkit_user_script_new(
             "window.__receiveMessageCallbacks = [];"
@@ -466,11 +466,11 @@ void Photino::Show()
             std::abort();
 
         // These must be called after the webview control is initialized.
-        g_signal_connect(G_OBJECT(_webview), "context-menu",
+        g_signal_connect(G_OBJECT(platform_->webview), "context-menu",
                          G_CALLBACK(on_webview_context_menu),
                          this);
 
-        g_signal_connect(G_OBJECT(_webview), "permission-request",
+        g_signal_connect(G_OBJECT(platform_->webview), "permission-request",
                          G_CALLBACK(on_permission_request),
                          this);
 
@@ -497,7 +497,7 @@ void Photino::Show()
             sigaction(SIGCHLD, &old_action, nullptr);
     }
 
-    gtk_widget_show_all(_window);
+    gtk_widget_show_all(platform_->window);
 }
 
 void Photino::HandleConfigureEvent(int x, int y, int width, int height)

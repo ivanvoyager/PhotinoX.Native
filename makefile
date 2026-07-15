@@ -53,6 +53,7 @@ build-photino-mac-universal: | $(DEST_PATH_X64)
 		-framework UserNotifications \
 		-framework Security \
 		-o $(DEST_PATH_X64)/$(DEST_FILE).dylib \
+		$(SRC)/Photino.CustomSchemes.cpp \
 		$(SRC)/Photino.Mac.AppDelegate.mm \
 		$(SRC)/Photino.Mac.UiDelegate.mm \
 		$(SRC)/Photino.Mac.WindowDelegate.mm \
@@ -88,6 +89,7 @@ install-linux-dependencies:
 build-photino-linux-x64: | $(DEST_PATH_X64)
 	$(CXX) $(CXXFLAGS) $(SOFLAGS) $(LDFLAGS) \
 		-o $(DEST_PATH_X64)/$(DEST_FILE).so \
+		$(SRC)/Photino.CustomSchemes.cpp \
 		$(SRC)/Photino.Linux.Browser.cpp \
 		$(SRC)/Photino.Linux.Dialog.cpp \
 		$(SRC)/Photino.Linux.Window.cpp \
@@ -106,6 +108,7 @@ build-photino-linux-x64: | $(DEST_PATH_X64)
 build-photino-linux-arm64: | $(DEST_PATH_ARM64)
 	$(CXX) $(CXXFLAGS) $(SOFLAGS) $(LDFLAGS) \
 		-o $(DEST_PATH_ARM64)/$(DEST_FILE).so \
+		$(SRC)/Photino.CustomSchemes.cpp \
 		$(SRC)/Photino.Linux.Browser.cpp \
 		$(SRC)/Photino.Linux.Dialog.cpp \
 		$(SRC)/Photino.Linux.Window.cpp \
