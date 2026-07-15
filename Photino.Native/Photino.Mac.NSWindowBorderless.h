@@ -2,7 +2,7 @@
 
 #ifdef __APPLE__
 
-#include <Cocoa/Cocoa.h>
+#import <AppKit/NSWindow.h>
 
 @interface NSWindowBorderless : NSWindow
 @end

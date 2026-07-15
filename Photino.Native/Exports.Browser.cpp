@@ -1,5 +1,5 @@
-#include "Photino.Dialog.h"
 #include "Photino.Export.h"
+#include "Photino.Dialog.h"
 #include "Photino.Strings.h"
 #include "Photino.h"
 
@@ -9,6 +9,32 @@ using namespace PhotinoX::Native;
 
 extern "C"
 {
+    PHOTINO_EXPORT void Photino_GetTransparentEnabled(const Photino* instance, bool* enabled)
+    {
+        assert(instance);
+        if (!instance || !enabled) return;
+
+        instance->GetTransparentEnabled(enabled);
+    }
+
+    PHOTINO_EXPORT void Photino_SetTransparentEnabled(Photino* instance, const bool enabled)
+    {
+        assert(instance);
+        if (!instance) return;
+
+        instance->SetTransparentEnabled(enabled);
+    }
+
+
+    PHOTINO_EXPORT void Photino_ClearBrowserAutoFill(const Photino* instance)
+    {
+        assert(instance);
+        if (!instance) return;
+
+        instance->ClearBrowserAutoFill();
+    }
+
+
     PHOTINO_EXPORT void Photino_NavigateToString(const Photino* instance, Utf8String content)
     {
         assert(instance);
@@ -40,15 +66,6 @@ extern "C"
         assert(instance);
         if (!instance || !scheme) return false;
         return instance->AddCustomSchemeName(scheme);
-    }
-
-
-    PHOTINO_EXPORT void Photino_ClearBrowserAutoFill(const Photino* instance)
-    {
-        assert(instance);
-        if (!instance) return;
-
-        instance->ClearBrowserAutoFill();
     }
 
 
@@ -191,4 +208,13 @@ extern "C"
 
         instance->GetIgnoreCertificateErrorsEnabled(disabled);
     }
+
+#ifdef _WIN32
+
+    PHOTINO_EXPORT void Photino_setWebView2RuntimePath_win32(const wchar_t* webView2RuntimePath)
+    {
+        Photino::SetWebView2RuntimePath(webView2RuntimePath ? PlatformString(webView2RuntimePath) : PlatformString());
+    }
+
+#endif
 }

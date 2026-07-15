@@ -11,14 +11,10 @@ using namespace PhotinoX::Native;
 extern "C"
 {
 #ifdef _WIN32
+
     PHOTINO_EXPORT void Photino_register_win32(const HINSTANCE hInstance)
     {
         Photino::Register(hInstance);
-    }
-
-    PHOTINO_EXPORT void Photino_setWebView2RuntimePath_win32(const wchar_t* webView2RuntimePath)
-    {
-        Photino::SetWebView2RuntimePath(webView2RuntimePath ? PlatformString(webView2RuntimePath) : PlatformString());
     }
 
 #elif defined(__linux__)
@@ -34,7 +30,6 @@ extern "C"
     {
         Photino::Register();
     }
-
 
 #endif
 

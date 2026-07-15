@@ -54,6 +54,9 @@
     <ClCompile Include="Exports.Window.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Photino.Windows.Browser.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="Photino.Mac.AppDelegate.mm">
@@ -94,6 +97,12 @@
     </None>
     <None Include="cpp.hint" />
     <None Include="Photino.Mac.Window.mm">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="Photino.Linux.Browser.cpp">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="Photino.Mac.Browser.mm">
       <Filter>Source Files</Filter>
     </None>
   </ItemGroup>
@@ -165,6 +174,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Photino.Mac.Internal.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Photino.Linux.Internal.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

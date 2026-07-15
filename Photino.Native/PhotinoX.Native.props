@@ -8,6 +8,7 @@
         C:\msys64\ucrt64\include\gtk-3.0;
         C:\msys64\ucrt64\include\glib-2.0;
         C:\msys64\ucrt64\lib\glib-2.0\include;
+        C:\msys64\ucrt64\include\webkitgtk-4.1;
         %(AdditionalIncludeDirectories)
       </AdditionalIncludeDirectories>
     </ClCompile>

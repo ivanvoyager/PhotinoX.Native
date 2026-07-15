@@ -2,12 +2,12 @@
 
 #ifdef __APPLE__
 
-#include <Cocoa/Cocoa.h>
+#import <AppKit/AppKit.h>
 
 namespace PhotinoX::Native
 {
     class Photino;
-} // namespace PhotinoX::Native
+}
 
 @interface WindowDelegate : NSObject <NSWindowDelegate>
 {

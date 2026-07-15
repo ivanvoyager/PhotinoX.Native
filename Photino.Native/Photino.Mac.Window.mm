@@ -1,5 +1,8 @@
+#import <AppKit/AppKit.h>
+
 #include "Photino.h"
 #include "Photino.Mac.Internal.h"
+#include "Photino.Callbacks.h"
 #include "Photino.Strings.h"
 
 using namespace PhotinoX::Native;
@@ -197,4 +200,215 @@ void Photino::SetMaxSize(int width, int height)
 
     [_window setMinSize:minSize];
     [_window setMaxSize:NSMakeSize(width, height)];
+}
+
+void Photino::Center() const
+{
+    assert(_window);
+    if (!_window) return;
+
+    [_window center];
+    //[_window makeKeyAndOrderFront:_window];
+}
+
+void Photino::Restore() const
+{
+    assert(_window);
+    if (!_window) return;
+
+    if ([_window isMiniaturized])
+        [_window deminiaturize:nil];
+
+    if ([_window isZoomed])
+        [_window zoom:nil];
+
+    if (([_window styleMask] & NSWindowStyleMaskFullScreen) == NSWindowStyleMaskFullScreen)
+        [_window toggleFullScreen:nil];
+}
+
+unsigned int Photino::GetScreenDpi() const
+{
+    //not supported on macOS - _window's devices collection does have dpi
+	//https://stackoverflow.com/questions/2621439/hot-to-get-screen-dpi-linux-mac-programaticaly
+    if (!_window) return 72;
+
+    NSScreen* screen = [_window screen];
+    if (!screen) return 72;
+
+    return static_cast<unsigned int>(roundf(72.0f * [screen backingScaleFactor]));
+}
+
+void Photino::GetAllMonitors(GetAllMonitorsCallback callback) const noexcept
+{
+    assert(callback);
+    if (!callback) return;
+
+    for (NSScreen* screen in [NSScreen screens])
+    {
+        Monitor props{};
+
+        NSRect frame = [screen frame];
+        props.monitor.x = static_cast<int>(roundf(frame.origin.x));
+        props.monitor.y = static_cast<int>(roundf(frame.origin.y));
+        props.monitor.width = static_cast<int>(roundf(frame.size.width));
+        props.monitor.height = static_cast<int>(roundf(frame.size.height));
+
+        NSRect visibleFrame = [screen visibleFrame];
+        props.work.x = static_cast<int>(roundf(visibleFrame.origin.x));
+        props.work.y = static_cast<int>(roundf(visibleFrame.origin.y));
+        props.work.width = static_cast<int>(roundf(visibleFrame.size.width));
+        props.work.height = static_cast<int>(roundf(visibleFrame.size.height));
+
+        props.scale = [screen backingScaleFactor];
+
+        if (!callback(&props))
+            break;
+    }
+}
+
+std::vector<Monitor> Photino::GetMonitors() const
+{
+    std::vector<Monitor> monitors;
+
+    for (NSScreen* screen in [NSScreen screens])
+    {
+        NSRect monitorFrame = [screen frame];
+        NSRect workFrame = [screen visibleFrame];
+
+        Monitor monitor{};
+        monitor.monitor.x = static_cast<int>(roundf(monitorFrame.origin.x));
+        monitor.monitor.y = static_cast<int>(roundf(monitorFrame.origin.y));
+        monitor.monitor.width = static_cast<int>(roundf(monitorFrame.size.width));
+        monitor.monitor.height = static_cast<int>(roundf(monitorFrame.size.height));
+
+        monitor.work.x = static_cast<int>(roundf(workFrame.origin.x));
+        monitor.work.y = static_cast<int>(roundf(workFrame.origin.y));
+        monitor.work.width = static_cast<int>(roundf(workFrame.size.width));
+        monitor.work.height = static_cast<int>(roundf(workFrame.size.height));
+
+        monitor.scale = [screen backingScaleFactor];
+
+        monitors.push_back(monitor);
+    }
+
+    return monitors;
+}
+
+void Photino::GetFullScreen(bool* fullScreen) const
+{
+    assert(fullScreen);
+    if (!fullScreen) return;
+
+    *fullScreen = false;
+
+    if (!_window) return;
+
+    //*fullScreen = ([_window.contentView isInFullScreenMode]);
+    *fullScreen = ([_window styleMask] & NSWindowStyleMaskFullScreen) == NSWindowStyleMaskFullScreen;
+}
+
+void Photino::SetFullScreen(bool fullScreen)
+{
+    assert(_window);
+    if (!_window) return;
+
+    bool isFullScreen = ([_window styleMask] & NSWindowStyleMaskFullScreen) == NSWindowStyleMaskFullScreen;
+    if (isFullScreen == fullScreen) return;
+
+    _fullScreen = fullScreen;
+    [_window toggleFullScreen:nil];
+}
+
+void Photino::GetMaximized(bool* isMaximized) const
+{
+    assert(isMaximized);
+    if (!isMaximized) return;
+
+    *isMaximized = false;
+
+    if (!_window) return;
+
+    *isMaximized = [_window isZoomed];
+}
+
+void Photino::SetMaximized(bool maximized)
+{
+    assert(_window);
+    if (!_window) return;
+
+    if ([_window isZoomed] == maximized) return;
+
+    [_window zoom:nil];
+}
+
+void Photino::GetMinimized(bool* isMinimized) const
+{
+    assert(isMinimized);
+    if (!isMinimized) return;
+
+    *isMinimized = false;
+
+    if (!_window) return;
+
+	*isMinimized = [_window isMiniaturized];
+}
+
+void Photino::SetMinimized(bool minimized)
+{
+    assert(_window);
+    if (!_window) return;
+
+    if (_window.isMiniaturized == minimized) return;
+
+    if (minimized)
+        [_window miniaturize:nil];
+    else
+        [_window deminiaturize:nil];
+}
+
+void Photino::GetResizable(bool* resizable) const
+{
+    assert(resizable);
+    if (!resizable) return;
+
+    *resizable = false;
+
+    if (!_window) return;
+
+    *resizable = ([_window styleMask] & NSWindowStyleMaskResizable) == NSWindowStyleMaskResizable;
+}
+
+void Photino::SetResizable(bool resizable)
+{
+    assert(_window);
+    if (!_window) return;
+
+    NSWindowStyleMask styleMask = [_window styleMask];
+
+    if (resizable)
+        styleMask |= NSWindowStyleMaskResizable;
+    else
+        styleMask &= ~NSWindowStyleMaskResizable;
+
+    [_window setStyleMask:styleMask];
+}
+
+void Photino::GetTopmost(bool* topmost) const
+{
+    assert(topmost);
+    if (!topmost) return;
+
+    *topmost = false;
+
+    if (!_window) return;
+
+    *topmost = [_window level] == NSFloatingWindowLevel;
+}
+
+void Photino::SetTopmost(bool topmost)
+{
+    assert(_window);
+    if (!_window) return;
+
+    [_window setLevel:topmost ? NSFloatingWindowLevel : NSNormalWindowLevel];
 }

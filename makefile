@@ -63,6 +63,7 @@ build-photino-mac-universal: | $(DEST_PATH_X64)
 		$(SRC)/Photino.Mac.Dialog.mm \
 		$(SRC)/Photino.Memory.cpp \
 		$(SRC)/Photino.Strings.cpp \
+		$(SRC)/Photino.Mac.Browser.mm \
 		$(SRC)/Photino.Mac.Window.mm \
 		$(SRC)/Photino.Mac.mm \
 		$(SRC)/Exports.mm \
@@ -87,6 +88,7 @@ install-linux-dependencies:
 build-photino-linux-x64: | $(DEST_PATH_X64)
 	$(CXX) $(CXXFLAGS) $(SOFLAGS) $(LDFLAGS) \
 		-o $(DEST_PATH_X64)/$(DEST_FILE).so \
+		$(SRC)/Photino.Linux.Browser.cpp \
 		$(SRC)/Photino.Linux.Dialog.cpp \
 		$(SRC)/Photino.Linux.Window.cpp \
 		$(SRC)/Photino.Linux.cpp \
@@ -104,6 +106,7 @@ build-photino-linux-x64: | $(DEST_PATH_X64)
 build-photino-linux-arm64: | $(DEST_PATH_ARM64)
 	$(CXX) $(CXXFLAGS) $(SOFLAGS) $(LDFLAGS) \
 		-o $(DEST_PATH_ARM64)/$(DEST_FILE).so \
+		$(SRC)/Photino.Linux.Browser.cpp \
 		$(SRC)/Photino.Linux.Dialog.cpp \
 		$(SRC)/Photino.Linux.Window.cpp \
 		$(SRC)/Photino.Linux.cpp \

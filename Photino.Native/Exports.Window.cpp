@@ -1,7 +1,7 @@
+#include "Photino.Export.h"
 #include "Photino.h"
 #include "Photino.Callbacks.h"
 #include "Photino.Strings.h"
-#include "Photino.Export.h"
 
 #include <cassert>
 
@@ -137,7 +137,7 @@ extern "C"
     }
 
 
-    PHOTINO_EXPORT void Photino_Center(Photino* instance)
+    PHOTINO_EXPORT void Photino_Center(const Photino* instance)
     {
         assert(instance);
         if (!instance) return;
@@ -167,23 +167,6 @@ extern "C"
         assert(instance);
         if (!instance || !callback) return;
         instance->GetAllMonitors(callback);
-    }
-
-
-    PHOTINO_EXPORT void Photino_GetTransparentEnabled(const Photino* instance, bool* enabled)
-    {
-        assert(instance);
-        if (!instance || !enabled) return;
-
-        instance->GetTransparentEnabled(enabled);
-    }
-
-    PHOTINO_EXPORT void Photino_SetTransparentEnabled(Photino* instance, const bool enabled)
-    {
-        assert(instance);
-        if (!instance) return;
-
-        instance->SetTransparentEnabled(enabled);
     }
 
 

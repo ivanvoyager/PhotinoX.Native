@@ -1,5 +1,5 @@
-#include "Photino.Callbacks.h"
 #include "Photino.Export.h"
+#include "Photino.Callbacks.h"
 #include "Photino.h"
 
 #include <cassert>

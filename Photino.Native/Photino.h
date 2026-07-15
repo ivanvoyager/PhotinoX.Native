@@ -18,12 +18,8 @@ class WinToastHandler;
 
 #ifdef __APPLE__
 #include <Cocoa/Cocoa.h>
-#include <Foundation/Foundation.h>
 #include <UserNotifications/UserNotifications.h>
 #include <WebKit/WebKit.h>
-#include <WebKit/WKWebView.h>
-#include <WebKit/WKWebViewConfiguration.h>
-#include <Security/SecTrust.h>
 
 @class WindowDelegate;
 @class UiDelegate;
@@ -150,6 +146,7 @@ namespace PhotinoX::Native
         bool _notifyInitialized = false;
 
         void ApplyGeometryHints();
+
         void AddCustomSchemeHandlers();
         void SetWebKitSettings();
         void SetWebKitCustomSettings(WebKitSettings* settings);
@@ -177,8 +174,8 @@ namespace PhotinoX::Native
 #ifdef _WIN32
 
         void ApplySizeLimits(MINMAXINFO& info) const noexcept;
-        void FocusWebView2() const;
         void RefitContent() const;
+        void FocusWebView2() const;
         void CloseWebView();
 
 #elif defined(__linux__)
@@ -227,56 +224,42 @@ namespace PhotinoX::Native
         void SetMinSize(int width, int height);
         void SetMaxSize(int width, int height);
 
+        void Center() const;
+        void Restore() const;
+
+        unsigned int GetScreenDpi() const;
+        void GetAllMonitors(GetAllMonitorsCallback callback) const noexcept;
+
+        // Window state
+        void GetFullScreen(bool* fullScreen) const;
+        void SetFullScreen(bool fullScreen);
+
+        void GetMaximized(bool* isMaximized) const;
+        void SetMaximized(bool maximized);
+
+        void GetMinimized(bool* isMinimized) const;
+        void SetMinimized(bool minimized);
+
+        void GetResizable(bool* resizable) const;
+        void SetResizable(bool resizable);
+
+        void GetTopmost(bool* topmost) const;
+        void SetTopmost(bool topmost);
+
         // Misc
         PhotinoDialog* GetDialog() const noexcept { return _dialog; }
 
-        void Center();
-        void ClearBrowserAutoFill() const;
-
-
+        // Browser / Navigation / Messaging
         void GetTransparentEnabled(bool* enabled) const;
-        void GetContextMenuEnabled(bool* enabled) const;
-        void GetZoomEnabled(bool* enabled) const;
-        void GetDevToolsEnabled(bool* enabled) const;
-        void GetFullScreen(bool* fullScreen) const;
-        void GetGrantBrowserPermissions(bool* grant) const;
-        const PlatformString& GetUserAgent() const { return _userAgent; }
-        void GetMediaAutoplayEnabled(bool* enabled) const;
-        void GetFileSystemAccessEnabled(bool* enabled) const;
-        void GetWebSecurityEnabled(bool* enabled) const;
-        void GetJavascriptClipboardAccessEnabled(bool* enabled) const;
-        void GetMediaStreamEnabled(bool* enabled) const;
-        void GetSmoothScrollingEnabled(bool* enabled) const;
-        void GetMaximized(bool* isMaximized) const;
-        void GetMinimized(bool* isMinimized) const;
-        void GetResizable(bool* resizable) const;
-        unsigned int GetScreenDpi() const;
-        void GetTopmost(bool* topmost) const;
-        void GetZoom(int* zoom) const;
-        void GetIgnoreCertificateErrorsEnabled(bool* enabled) const;
-        void GetNotificationsEnabled(bool* enabled) const;
+        void SetTransparentEnabled(bool enabled);
+
+        void ClearBrowserAutoFill() const;
 
         void NavigateToString(const PlatformString& content) const;
         void NavigateToUrl(const PlatformString& url) const;
-        void Restore() const;
+
         void SendWebMessage(const PlatformString& message) const;
 
-        void SetTransparentEnabled(bool enabled);
-        void SetContextMenuEnabled(bool enabled);
-        void SetZoomEnabled(bool enabled);
-        void SetDevToolsEnabled(bool enabled);
-        
-        void SetFullScreen(bool fullScreen);
-        void SetMaximized(bool maximized);
-        void SetMinimized(bool minimized);
-        void SetResizable(bool resizable);
-        void SetTopmost(bool topmost);
-        void SetZoom(int zoom);
-
-        void ShowNotification(const PlatformString& title, const PlatformString& message) const;
-        void WaitForExit() const;
-
-        // Custom schemes
         bool AddCustomSchemeName(Utf8String scheme)
         {
             if (!scheme || *scheme == '\0') return false;
@@ -293,8 +276,33 @@ namespace PhotinoX::Native
             return RegisterCustomSchemeName(_customSchemeNames.back());
         }
 
-        // Monitors
-        void GetAllMonitors(GetAllMonitorsCallback callback) const noexcept;
+        void GetContextMenuEnabled(bool* enabled) const;
+        void SetContextMenuEnabled(bool enabled);
+
+        void GetZoomEnabled(bool* enabled) const;
+        void SetZoomEnabled(bool enabled);
+
+        void GetZoom(int* zoom) const;
+        void SetZoom(int zoom);
+
+        void GetDevToolsEnabled(bool* enabled) const;
+        void SetDevToolsEnabled(bool enabled);
+        
+        void GetGrantBrowserPermissions(bool* grant) const;
+        const PlatformString& GetUserAgent() const noexcept { return _userAgent; }
+        void GetMediaAutoplayEnabled(bool* enabled) const;
+        void GetFileSystemAccessEnabled(bool* enabled) const;
+        void GetWebSecurityEnabled(bool* enabled) const;
+        void GetJavascriptClipboardAccessEnabled(bool* enabled) const;
+        void GetMediaStreamEnabled(bool* enabled) const;
+        void GetSmoothScrollingEnabled(bool* enabled) const;
+        void GetIgnoreCertificateErrorsEnabled(bool* enabled) const;
+
+        //App
+        void GetNotificationsEnabled(bool* enabled) const;
+        void ShowNotification(const PlatformString& title, const PlatformString& message) const;
+        void WaitForExit() const;
+
         // Callbacks
         void SetClosingCallback(ClosingCallback callback) noexcept { _closingCallback = callback; }
         void SetClosedCallback(ClosedCallback callback) noexcept { _closedCallback = callback; }
