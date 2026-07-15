@@ -1,5 +1,9 @@
 #ifdef __APPLE__
 
+#import <Cocoa/Cocoa.h>
+#import <WebKit/WebKit.h>
+
+#import <UserNotifications/UserNotifications.h>
 #import "Photino.Mac.AppDelegate.h"
 #import "Photino.Mac.NavigationDelegate.h"
 #import "Photino.Mac.NSWindowBorderless.h"
@@ -7,14 +11,15 @@
 #import "Photino.Mac.WindowDelegate.h"
 
 #include "Photino.h"
+#include "Photino.Mac.State.h"
 #include "Photino.Callbacks.h"
 #include "Photino.Dialog.h"
-#include "Photino.Mac.State.h"
 #include "Photino.Strings.h"
 
 #include <algorithm>
 #include <atomic>
 #include <cassert>
+#include <memory>
 #include <mutex>
 #include <vector>
 
@@ -146,7 +151,7 @@ void Photino::Register()
     });
 }
 
-Photino::Photino(PhotinoInitParams* initParams)
+Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<MacState>())
 {
     @autoreleasepool
     {
@@ -235,7 +240,7 @@ Photino::Photino(PhotinoInitParams* initParams)
         {
             // For MouseMoved events, Photino.Mac.NSWindowBorderless.mm
             // https://stackoverflow.com/questions/2520127/getting-a-borderless-window-to-receive-mousemoved-events-cocoa-osx
-            _window = [[NSWindowBorderless alloc]
+            platform_->window = [[NSWindowBorderless alloc]
                 initWithContentRect: frame
                 styleMask: NSWindowStyleMaskBorderless
                     | NSWindowStyleMaskClosable
@@ -246,7 +251,7 @@ Photino::Photino(PhotinoInitParams* initParams)
         }
         else
         {
-            _window = [[NSWindow alloc]
+            platform_->window = [[NSWindow alloc]
                 initWithContentRect: frame
                 styleMask: NSWindowStyleMaskTitled
                     | NSWindowStyleMaskClosable
@@ -256,18 +261,18 @@ Photino::Photino(PhotinoInitParams* initParams)
                 defer: true];
         }
 
-        if (!_window)
+        if (!platform_->window)
             std::abort();
 
-        [_window setReleasedWhenClosed:NO];
+        [platform_->window setReleasedWhenClosed:NO];
 
         // Set Window Delegate
-        _windowDelegate = [[WindowDelegate alloc] init];
-        if (!_windowDelegate)
+        platform_->windowDelegate = [[WindowDelegate alloc] init];
+        if (!platform_->windowDelegate)
             std::abort();
 
-        _windowDelegate->photino = this;
-        _window.delegate = _windowDelegate;
+        platform_->windowDelegate->photino = this;
+        platform_->window.delegate = platform_->windowDelegate;
     
         // Set Window options
         SetTitle(_windowTitle);
@@ -292,8 +297,8 @@ Photino::Photino(PhotinoInitParams* initParams)
 		    Photino::Center();
   
         // Create WebView Configuration
-        _webviewConfiguration = [[WKWebViewConfiguration alloc] init];
-        if (!_webviewConfiguration)
+        platform_->webViewConfiguration = [[WKWebViewConfiguration alloc] init];
+        if (!platform_->webViewConfiguration)
             std::abort();
 
         // Add Custom URL Schemes to WebView Configuration
@@ -372,55 +377,55 @@ Photino::Photino(PhotinoInitParams* initParams)
 
 Photino::~Photino()
 {
-    if (_webviewConfiguration)
+    if (platform_->webViewConfiguration)
     {
-        WKUserContentController* userContentController = _webviewConfiguration.userContentController;
+        WKUserContentController* userContentController = platform_->webViewConfiguration.userContentController;
         if (userContentController)
             [userContentController removeScriptMessageHandlerForName:@"photinointerop"];
     }
 
-    if (_window)
-        _window.delegate = nil;
+    if (platform_->window)
+        platform_->window.delegate = nil;
 
-    if (_windowDelegate)
+    if (platform_->windowDelegate)
     {
-        _windowDelegate->photino = nullptr;
-        [_windowDelegate release];
-        _windowDelegate = nil;
+        platform_->windowDelegate->photino = nullptr;
+        [platform_->windowDelegate release];
+        platform_->windowDelegate = nil;
     }
 
-    if (_webview)
+    if (platform_->webView)
     {
-        _webview.UIDelegate = nil;
-        _webview.navigationDelegate = nil;
+        platform_->webView.UIDelegate = nil;
+        platform_->webView.navigationDelegate = nil;
     }
 
-    if (_uiDelegate)
+    if (platform_->uiDelegate)
     {
-        _uiDelegate->photino = nullptr;
-        _uiDelegate->window = nil;
-        _uiDelegate->webMessageReceivedCallback = nullptr;
-        [_uiDelegate release];
-        _uiDelegate = nil;
+        platform_->uiDelegate->photino = nullptr;
+        platform_->uiDelegate->window = nil;
+        platform_->uiDelegate->webMessageReceivedCallback = nullptr;
+        [platform_->uiDelegate release];
+        platform_->uiDelegate = nil;
     }
 
-    if (_navigationDelegate)
+    if (platform_->navigationDelegate)
     {
-        _navigationDelegate->photino = nullptr;
-        _navigationDelegate->window = nil;
-        [_navigationDelegate release];
-        _navigationDelegate = nil;
+        platform_->navigationDelegate->photino = nullptr;
+        platform_->navigationDelegate->window = nil;
+        [platform_->navigationDelegate release];
+        platform_->navigationDelegate = nil;
     }
 
-    [_webview release];
-    _webview = nil;
+    [platform_->webView release];
+    platform_->webView = nil;
 
-    [_webviewConfiguration release];
-    _webviewConfiguration = nil;
+    [platform_->webViewConfiguration release];
+    platform_->webViewConfiguration = nil;
 
-    //[_window performClose: _window];
-    [_window release];
-    _window = nil;
+    //[platform_->window performClose: platform_->window];
+    [platform_->window release];
+    platform_->window = nil;
 
     delete _dialog;
     _dialog = nullptr;
@@ -507,11 +512,11 @@ void Photino::Invoke(InvokeCallback callback) const
 
 void Photino::Show()
 {
-    if (_webview == nil)
+    if (platform_->webView == nil)
         AttachWebView();
 
-    [_window makeKeyAndOrderFront:_window];
-    [_window orderFrontRegardless];
+    [platform_->window makeKeyAndOrderFront:platform_->window];
+    [platform_->window orderFrontRegardless];
 }
 
 #endif

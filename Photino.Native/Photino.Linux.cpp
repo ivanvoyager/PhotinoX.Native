@@ -1,5 +1,6 @@
 #include "Photino.h"
 #include "Photino.Linux.Internal.h"
+#include "Photino.Linux.State.h"
 #include "Photino.Dialog.h"
 #include "Photino.Strings.h"
 
@@ -111,7 +112,7 @@ void Photino::Register()
     });
 }
 
-Photino::Photino(PhotinoInitParams* initParams)
+Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<LinuxState>())
 {
     assert(initParams);
     if (!initParams)

@@ -7,6 +7,7 @@
 
 #include "Photino.h"
 #include "Photino.Mac.Internal.h"
+#include "Photino.Mac.State.h"
 #include "Photino.Callbacks.h"
 #include "Photino.Strings.h"
 
@@ -37,19 +38,19 @@ void Photino::ClearBrowserAutoFill() const
 
 void Photino::NavigateToString(const PlatformString& content) const
 {
-    assert(_webview);
-    if (!_webview) return;
+    assert(platform_->webView);
+    if (!platform_->webView) return;
 
     NSString* nsContent = ToNSString(content);
     if (!nsContent) return;
 
-    [_webview loadHTMLString:nsContent baseURL:nil];
+    [platform_->webView loadHTMLString:nsContent baseURL:nil];
 }
 
 void Photino::NavigateToUrl(const PlatformString& url) const
 {
-    assert(_webview);
-    if (!_webview || url.empty()) return;
+    assert(platform_->webView);
+    if (!platform_->webView || url.empty()) return;
 
     NSString* nsUrlString = ToNSString(url);
     if (!nsUrlString) return;
@@ -60,13 +61,13 @@ void Photino::NavigateToUrl(const PlatformString& url) const
     NSURLRequest* nsRequest = [NSURLRequest requestWithURL:nsUrl];
     if (!nsRequest) return;
 
-    [_webview loadRequest:nsRequest];
+    [platform_->webView loadRequest:nsRequest];
 }
 
 void Photino::SendWebMessage(const PlatformString& message) const
 {
-    assert(_webview);
-    if (!_webview) return;
+    assert(platform_->webView);
+    if (!platform_->webView) return;
 
     PlatformString script;
     script.append("__dispatchMessageCallback(");
@@ -76,7 +77,7 @@ void Photino::SendWebMessage(const PlatformString& message) const
     NSString* javaScriptToEval = ToNSString(script);
     if (!javaScriptToEval) return;
 
-    [_webview evaluateJavaScript:javaScriptToEval completionHandler:nil];
+    [platform_->webView evaluateJavaScript:javaScriptToEval completionHandler:nil];
 }
 
 void Photino::GetContextMenuEnabled(bool* enabled) const
@@ -116,9 +117,9 @@ void Photino::GetZoom(int* zoom) const
 
     *zoom = _zoom;
 
-    if (!_webview) return;
+    if (!platform_->webView) return;
 
-    CGFloat rawValue = [_webview magnification];
+    CGFloat rawValue = [platform_->webView magnification];
     rawValue = (rawValue * 100.0) + 0.5;
     *zoom = static_cast<int>(rawValue);
 }
@@ -132,10 +133,10 @@ void Photino::SetZoom(int zoom)
 
     _zoom = zoom;
 
-    if (!_webview) return;
+    if (!platform_->webView) return;
 
     CGFloat newZoom = static_cast<CGFloat>(zoom) / 100.0;
-    [_webview setMagnification:newZoom];
+    [platform_->webView setMagnification:newZoom];
 }
 
 void Photino::GetDevToolsEnabled(bool* enabled) const
@@ -223,23 +224,23 @@ void Photino::SetUserAgent(const PlatformString& userAgent)
 {
     _userAgent = userAgent;
 
-    if (!_webview) return;
+    if (!platform_->webView) return;
 
     NSString* nsUserAgent = ToNSString(userAgent);
     if (!nsUserAgent) return;
 
-    [_webview setCustomUserAgent:nsUserAgent];
+    [platform_->webView setCustomUserAgent:nsUserAgent];
 }
 
 // Set preferences with a string key and a value of any type
 bool Photino::SetPreference(NSString* key, NSNumber* value)
 {
-    assert(_webviewConfiguration && key && value);
-    if (!_webviewConfiguration || !key || !value) return false;
+    assert(platform_->webViewConfiguration && key && value);
+    if (!platform_->webViewConfiguration || !key || !value) return false;
 
     @try
     {
-        [_webviewConfiguration.preferences setValue:value forKey:key];
+        [platform_->webViewConfiguration.preferences setValue:value forKey:key];
         return true;
     }
     @catch (NSException* exception)
@@ -250,12 +251,12 @@ bool Photino::SetPreference(NSString* key, NSNumber* value)
 
 bool Photino::SetPreference(NSString* key, NSString* value)
 {
-    assert(_webviewConfiguration && key && value);
-    if (!_webviewConfiguration || !key || !value) return false;
+    assert(platform_->webViewConfiguration && key && value);
+    if (!platform_->webViewConfiguration || !key || !value) return false;
 
     @try
     {
-        [_webviewConfiguration.preferences setValue:value forKey:key];
+        [platform_->webViewConfiguration.preferences setValue:value forKey:key];
         return true;
     }
     @catch (NSException* exception)
@@ -266,11 +267,11 @@ bool Photino::SetPreference(NSString* key, NSString* value)
 
 void Photino::AddCustomSchemeHandlers()
 {
-    assert(!_webview);
-    if (_webview) return;
+    assert(!platform_->webView);
+    if (platform_->webView) return;
 
-    assert(_webviewConfiguration);
-    if (!_webviewConfiguration || !_customSchemeCallback) return;
+    assert(platform_->webViewConfiguration);
+    if (!platform_->webViewConfiguration || !_customSchemeCallback) return;
 
     for (const auto& scheme : _customSchemeNames)
     {
@@ -284,7 +285,7 @@ void Photino::AddCustomSchemeHandlers()
 
         @try
         {
-            [_webviewConfiguration setURLSchemeHandler:schemeHandler forURLScheme:nsScheme];
+            [platform_->webViewConfiguration setURLSchemeHandler:schemeHandler forURLScheme:nsScheme];
         }
         @catch (NSException* exception)
         {
@@ -298,17 +299,17 @@ void Photino::AddCustomSchemeHandlers()
 
 bool Photino::RegisterCustomSchemeName(const PlatformString& scheme)
 {
-    if (!_webviewConfiguration) return true;
+    if (!platform_->webViewConfiguration) return true;
 
-    if (_webview) return false;
+    if (platform_->webView) return false;
 
     return true;
 }
 
 void Photino::AttachWebView()
 {
-    assert(_window && _webviewConfiguration);
-    if (!_window || !_webviewConfiguration)
+    assert(platform_->window && platform_->webViewConfiguration);
+    if (!platform_->window || !platform_->webViewConfiguration)
         std::abort();
 
     NSString* initScriptSource = @"window.__receiveMessageCallbacks = [];"
@@ -338,38 +339,38 @@ void Photino::AttachWebView()
     [userContentController addUserScript:initScript];
     [initScript release];
 
-    _uiDelegate = [[UiDelegate alloc] init];
-    if (!_uiDelegate)
+    platform_->uiDelegate = [[UiDelegate alloc] init];
+    if (!platform_->uiDelegate)
         std::abort();
 
-    _uiDelegate->photino = this;
-    _uiDelegate->window = _window;
-    _uiDelegate->webMessageReceivedCallback = _webMessageReceivedCallback;
+    platform_->uiDelegate->photino = this;
+    platform_->uiDelegate->window = platform_->window;
+    platform_->uiDelegate->webMessageReceivedCallback = _webMessageReceivedCallback;
 
-    [userContentController addScriptMessageHandler:_uiDelegate name:@"photinointerop"];
+    [userContentController addScriptMessageHandler:platform_->uiDelegate name:@"photinointerop"];
 
-    _webviewConfiguration.userContentController = userContentController;
+    platform_->webViewConfiguration.userContentController = userContentController;
     [userContentController release];
 
-    _webview = [[WKWebView alloc]
-        initWithFrame: _window.contentView.frame
-        configuration: _webviewConfiguration];
-    if (!_webview)
+    platform_->webView = [[WKWebView alloc]
+        initWithFrame: platform_->window.contentView.frame
+        configuration: platform_->webViewConfiguration];
+    if (!platform_->webView)
         std::abort();
 
-    _navigationDelegate = [[NavigationDelegate alloc] init];
-    if (!_navigationDelegate)
+    platform_->navigationDelegate = [[NavigationDelegate alloc] init];
+    if (!platform_->navigationDelegate)
         std::abort();
 
-    _navigationDelegate->photino = this;
-    _navigationDelegate->window = _window;
+    platform_->navigationDelegate->photino = this;
+    platform_->navigationDelegate->window = platform_->window;
 
-    _webview.UIDelegate = _uiDelegate;
-    _webview.navigationDelegate = _navigationDelegate;
+    platform_->webView.UIDelegate = platform_->uiDelegate;
+    platform_->webView.navigationDelegate = platform_->navigationDelegate;
 
-    [_webview setAutoresizingMask: NSViewWidthSizable | NSViewHeightSizable];
-    [_window.contentView addSubview: _webview];
-    [_window.contentView setAutoresizesSubviews: true];
+    [platform_->webView setAutoresizingMask: NSViewWidthSizable | NSViewHeightSizable];
+    [platform_->window.contentView addSubview: platform_->webView];
+    [platform_->window.contentView setAutoresizesSubviews: true];
 
     SetUserAgent(_userAgent);
 

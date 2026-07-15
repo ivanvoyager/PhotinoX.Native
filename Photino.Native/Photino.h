@@ -6,6 +6,7 @@
 #include "Photino.Geometry.h"
 #include "Photino.Monitor.h"
 
+#include <memory>
 #include <utility>
 #include <vector>
 
@@ -16,16 +17,6 @@
 class WinToastHandler;
 #endif
 
-#ifdef __APPLE__
-#include <Cocoa/Cocoa.h>
-#include <UserNotifications/UserNotifications.h>
-#include <WebKit/WebKit.h>
-
-@class WindowDelegate;
-@class UiDelegate;
-@class NavigationDelegate;
-#endif
-
 #ifdef __linux__
 #include <gtk/gtk.h>
 #include <webkit2/webkit2.h>
@@ -33,6 +24,18 @@ class WinToastHandler;
 
 namespace PhotinoX::Native 
 {
+#ifdef _WIN32
+    struct WindowsState;
+#endif
+
+#ifdef __linux__
+    struct LinuxState;
+#endif
+
+#ifdef __APPLE__
+    struct MacState;
+#endif
+
     class PhotinoDialog;
 
     class Photino
@@ -87,6 +90,15 @@ namespace PhotinoX::Native
 
         Photino* _parent = nullptr;
         PhotinoDialog* _dialog = nullptr;
+
+#ifdef _WIN32
+        std::unique_ptr<WindowsState> platform_;
+#elif defined(__linux__)
+        std::unique_ptr<LinuxState> platform_;
+#elif defined(__APPLE__)
+        std::unique_ptr<MacState> platform_;
+#endif
+
         void Show();
 
         bool IsCustomScheme(const PlatformString& scheme) const
@@ -152,14 +164,6 @@ namespace PhotinoX::Native
         void SetWebKitCustomSettings(WebKitSettings* settings);
 
 #elif defined(__APPLE__)
-        NSWindow* _window = nullptr;
-        WKWebView* _webview = nullptr;
-        WKWebViewConfiguration* _webviewConfiguration = nullptr;
-
-        WindowDelegate* _windowDelegate = nullptr;
-        UiDelegate* _uiDelegate = nullptr;
-        NavigationDelegate* _navigationDelegate = nullptr;
-
         std::vector<Monitor> GetMonitors() const;
 
         void AttachWebView();
@@ -201,8 +205,8 @@ namespace PhotinoX::Native
         HWND GetHwnd() const noexcept { return _hWnd; }
 #elif defined(__linux__)
         void* GetGtkWidget() const noexcept { return _window; }
-#elif defined(__APPLE__) && defined(__OBJC__)
-        void* GetNSWindow() const noexcept { return (__bridge void*)_window; }
+#elif defined(__APPLE__)
+        void* GetNSWindow() const noexcept;
 #endif
 
         void Close() const;

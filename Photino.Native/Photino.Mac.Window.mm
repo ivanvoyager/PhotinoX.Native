@@ -2,46 +2,52 @@
 
 #include "Photino.h"
 #include "Photino.Mac.Internal.h"
+#include "Photino.Mac.State.h"
 #include "Photino.Callbacks.h"
 #include "Photino.Strings.h"
 
 using namespace PhotinoX::Native;
 
+void* Photino::GetNSWindow() const noexcept
+{
+    return (__bridge void*)platform_->window;
+}
+
 void Photino::Close() const
 {
-    assert(_window);
-    if (!_window) return;
+    assert(platform_->window);
+    if (!platform_->window) return;
 
     if (_chromeless)
     {
         if (!PhotinoMacIsShuttingDown() && InvokeClosing())
             return;
         // Can't use performClose because frame has no title area and close button
-        [_window close];
+        [platform_->window close];
     }
     else
     {
         // Simulates user clicking the close button
-    	[_window performClose:_window];
+    	[platform_->window performClose:platform_->window];
     }
 }
 
 void Photino::SetTitle(const PlatformString& title)
 {
-    assert(_window);
-    if (!_window) return;
+    assert(platform_->window);
+    if (!platform_->window) return;
 
     NSString* nsTitle = ToNSString(title);
     if (!nsTitle) return;
 
-    [_window setTitle:nsTitle];
+    [platform_->window setTitle:nsTitle];
     _windowTitle = title;
 }
 
 void Photino::SetIconFile(const PlatformString& filename)
 {
-    assert(_window);
-    if (!_window || filename.empty()) return;
+    assert(platform_->window);
+    if (!platform_->window || filename.empty()) return;
 
     NSString* path = ToNSString(filename);
     if (!path) return;
@@ -49,7 +55,7 @@ void Photino::SetIconFile(const PlatformString& filename)
     NSImage* icon = [[NSImage alloc] initWithContentsOfFile:path];
     if (!icon) return;
 
-    NSButton* iconButton = [_window standardWindowButton:NSWindowDocumentIconButton];
+    NSButton* iconButton = [platform_->window standardWindowButton:NSWindowDocumentIconButton];
     if (iconButton)
     {
         [iconButton setImage:icon];
@@ -68,16 +74,16 @@ void Photino::GetPosition(int* x, int* y) const
     if (x) *x = 0;
     if (y) *y = 0;
 
-    if (!_window) return;
+    if (!platform_->window) return;
 
-    NSRect frame = [_window frame];
+    NSRect frame = [platform_->window frame];
 
     if (x)
         *x = static_cast<int>(roundf(frame.origin.x));
 
     if (y)
     {
-        NSScreen* screen = [_window screen];
+        NSScreen* screen = [platform_->window screen];
         if (!screen) return;
 
         NSRect screenFrame = [screen frame];
@@ -93,14 +99,14 @@ void Photino::GetPosition(int* x, int* y) const
 
 void Photino::SetPosition(int x, int y)
 {
-    assert(_window);
-    if (!_window) return;
+    assert(platform_->window);
+    if (!platform_->window) return;
 
-    NSScreen* screen = [_window screen];
+    NSScreen* screen = [platform_->window screen];
     if (!screen) return;
 
     NSRect screenFrame = [screen frame];
-    NSRect windowFrame = [_window frame];
+    NSRect windowFrame = [platform_->window frame];
 
     CGFloat left = static_cast<CGFloat>(x);
     CGFloat top = screenFrame.origin.y
@@ -108,7 +114,7 @@ void Photino::SetPosition(int x, int y)
         - static_cast<CGFloat>(y)
         - windowFrame.size.height;
 
-    [_window setFrameOrigin:NSMakePoint(left, top)];
+    [platform_->window setFrameOrigin:NSMakePoint(left, top)];
 }
 
 void Photino::GetSize(int* width, int* height) const
@@ -119,9 +125,9 @@ void Photino::GetSize(int* width, int* height) const
     if (width)  *width = 0;
     if (height) *height = 0;
 
-    if (!_window) return;
+    if (!platform_->window) return;
 
-    NSSize size = [_window frame].size;
+    NSSize size = [platform_->window frame].size;
 
     if (width) *width = static_cast<int>(roundf(size.width));
     if (height) *height = static_cast<int>(roundf(size.height));
@@ -129,8 +135,8 @@ void Photino::GetSize(int* width, int* height) const
 
 void Photino::SetSize(int width, int height)
 {
-    assert(_window);
-    if (!_window) return;
+    assert(platform_->window);
+    if (!platform_->window) return;
 
     if (width <= 0 || height <= 0)
         return;
@@ -140,13 +146,13 @@ void Photino::SetSize(int width, int height)
     width = (std::min)(width, 10000);
     height = (std::min)(height, 10000);
 
-    NSSize minSize = [_window minSize];
-    NSSize maxSize = [_window maxSize];
+    NSSize minSize = [platform_->window minSize];
+    NSSize maxSize = [platform_->window maxSize];
 
     CGFloat newWidth = (std::min)((std::max)(static_cast<CGFloat>(width), minSize.width), maxSize.width);
     CGFloat newHeight = (std::min)((std::max)(static_cast<CGFloat>(height), minSize.height), maxSize.height);
 
-    NSRect frame = [_window frame];
+    NSRect frame = [platform_->window frame];
 
     CGFloat oldHeight = frame.size.height;
 
@@ -155,20 +161,20 @@ void Photino::SetSize(int width, int height)
     // Reposition the window so that the top edge stays in the same place.
     frame.origin.y -= newHeight - oldHeight;
 
-    [_window setFrame:frame display:YES];
+    [platform_->window setFrame:frame display:YES];
 }
 
 void Photino::SetMinSize(int width, int height)
 {
-    assert(_window);
-    if (!_window) return;
+    assert(platform_->window);
+    if (!platform_->window) return;
 
     // The macOS window server has a limit of 10,000 pixels for either dimension
     // See: https://developer.apple.com/documentation/appkit/nswindow/1419595-maxsize
     width = (std::min)((std::max)(0, width), 10000);
     height = (std::min)((std::max)(0, height), 10000);
 
-    NSSize maxSize = [_window maxSize];
+    NSSize maxSize = [platform_->window maxSize];
 
     if (maxSize.width > 0 && width > maxSize.width)
         maxSize.width = width;
@@ -176,21 +182,21 @@ void Photino::SetMinSize(int width, int height)
     if (maxSize.height > 0 && height > maxSize.height)
         maxSize.height = height;
 
-    [_window setMinSize:NSMakeSize(width, height)];
-    [_window setMaxSize:maxSize];
+    [platform_->window setMinSize:NSMakeSize(width, height)];
+    [platform_->window setMaxSize:maxSize];
 }
 
 void Photino::SetMaxSize(int width, int height)
 {
-    assert(_window);
-    if (!_window) return;
+    assert(platform_->window);
+    if (!platform_->window) return;
 
     // The macOS window server has a limit of 10,000 pixels for either dimension
     // See: https://developer.apple.com/documentation/appkit/nswindow/1419595-maxsize
     width = width <= 0 ? 10000 : (std::min)(width, 10000);
     height = height <= 0 ? 10000 : (std::min)(height, 10000);
 
-    NSSize minSize = [_window minSize];
+    NSSize minSize = [platform_->window minSize];
 
     if (width < minSize.width)
         minSize.width = width;
@@ -198,41 +204,41 @@ void Photino::SetMaxSize(int width, int height)
     if (height < minSize.height)
         minSize.height = height;
 
-    [_window setMinSize:minSize];
-    [_window setMaxSize:NSMakeSize(width, height)];
+    [platform_->window setMinSize:minSize];
+    [platform_->window setMaxSize:NSMakeSize(width, height)];
 }
 
 void Photino::Center() const
 {
-    assert(_window);
-    if (!_window) return;
+    assert(platform_->window);
+    if (!platform_->window) return;
 
-    [_window center];
-    //[_window makeKeyAndOrderFront:_window];
+    [platform_->window center];
+    //[platform_->window makeKeyAndOrderFront:platform_->window];
 }
 
 void Photino::Restore() const
 {
-    assert(_window);
-    if (!_window) return;
+    assert(platform_->window);
+    if (!platform_->window) return;
 
-    if ([_window isMiniaturized])
-        [_window deminiaturize:nil];
+    if ([platform_->window isMiniaturized])
+        [platform_->window deminiaturize:nil];
 
-    if ([_window isZoomed])
-        [_window zoom:nil];
+    if ([platform_->window isZoomed])
+        [platform_->window zoom:nil];
 
-    if (([_window styleMask] & NSWindowStyleMaskFullScreen) == NSWindowStyleMaskFullScreen)
-        [_window toggleFullScreen:nil];
+    if (([platform_->window styleMask] & NSWindowStyleMaskFullScreen) == NSWindowStyleMaskFullScreen)
+        [platform_->window toggleFullScreen:nil];
 }
 
 unsigned int Photino::GetScreenDpi() const
 {
     //not supported on macOS - _window's devices collection does have dpi
 	//https://stackoverflow.com/questions/2621439/hot-to-get-screen-dpi-linux-mac-programaticaly
-    if (!_window) return 72;
+    if (!platform_->window) return 72;
 
-    NSScreen* screen = [_window screen];
+    NSScreen* screen = [platform_->window screen];
     if (!screen) return 72;
 
     return static_cast<unsigned int>(roundf(72.0f * [screen backingScaleFactor]));
@@ -301,22 +307,22 @@ void Photino::GetFullScreen(bool* fullScreen) const
 
     *fullScreen = false;
 
-    if (!_window) return;
+    if (!platform_->window) return;
 
-    //*fullScreen = ([_window.contentView isInFullScreenMode]);
-    *fullScreen = ([_window styleMask] & NSWindowStyleMaskFullScreen) == NSWindowStyleMaskFullScreen;
+    //*fullScreen = ([platform_->window.contentView isInFullScreenMode]);
+    *fullScreen = ([platform_->window styleMask] & NSWindowStyleMaskFullScreen) == NSWindowStyleMaskFullScreen;
 }
 
 void Photino::SetFullScreen(bool fullScreen)
 {
-    assert(_window);
-    if (!_window) return;
+    assert(platform_->window);
+    if (!platform_->window) return;
 
-    bool isFullScreen = ([_window styleMask] & NSWindowStyleMaskFullScreen) == NSWindowStyleMaskFullScreen;
+    bool isFullScreen = ([platform_->window styleMask] & NSWindowStyleMaskFullScreen) == NSWindowStyleMaskFullScreen;
     if (isFullScreen == fullScreen) return;
 
     _fullScreen = fullScreen;
-    [_window toggleFullScreen:nil];
+    [platform_->window toggleFullScreen:nil];
 }
 
 void Photino::GetMaximized(bool* isMaximized) const
@@ -326,19 +332,19 @@ void Photino::GetMaximized(bool* isMaximized) const
 
     *isMaximized = false;
 
-    if (!_window) return;
+    if (!platform_->window) return;
 
-    *isMaximized = [_window isZoomed];
+    *isMaximized = [platform_->window isZoomed];
 }
 
 void Photino::SetMaximized(bool maximized)
 {
-    assert(_window);
-    if (!_window) return;
+    assert(platform_->window);
+    if (!platform_->window) return;
 
-    if ([_window isZoomed] == maximized) return;
+    if ([platform_->window isZoomed] == maximized) return;
 
-    [_window zoom:nil];
+    [platform_->window zoom:nil];
 }
 
 void Photino::GetMinimized(bool* isMinimized) const
@@ -348,22 +354,22 @@ void Photino::GetMinimized(bool* isMinimized) const
 
     *isMinimized = false;
 
-    if (!_window) return;
+    if (!platform_->window) return;
 
-	*isMinimized = [_window isMiniaturized];
+	*isMinimized = [platform_->window isMiniaturized];
 }
 
 void Photino::SetMinimized(bool minimized)
 {
-    assert(_window);
-    if (!_window) return;
+    assert(platform_->window);
+    if (!platform_->window) return;
 
-    if (_window.isMiniaturized == minimized) return;
+    if (platform_->window.isMiniaturized == minimized) return;
 
     if (minimized)
-        [_window miniaturize:nil];
+        [platform_->window miniaturize:nil];
     else
-        [_window deminiaturize:nil];
+        [platform_->window deminiaturize:nil];
 }
 
 void Photino::GetResizable(bool* resizable) const
@@ -373,24 +379,24 @@ void Photino::GetResizable(bool* resizable) const
 
     *resizable = false;
 
-    if (!_window) return;
+    if (!platform_->window) return;
 
-    *resizable = ([_window styleMask] & NSWindowStyleMaskResizable) == NSWindowStyleMaskResizable;
+    *resizable = ([platform_->window styleMask] & NSWindowStyleMaskResizable) == NSWindowStyleMaskResizable;
 }
 
 void Photino::SetResizable(bool resizable)
 {
-    assert(_window);
-    if (!_window) return;
+    assert(platform_->window);
+    if (!platform_->window) return;
 
-    NSWindowStyleMask styleMask = [_window styleMask];
+    NSWindowStyleMask styleMask = [platform_->window styleMask];
 
     if (resizable)
         styleMask |= NSWindowStyleMaskResizable;
     else
         styleMask &= ~NSWindowStyleMaskResizable;
 
-    [_window setStyleMask:styleMask];
+    [platform_->window setStyleMask:styleMask];
 }
 
 void Photino::GetTopmost(bool* topmost) const
@@ -400,15 +406,15 @@ void Photino::GetTopmost(bool* topmost) const
 
     *topmost = false;
 
-    if (!_window) return;
+    if (!platform_->window) return;
 
-    *topmost = [_window level] == NSFloatingWindowLevel;
+    *topmost = [platform_->window level] == NSFloatingWindowLevel;
 }
 
 void Photino::SetTopmost(bool topmost)
 {
-    assert(_window);
-    if (!_window) return;
+    assert(platform_->window);
+    if (!platform_->window) return;
 
-    [_window setLevel:topmost ? NSFloatingWindowLevel : NSNormalWindowLevel];
+    [platform_->window setLevel:topmost ? NSFloatingWindowLevel : NSNormalWindowLevel];
 }

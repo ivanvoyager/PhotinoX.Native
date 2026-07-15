@@ -2,6 +2,7 @@
 #include "Photino.Dialog.h"
 #include "Photino.Strings.h"
 #include "Photino.Windows.DarkMode.h"
+#include "Photino.Windows.State.h"
 #include "Photino.Windows.ToastHandler.h"
 
 #include <algorithm>
@@ -9,6 +10,7 @@
 #include <cassert>
 #include <comdef.h>
 #include <map>
+#include <memory>
 #include <mutex>
 
 #include <Shlwapi.h>
@@ -68,7 +70,7 @@ void Photino::Register(const HINSTANCE hInstance)
     assert(previous != nullptr);
 }
 
-Photino::Photino(PhotinoInitParams* initParams)
+Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<WindowsState>())
 {
     assert(initParams);
     if (!initParams)
