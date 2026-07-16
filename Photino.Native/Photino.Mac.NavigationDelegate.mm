@@ -1,5 +1,7 @@
 #ifdef __APPLE__
+
 #import "Photino.Mac.NavigationDelegate.h"
+#import <Security/SecTrust.h>
 
 #include "Photino.h"
 

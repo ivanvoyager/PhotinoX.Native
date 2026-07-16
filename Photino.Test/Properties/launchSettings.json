@@ -2,7 +2,7 @@
   "profiles": {
     "Photino.Test": {
       "commandName": "Project",
-      "nativeDebugging": true
+      "debugEngines": "managed,native"
     }
   }
 }

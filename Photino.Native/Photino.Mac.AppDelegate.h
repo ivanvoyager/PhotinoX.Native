@@ -1,7 +1,8 @@
 #pragma once
 
 #ifdef __APPLE__
-#include <Cocoa/Cocoa.h>
+
+#import <Cocoa/Cocoa.h>
 
 @interface AppDelegate : NSObject <NSApplicationDelegate, NSUserNotificationCenterDelegate>
 @end

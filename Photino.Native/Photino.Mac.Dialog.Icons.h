@@ -2,7 +2,7 @@
 
 #ifdef __APPLE__
 
-#import <Cocoa/Cocoa.h>
+#import <AppKit/AppKit.h>
 
 namespace PhotinoX::Native
 {
@@ -10,6 +10,6 @@ namespace PhotinoX::Native
     NSImage* CreateInfoDialogIcon();
     NSImage* CreateQuestionDialogIcon();
     NSImage* CreateWarningDialogIcon();
-} // namespace PhotinoX::Native
+}
 
 #endif

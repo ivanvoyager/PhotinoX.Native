@@ -4,13 +4,15 @@
 
 #include "Photino.Callbacks.h"
 
-#include <Cocoa/Cocoa.h>
-#include <WebKit/WebKit.h>
+#import <Foundation/Foundation.h>
+#import <WebKit/WebKit.h>
 
 namespace PhotinoX::Native
 {
     class Photino;
 }
+
+@class NSWindow;
 
 @interface UiDelegate : NSObject <WKUIDelegate, WKScriptMessageHandler>
 {

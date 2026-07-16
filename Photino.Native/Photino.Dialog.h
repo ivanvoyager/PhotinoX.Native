@@ -5,7 +5,7 @@
 #include <vector>
 
 #ifdef __APPLE__
-#include <Cocoa/Cocoa.h>
+@class NSImage;
 #endif
 
 namespace PhotinoX::Native

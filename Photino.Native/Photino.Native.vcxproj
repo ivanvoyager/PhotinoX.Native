@@ -121,6 +121,7 @@
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="PhotinoX.Native.props" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
@@ -276,10 +277,22 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Exports.Callbacks.cpp" />
+    <ClCompile Include="Exports.Browser.cpp" />
     <ClCompile Include="Exports.cpp" />
     <ClCompile Include="Dependencies\wintoastlib.cpp" />
+    <None Include="Photino.Linux.Window.cpp" />
+    <None Include="Photino.Linux.Browser.cpp" />
+    <ClCompile Include="Photino.Callbacks.cpp" />
+    <ClCompile Include="Photino.CustomSchemes.cpp" />
+    <ClCompile Include="Photino.Windows.Browser.cpp" />
+    <ClCompile Include="Photino.Windows.Window.cpp" />
+    <None Include="cpp.hint" />
     <None Include="Photino.Linux.cpp" />
     <None Include="Photino.Linux.Dialog.cpp" />
+    <ClCompile Include="Exports.Dialogs.cpp" />
+    <ClCompile Include="Exports.Memory.cpp" />
+    <ClCompile Include="Exports.Window.cpp" />
     <ClCompile Include="Photino.Memory.cpp" />
     <ClCompile Include="Photino.Strings.cpp" />
     <ClCompile Include="Photino.Windows.cpp" />
@@ -289,11 +302,16 @@
   <ItemGroup>
     <ClInclude Include="Dependencies\wintoastlib.h" />
     <ClInclude Include="Dependencies\json.hpp" />
+    <ClInclude Include="Photino.Export.h" />
     <ClInclude Include="Photino.Callbacks.h" />
+    <ClInclude Include="Photino.Geometry.h" />
     <ClInclude Include="Photino.h" />
     <ClInclude Include="Photino.InitParams.h" />
+    <ClInclude Include="Photino.Linux.Internal.h" />
+    <ClInclude Include="Photino.Linux.State.h" />
     <ClInclude Include="Photino.Mac.AppDelegate.h" />
     <ClInclude Include="Photino.Mac.Dialog.Icons.h" />
+    <ClInclude Include="Photino.Mac.Internal.h" />
     <ClInclude Include="Photino.Mac.NavigationDelegate.h" />
     <ClInclude Include="Photino.Mac.NSWindowBorderless.h" />
     <ClInclude Include="Photino.Mac.State.h" />
@@ -304,18 +322,21 @@
     <ClInclude Include="Photino.Memory.h" />
     <ClInclude Include="Photino.Monitor.h" />
     <ClInclude Include="Photino.Strings.h" />
+    <ClInclude Include="Photino.Windows.State.h" />
     <ClInclude Include="Photino.Windows.ToastHandler.h" />
     <ClInclude Include="Photino.Windows.DarkMode.h" />
     <ClInclude Include="resource.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Photino.Mac.AppDelegate.mm" />
+    <None Include="Photino.Mac.Browser.mm" />
     <None Include="Photino.Mac.Dialog.Icons.mm" />
     <None Include="Photino.Mac.Dialog.mm" />
     <None Include="Photino.Mac.mm" />
     <None Include="Photino.Mac.NavigationDelegate.mm" />
     <None Include="Photino.Mac.NSWindowBorderless.mm" />
     <None Include="Photino.Mac.UiDelegate.mm" />
+    <None Include="Photino.Mac.Window.mm" />
     <None Include="Photino.Mac.WindowDelegate.mm" />
     <None Include="Photino.Mac.UrlSchemeHandler.mm" />
   </ItemGroup>

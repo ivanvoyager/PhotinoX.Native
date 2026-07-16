@@ -39,7 +39,7 @@ build-photino-windows:
 
 # macOS: universal dylib (x86_64 + arm64)
 build-photino-mac-universal: | $(DEST_PATH_X64)
-	cp $(SRC)/Exports.cpp $(SRC)/Exports.mm && \
+	cp $(SRC)/Exports.Dialogs.cpp $(SRC)/Exports.Dialogs.mm && \
 	$(CXX) $(CXXFLAGS) $(SOFLAGS) $(LDFLAGS) \
 		-arch x86_64 \
 		-arch arm64 \
@@ -48,6 +48,8 @@ build-photino-mac-universal: | $(DEST_PATH_X64)
 		-framework UserNotifications \
 		-framework Security \
 		-o $(DEST_PATH_X64)/$(DEST_FILE).dylib \
+		$(SRC)/Photino.Callbacks.cpp \
+		$(SRC)/Photino.CustomSchemes.cpp \
 		$(SRC)/Photino.Mac.AppDelegate.mm \
 		$(SRC)/Photino.Mac.UiDelegate.mm \
 		$(SRC)/Photino.Mac.WindowDelegate.mm \
@@ -58,9 +60,17 @@ build-photino-mac-universal: | $(DEST_PATH_X64)
 		$(SRC)/Photino.Mac.Dialog.mm \
 		$(SRC)/Photino.Memory.cpp \
 		$(SRC)/Photino.Strings.cpp \
+		$(SRC)/Photino.Mac.Browser.mm \
+		$(SRC)/Photino.Mac.Window.mm \
 		$(SRC)/Photino.Mac.mm \
-		$(SRC)/Exports.mm && \
-	rm $(SRC)/Exports.mm
+		$(SRC)/Exports.cpp \
+		$(SRC)/Exports.Browser.cpp \
+		$(SRC)/Exports.Callbacks.cpp \
+		$(SRC)/Exports.Dialogs.mm \
+		$(SRC)/Exports.Memory.cpp \
+		$(SRC)/Exports.Window.cpp && \
+	rm -f \
+		$(SRC)/Exports.Dialogs.mm
 
 install-linux-dependencies:
 	sudo apt-get update && \
@@ -70,22 +80,40 @@ install-linux-dependencies:
 build-photino-linux-x64: | $(DEST_PATH_X64)
 	$(CXX) $(CXXFLAGS) $(SOFLAGS) $(LDFLAGS) \
 		-o $(DEST_PATH_X64)/$(DEST_FILE).so \
+		$(SRC)/Photino.Callbacks.cpp \
+		$(SRC)/Photino.CustomSchemes.cpp \
+		$(SRC)/Photino.Linux.Browser.cpp \
 		$(SRC)/Photino.Linux.Dialog.cpp \
+		$(SRC)/Photino.Linux.Window.cpp \
 		$(SRC)/Photino.Linux.cpp \
 		$(SRC)/Photino.Memory.cpp \
 		$(SRC)/Photino.Strings.cpp \
 		$(SRC)/Exports.cpp \
+		$(SRC)/Exports.Browser.cpp \
+		$(SRC)/Exports.Callbacks.cpp \
+		$(SRC)/Exports.Dialogs.cpp \
+		$(SRC)/Exports.Memory.cpp \
+		$(SRC)/Exports.Window.cpp \
 		`pkg-config --cflags --libs gtk+-3.0 webkit2gtk-4.1 libnotify`
 
 # Linux arm64 .so (native on arm64 host; for cross, override CXX/PKG_CONFIG_PATH)
 build-photino-linux-arm64: | $(DEST_PATH_ARM64)
 	$(CXX) $(CXXFLAGS) $(SOFLAGS) $(LDFLAGS) \
 		-o $(DEST_PATH_ARM64)/$(DEST_FILE).so \
+		$(SRC)/Photino.Callbacks.cpp \
+		$(SRC)/Photino.CustomSchemes.cpp \
+		$(SRC)/Photino.Linux.Browser.cpp \
 		$(SRC)/Photino.Linux.Dialog.cpp \
+		$(SRC)/Photino.Linux.Window.cpp \
 		$(SRC)/Photino.Linux.cpp \
 		$(SRC)/Photino.Memory.cpp \
 		$(SRC)/Photino.Strings.cpp \
 		$(SRC)/Exports.cpp \
+		$(SRC)/Exports.Browser.cpp \
+		$(SRC)/Exports.Callbacks.cpp \
+		$(SRC)/Exports.Dialogs.cpp \
+		$(SRC)/Exports.Memory.cpp \
+		$(SRC)/Exports.Window.cpp \
 		`pkg-config --cflags --libs gtk+-3.0 webkit2gtk-4.1 libnotify`
 
 # Ensure output directories exist before link steps
