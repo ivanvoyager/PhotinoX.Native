@@ -22,7 +22,7 @@ struct ICoreWebView2WebResourceRequestedEventArgs;
 struct ICoreWebView2PermissionRequestedEventArgs;
 #endif
 
-namespace PhotinoX::Native 
+namespace PhotinoX::Native
 {
 #ifdef _WIN32
     struct WindowsState;
@@ -37,55 +37,55 @@ namespace PhotinoX::Native
     class Photino
     {
     private:
-        WebMessageReceivedCallback _webMessageReceivedCallback = nullptr;
-        MovedCallback _movedCallback = nullptr;
-        ResizedCallback _resizedCallback = nullptr;
-        MaximizedCallback _maximizedCallback = nullptr;
-        RestoredCallback _restoredCallback = nullptr;
-        MinimizedCallback _minimizedCallback = nullptr;
-        ClosingCallback _closingCallback = nullptr;
-        ClosedCallback _closedCallback = nullptr;
-        FocusInCallback _focusInCallback = nullptr;
-        FocusOutCallback _focusOutCallback = nullptr;
-        std::vector<PlatformString> _customSchemeNames;
-        WebResourceRequestedCallback _customSchemeCallback = nullptr;
+        WebMessageReceivedCallback webMessageReceivedCallback_ = nullptr;
+        MovedCallback movedCallback_ = nullptr;
+        ResizedCallback resizedCallback_ = nullptr;
+        MaximizedCallback maximizedCallback_ = nullptr;
+        RestoredCallback restoredCallback_ = nullptr;
+        MinimizedCallback minimizedCallback_ = nullptr;
+        ClosingCallback closingCallback_ = nullptr;
+        ClosedCallback closedCallback_ = nullptr;
+        FocusInCallback focusInCallback_ = nullptr;
+        FocusOutCallback focusOutCallback_ = nullptr;
+        std::vector<PlatformString> customSchemeNames_;
+        WebResourceRequestedCallback customSchemeCallback_ = nullptr;
 
         // Window metadata
-        PlatformString _windowTitle;
-        PlatformString _iconFileName;
+        PlatformString windowTitle_;
+        PlatformString iconFileName_;
 
-        PlatformString _startUrl;
-        PlatformString _startString;
-        PlatformString _temporaryFilesPath;
-        PlatformString _userAgent;
-        PlatformString _browserControlInitParameters;
-        PlatformString _notificationRegistrationId;
+        PlatformString startUrl_;
+        PlatformString startString_;
+        PlatformString temporaryFilesPath_; // TODO: Currently supported only on Windows.
+        PlatformString userAgent_;
+        PlatformString browserControlInitParameters_;
+        PlatformString notificationRegistrationId_; // TODO: Currently supported only on Windows.
 
-        bool _transparentEnabled = false;
-        bool _devToolsEnabled = true;
-        bool _grantBrowserPermissions = true;
+        bool transparentEnabled_ = false;
+        bool devToolsEnabled_ = true;
+        bool grantBrowserPermissions_ = true;
 #if defined(_WIN32) || defined(__linux__)
-        bool _mediaAutoplayEnabled = true;
+        bool mediaAutoplayEnabled_ = true;
 #endif
-        bool _fileSystemAccessEnabled = true;
-        bool _webSecurityEnabled = true;
-        bool _javascriptClipboardAccessEnabled = true;
-        bool _mediaStreamEnabled = true;
+        bool fileSystemAccessEnabled_ = true;
+        bool webSecurityEnabled_ = true;
+        bool javascriptClipboardAccessEnabled_ = true;
+        bool mediaStreamEnabled_ = true;
 #if defined(_WIN32) || defined(__linux__)
-        bool _smoothScrollingEnabled = true;
+        bool smoothScrollingEnabled_ = true;
 #endif
-        bool _ignoreCertificateErrorsEnabled = false;
-        bool _notificationsEnabled = true;
-        bool _contextMenuEnabled = true;
-        bool _zoomEnabled = true;
-        mutable bool _isClosing = false;
+        bool ignoreCertificateErrorsEnabled_ = false;
+        bool notificationsEnabled_ = true;
+        bool contextMenuEnabled_ = true;
+        bool zoomEnabled_ = true;
+        mutable bool isClosing_ = false;
 
-        int _zoom = 100;
-        bool _chromeless = false;
-        bool _fullScreen = false;
+        int zoom_ = 100;
+        bool chromeless_ = false;
+        bool fullScreen_ = false;
 
-        Photino* _parent = nullptr;
-        PhotinoDialog* _dialog = nullptr;
+        Photino* parent_ = nullptr;
+        PhotinoDialog* dialog_ = nullptr;
 
 #ifdef _WIN32
         std::unique_ptr<WindowsState> platform_;
@@ -160,10 +160,10 @@ namespace PhotinoX::Native
         void Close() const;
 
         // Window metadata
-        const PlatformString& GetTitle() const noexcept { return _windowTitle; }
+        const PlatformString& GetTitle() const noexcept { return windowTitle_; }
         void SetTitle(const PlatformString& title);
 
-        const PlatformString& GetIconFile() const noexcept { return _iconFileName; }
+        const PlatformString& GetIconFile() const noexcept { return iconFileName_; }
         void SetIconFile(const PlatformString& filename);
 
         // Window geometry
@@ -199,7 +199,7 @@ namespace PhotinoX::Native
         void SetTopmost(bool topmost);
 
         // Misc
-        PhotinoDialog* GetDialog() const noexcept { return _dialog; }
+        PhotinoDialog* GetDialog() const noexcept { return dialog_; }
 
         // Browser / Navigation / Messaging
         void GetTransparentEnabled(bool* enabled) const;
@@ -227,7 +227,7 @@ namespace PhotinoX::Native
         void SetDevToolsEnabled(bool enabled);
         
         void GetGrantBrowserPermissions(bool* grant) const;
-        const PlatformString& GetUserAgent() const noexcept { return _userAgent; }
+        const PlatformString& GetUserAgent() const noexcept { return userAgent_; }
         void GetMediaAutoplayEnabled(bool* enabled) const;
         void GetFileSystemAccessEnabled(bool* enabled) const;
         void GetWebSecurityEnabled(bool* enabled) const;
@@ -242,15 +242,15 @@ namespace PhotinoX::Native
         void WaitForExit() const;
 
         // Callbacks
-        void SetClosingCallback(ClosingCallback callback) noexcept { _closingCallback = callback; }
-        void SetClosedCallback(ClosedCallback callback) noexcept { _closedCallback = callback; }
-        void SetFocusInCallback(FocusInCallback callback) noexcept { _focusInCallback = callback; }
-        void SetFocusOutCallback(FocusOutCallback callback) noexcept { _focusOutCallback = callback; }
-        void SetMovedCallback(MovedCallback callback) noexcept { _movedCallback = callback; }
-        void SetResizedCallback(ResizedCallback callback) noexcept { _resizedCallback = callback; }
-        void SetMaximizedCallback(MaximizedCallback callback) noexcept { _maximizedCallback = callback; }
-        void SetRestoredCallback(RestoredCallback callback) noexcept { _restoredCallback = callback; }
-        void SetMinimizedCallback(MinimizedCallback callback) noexcept { _minimizedCallback = callback; }
+        void SetClosingCallback(ClosingCallback callback) noexcept { closingCallback_ = callback; }
+        void SetClosedCallback(ClosedCallback callback) noexcept { closedCallback_ = callback; }
+        void SetFocusInCallback(FocusInCallback callback) noexcept { focusInCallback_ = callback; }
+        void SetFocusOutCallback(FocusOutCallback callback) noexcept { focusOutCallback_ = callback; }
+        void SetMovedCallback(MovedCallback callback) noexcept { movedCallback_ = callback; }
+        void SetResizedCallback(ResizedCallback callback) noexcept { resizedCallback_ = callback; }
+        void SetMaximizedCallback(MaximizedCallback callback) noexcept { maximizedCallback_ = callback; }
+        void SetRestoredCallback(RestoredCallback callback) noexcept { restoredCallback_ = callback; }
+        void SetMinimizedCallback(MinimizedCallback callback) noexcept { minimizedCallback_ = callback; }
 
         void Invoke(InvokeCallback callback) const;
 

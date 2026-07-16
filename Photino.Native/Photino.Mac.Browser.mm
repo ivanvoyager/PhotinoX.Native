@@ -20,7 +20,7 @@ using namespace PhotinoX::Native;
 
 namespace
 {
-    bool Photino::SetPreference(WKWebViewConfiguration* configuration, NSString* key, NSNumber* value)
+    bool SetPreference(WKWebViewConfiguration* configuration, NSString* key, NSNumber* value)
     {
         assert(configuration && key && value);
         if (!configuration || !key || !value) return false;
@@ -36,7 +36,7 @@ namespace
         }
     }
 
-    bool Photino::SetPreference(WKWebViewConfiguration* configuration, NSString* key, NSString* value)
+    bool SetPreference(WKWebViewConfiguration* configuration, NSString* key, NSString* value)
     {
         assert(configuration && key && value);
         if (!configuration || !key || !value) return false;
@@ -75,10 +75,10 @@ void Photino::ConfigureWebViewPreferences(const PhotinoInitParams* initParams)
     SetPreference(platform_->webViewConfiguration, @"notificationsEnabled", @YES);
     SetPreference(platform_->webViewConfiguration, @"screenCaptureEnabled", @YES);
 
-    if (_browserControlInitParameters.empty())
+    if (browserControlInitParameters_.empty())
         return;
 
-    json wkPreferences = json::parse(_browserControlInitParameters, nullptr, false);
+    json wkPreferences = json::parse(browserControlInitParameters_, nullptr, false);
     if (wkPreferences.is_discarded() || !wkPreferences.is_object())
         std::abort();
 
@@ -120,12 +120,12 @@ void Photino::GetTransparentEnabled(bool* enabled) const
     assert(enabled);
     if (!enabled) return;
     //! Not implemented (supported?) on macOS
-    *enabled = _transparentEnabled;
+    *enabled = transparentEnabled_;
 }
 
 void Photino::SetTransparentEnabled(bool enabled)
 {
-    _transparentEnabled = enabled;
+    transparentEnabled_ = enabled;
 
     //! Not implemented (supported?) on macOS
 }
@@ -184,12 +184,12 @@ void Photino::GetContextMenuEnabled(bool* enabled) const
     assert(enabled);
     if (!enabled) return;
 
-    *enabled = _contextMenuEnabled;
+    *enabled = contextMenuEnabled_;
 }
 
 void Photino::SetContextMenuEnabled(bool enabled)
 {
-    _contextMenuEnabled = enabled;
+    contextMenuEnabled_ = enabled;
 
     //! Not supported on macOS
 }
@@ -199,12 +199,12 @@ void Photino::GetZoomEnabled(bool* enabled) const
     assert(enabled);
     if (!enabled) return;
 
-    *enabled = _zoomEnabled;
+    *enabled = zoomEnabled_;
 }
 
 void Photino::SetZoomEnabled(bool enabled)
 {
-    _zoomEnabled = enabled;
+    zoomEnabled_ = enabled;
 
     //! Not implemented (supported?) on macOS
 }
@@ -214,7 +214,7 @@ void Photino::GetZoom(int* zoom) const
     assert(zoom);
     if (!zoom) return;
 
-    *zoom = _zoom;
+    *zoom = zoom_;
 
     if (!platform_->webView) return;
 
@@ -230,7 +230,7 @@ void Photino::SetZoom(int zoom)
     else if (zoom > 500)
         zoom = 500;
 
-    _zoom = zoom;
+    zoom_ = zoom;
 
     if (!platform_->webView) return;
 
@@ -243,12 +243,12 @@ void Photino::GetDevToolsEnabled(bool* enabled) const
     assert(enabled);
     if (!enabled) return;
 
-    *enabled = _devToolsEnabled;
+    *enabled = devToolsEnabled_;
 }
 
 void Photino::SetDevToolsEnabled(bool enabled)
 {
-    _devToolsEnabled = enabled;
+    devToolsEnabled_ = enabled;
 
     SetPreference(platform_->webViewConfiguration, @"developerExtrasEnabled", enabled ? @YES : @NO);
 }
@@ -258,7 +258,7 @@ void Photino::GetGrantBrowserPermissions(bool* enabled) const
     assert(enabled);
     if (!enabled) return;
 
-    *enabled = _grantBrowserPermissions;
+    *enabled = grantBrowserPermissions_;
 }
 
 //! Always enabled on macOS. This is always true.
@@ -275,7 +275,7 @@ void Photino::GetFileSystemAccessEnabled(bool* enabled) const
     assert(enabled);
     if (!enabled) return;
 
-    *enabled = _fileSystemAccessEnabled;
+    *enabled = fileSystemAccessEnabled_;
 }
 
 void Photino::GetWebSecurityEnabled(bool* enabled) const
@@ -283,7 +283,7 @@ void Photino::GetWebSecurityEnabled(bool* enabled) const
     assert(enabled);
     if (!enabled) return;
 
-    *enabled = _webSecurityEnabled;
+    *enabled = webSecurityEnabled_;
 }
 
 void Photino::GetJavascriptClipboardAccessEnabled(bool* enabled) const
@@ -291,7 +291,7 @@ void Photino::GetJavascriptClipboardAccessEnabled(bool* enabled) const
     assert(enabled);
     if (!enabled) return;
 
-    *enabled = _javascriptClipboardAccessEnabled;
+    *enabled = javascriptClipboardAccessEnabled_;
 }
 
 void Photino::GetMediaStreamEnabled(bool* enabled) const
@@ -299,7 +299,7 @@ void Photino::GetMediaStreamEnabled(bool* enabled) const
     assert(enabled);
     if (!enabled) return;
 
-    *enabled = _mediaStreamEnabled;
+    *enabled = mediaStreamEnabled_;
 }
 
 //! Not supported on macOS. This is always false.
@@ -316,12 +316,12 @@ void Photino::GetIgnoreCertificateErrorsEnabled(bool* enabled) const
     assert(enabled);
     if (!enabled) return;
 
-	*enabled = _ignoreCertificateErrorsEnabled;
+	*enabled = ignoreCertificateErrorsEnabled_;
 }
 
 void Photino::SetUserAgent(const PlatformString& userAgent)
 {
-    _userAgent = userAgent;
+    userAgent_ = userAgent;
 
     if (!platform_->webView) return;
 
@@ -337,9 +337,9 @@ void Photino::AddCustomSchemeHandlers()
     if (platform_->webView) return;
 
     assert(platform_->webViewConfiguration);
-    if (!platform_->webViewConfiguration || !_customSchemeCallback) return;
+    if (!platform_->webViewConfiguration || !customSchemeCallback_) return;
 
-    for (const auto& scheme : _customSchemeNames)
+    for (const auto& scheme : customSchemeNames_)
     {
         NSString* nsScheme = ToNSString(scheme);
         if (!nsScheme) continue;
@@ -347,7 +347,7 @@ void Photino::AddCustomSchemeHandlers()
         UrlSchemeHandler* schemeHandler = [[UrlSchemeHandler alloc] init];
         if (!schemeHandler) continue;
 
-        schemeHandler->requestHandler = _customSchemeCallback;
+        schemeHandler->requestHandler = customSchemeCallback_;
 
         @try
         {
@@ -411,7 +411,7 @@ void Photino::AttachWebView()
 
     platform_->uiDelegate->photino = this;
     platform_->uiDelegate->window = platform_->window;
-    platform_->uiDelegate->webMessageReceivedCallback = _webMessageReceivedCallback;
+    platform_->uiDelegate->webMessageReceivedCallback = webMessageReceivedCallback_;
 
     [userContentController addScriptMessageHandler:platform_->uiDelegate name:@"photinointerop"];
 
@@ -438,15 +438,15 @@ void Photino::AttachWebView()
     [platform_->window.contentView addSubview: platform_->webView];
     [platform_->window.contentView setAutoresizesSubviews: true];
 
-    SetUserAgent(_userAgent);
+    SetUserAgent(userAgent_);
 
-    if (!_startUrl.empty())
+    if (!startUrl_.empty())
     {
-        NavigateToUrl(_startUrl);
+        NavigateToUrl(startUrl_);
     }
-    else if (!_startString.empty())
+    else if (!startString_.empty())
     {
-        NavigateToString(_startString);
+        NavigateToString(startString_);
     }
     else
     {

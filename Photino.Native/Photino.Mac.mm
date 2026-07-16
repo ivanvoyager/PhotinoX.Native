@@ -169,49 +169,49 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Mac
             std::abort();
         }
 
-        _startString = ToPlatformString(initParams->StartString);
-        _startUrl = ToPlatformString(initParams->StartUrl);
-        _windowTitle = ToPlatformString(initParams->Title);
-        _temporaryFilesPath = ToPlatformString(initParams->TemporaryFilesPath);
-        _userAgent = ToPlatformString(initParams->UserAgent);
-        _browserControlInitParameters = ToPlatformString(initParams->BrowserControlInitParameters);
-        _notificationRegistrationId = ToPlatformString(initParams->NotificationRegistrationId);
+        startString_ = ToPlatformString(initParams->StartString);
+        startUrl_ = ToPlatformString(initParams->StartUrl);
+        windowTitle_ = ToPlatformString(initParams->Title);
+        temporaryFilesPath_ = ToPlatformString(initParams->TemporaryFilesPath);
+        userAgent_ = ToPlatformString(initParams->UserAgent);
+        browserControlInitParameters_ = ToPlatformString(initParams->BrowserControlInitParameters);
+        notificationRegistrationId_ = ToPlatformString(initParams->NotificationRegistrationId);
 
         for (auto& customSchemeName : initParams->CustomSchemeNames)
         {
             AddCustomSchemeName(customSchemeName);
         }
 
-        _parent = initParams->ParentInstance;
+        parent_ = initParams->ParentInstance;
 
         //these handlers are ALWAYS hooked up
-        _closingCallback = initParams->ClosingHandler;
-        _focusInCallback = initParams->FocusInHandler;
-        _focusOutCallback = initParams->FocusOutHandler;
-        _resizedCallback = initParams->ResizedHandler;
-        _maximizedCallback = initParams->MaximizedHandler;
-        _restoredCallback = initParams->RestoredHandler;
-        _minimizedCallback = initParams->MinimizedHandler;
-        _movedCallback = initParams->MovedHandler;
-        _webMessageReceivedCallback = initParams->WebMessageReceivedHandler;
-        _customSchemeCallback = initParams->CustomSchemeHandler;
-        _closedCallback = initParams->ClosedHandler;
+        closingCallback_ = initParams->ClosingHandler;
+        focusInCallback_ = initParams->FocusInHandler;
+        focusOutCallback_ = initParams->FocusOutHandler;
+        resizedCallback_ = initParams->ResizedHandler;
+        maximizedCallback_ = initParams->MaximizedHandler;
+        restoredCallback_ = initParams->RestoredHandler;
+        minimizedCallback_ = initParams->MinimizedHandler;
+        movedCallback_ = initParams->MovedHandler;
+        webMessageReceivedCallback_ = initParams->WebMessageReceivedHandler;
+        customSchemeCallback_ = initParams->CustomSchemeHandler;
+        closedCallback_ = initParams->ClosedHandler;
 
-        _zoom = initParams->Zoom;//??
-        _chromeless = initParams->Chromeless;
-        _fullScreen = initParams->FullScreen;
-        _transparentEnabled = initParams->Transparent;// Set transparency (not yet implemented)
-        _contextMenuEnabled = true; //not configurable on mac //initParams->ContextMenuEnabled;
-        _zoomEnabled = initParams->ZoomEnabled;//??
-         _devToolsEnabled = initParams->DevToolsEnabled;
+        zoom_ = initParams->Zoom;//??
+        chromeless_ = initParams->Chromeless;
+        fullScreen_ = initParams->FullScreen;
+        transparentEnabled_ = initParams->Transparent;// Set transparency (not yet implemented)
+        contextMenuEnabled_ = true; //not configurable on mac //initParams->ContextMenuEnabled;
+        zoomEnabled_ = initParams->ZoomEnabled;//??
+        devToolsEnabled_ = initParams->DevToolsEnabled;
 
-         _grantBrowserPermissions = initParams->GrantBrowserPermissions;
-        _fileSystemAccessEnabled = initParams->FileSystemAccessEnabled;
-        _webSecurityEnabled = initParams->WebSecurityEnabled;
-        _javascriptClipboardAccessEnabled = initParams->JavascriptClipboardAccessEnabled;
-         _mediaStreamEnabled = initParams->MediaStreamEnabled;//??
-        _ignoreCertificateErrorsEnabled = initParams->IgnoreCertificateErrorsEnabled;//??
-        _notificationsEnabled = initParams->NotificationsEnabled;
+        grantBrowserPermissions_ = initParams->GrantBrowserPermissions;
+        fileSystemAccessEnabled_ = initParams->FileSystemAccessEnabled;
+        webSecurityEnabled_ = initParams->WebSecurityEnabled;
+        javascriptClipboardAccessEnabled_ = initParams->JavascriptClipboardAccessEnabled;
+        mediaStreamEnabled_ = initParams->MediaStreamEnabled;//??
+        ignoreCertificateErrorsEnabled_ = initParams->IgnoreCertificateErrorsEnabled;//??
+        notificationsEnabled_ = initParams->NotificationsEnabled;
 
         if (initParams->UseOsDefaultSize)
 	    {
@@ -272,7 +272,7 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Mac
         platform_->window.delegate = platform_->windowDelegate;
     
         // Set Window options
-        SetTitle(_windowTitle);
+        SetTitle(windowTitle_);
         SetIconFile(ToPlatformString(initParams->WindowIconFile));
 
 	    SetTopmost(initParams->Topmost);
@@ -309,7 +309,7 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Mac
         // Create WebView
         AttachWebView();
 
-        _dialog = new PhotinoDialog();
+        dialog_ = new PhotinoDialog();
 
         Show();
         SetFullScreen(initParams->FullScreen);
@@ -368,8 +368,8 @@ Photino::~Photino()
     [platform_->window release];
     platform_->window = nil;
 
-    delete _dialog;
-    _dialog = nullptr;
+    delete dialog_;
+    dialog_ = nullptr;
     //[NSApp release];
 }
 
@@ -378,12 +378,12 @@ void Photino::GetNotificationsEnabled(bool* enabled) const
     assert(enabled);
     if (!enabled) return;
 
-    *enabled = _notificationsEnabled;
+    *enabled = notificationsEnabled_;
 }
 
 void Photino::ShowNotification(const PlatformString& title, const PlatformString& body) const
 {
-    if (!_notificationsEnabled) return;
+    if (!notificationsEnabled_) return;
 
     NSString* nsTitle = ToNSString(title);
     if (!nsTitle) return;

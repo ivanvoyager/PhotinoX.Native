@@ -88,17 +88,17 @@ void Photino::GetTransparentEnabled(bool* enabled) const
     assert(enabled);
     if (!enabled) return;
 
-    *enabled = _transparentEnabled;
+    *enabled = transparentEnabled_;
 }
 
 void Photino::SetTransparentEnabled(bool enabled)
 {
-    _transparentEnabled = enabled;
+    transparentEnabled_ = enabled;
 
     assert(platform_->window);
     if (!platform_->window) return;
 
-    gtk_window_set_decorated(GTK_WINDOW(platform_->window), !_chromeless && !enabled); // hide/show window chrome
+    gtk_window_set_decorated(GTK_WINDOW(platform_->window), !chromeless_ && !enabled); // hide/show window chrome
 
     GdkScreen* screen = gtk_window_get_screen(GTK_WINDOW(platform_->window));
     if (!screen) return;
@@ -191,12 +191,12 @@ void Photino::GetContextMenuEnabled(bool* enabled) const
     assert(enabled);
     if (!enabled) return;
 
-    *enabled = _contextMenuEnabled;
+    *enabled = contextMenuEnabled_;
 }
 
 void Photino::SetContextMenuEnabled(bool enabled)
 {
-    _contextMenuEnabled = enabled;
+    contextMenuEnabled_ = enabled;
 }
 
 void Photino::GetZoomEnabled(bool* enabled) const
@@ -204,12 +204,12 @@ void Photino::GetZoomEnabled(bool* enabled) const
     assert(enabled);
     if (!enabled) return;
 
-    *enabled = _zoomEnabled;
+    *enabled = zoomEnabled_;
 }
 
 void Photino::SetZoomEnabled(bool enabled)
 {
-    _zoomEnabled = enabled;
+    zoomEnabled_ = enabled;
     //! Not implemented (supported?) on Linux
 }
 
@@ -218,7 +218,7 @@ void Photino::GetZoom(int* zoom) const
     assert(zoom);
     if (!zoom) return;
 
-    *zoom = _zoom;
+    *zoom = zoom_;
 
     if (!platform_->webview) return;
 
@@ -233,7 +233,7 @@ void Photino::SetZoom(int zoom)
         zoom = 25;
     else if (zoom > 500)
         zoom = 500;
-    _zoom = zoom;
+    zoom_ = zoom;
 
     if (!platform_->webview) return;
 
@@ -246,7 +246,7 @@ void Photino::GetDevToolsEnabled(bool* enabled) const
     assert(enabled);
     if (!enabled) return;
 
-    *enabled = _devToolsEnabled;
+    *enabled = devToolsEnabled_;
 
     if (!platform_->webview) return;
 
@@ -259,7 +259,7 @@ void Photino::GetDevToolsEnabled(bool* enabled) const
 
 void Photino::SetDevToolsEnabled(bool enabled)
 {
-    _devToolsEnabled = enabled;
+    devToolsEnabled_ = enabled;
 
     if (!platform_->webview) return;
 
@@ -274,7 +274,7 @@ void Photino::GetGrantBrowserPermissions(bool* grant) const
     assert(grant);
     if (!grant) return;
 
-    *grant = _grantBrowserPermissions;
+    *grant = grantBrowserPermissions_;
 }
 
 void Photino::GetMediaAutoplayEnabled(bool* enabled) const
@@ -282,7 +282,7 @@ void Photino::GetMediaAutoplayEnabled(bool* enabled) const
     assert(enabled);
     if (!enabled) return;
 
-    *enabled = _mediaAutoplayEnabled;
+    *enabled = mediaAutoplayEnabled_;
 }
 
 void Photino::GetFileSystemAccessEnabled(bool* enabled) const
@@ -290,7 +290,7 @@ void Photino::GetFileSystemAccessEnabled(bool* enabled) const
     assert(enabled);
     if (!enabled) return;
 
-    *enabled = _fileSystemAccessEnabled;
+    *enabled = fileSystemAccessEnabled_;
 }
 
 void Photino::GetWebSecurityEnabled(bool* enabled) const
@@ -298,7 +298,7 @@ void Photino::GetWebSecurityEnabled(bool* enabled) const
     assert(enabled);
     if (!enabled) return;
 
-    *enabled = _webSecurityEnabled;
+    *enabled = webSecurityEnabled_;
 }
 
 void Photino::GetJavascriptClipboardAccessEnabled(bool* enabled) const
@@ -306,7 +306,7 @@ void Photino::GetJavascriptClipboardAccessEnabled(bool* enabled) const
     assert(enabled);
     if (!enabled) return;
 
-    *enabled = _javascriptClipboardAccessEnabled;
+    *enabled = javascriptClipboardAccessEnabled_;
 }
 
 void Photino::GetMediaStreamEnabled(bool* enabled) const
@@ -314,7 +314,7 @@ void Photino::GetMediaStreamEnabled(bool* enabled) const
     assert(enabled);
     if (!enabled) return;
 
-    *enabled = _mediaStreamEnabled;
+    *enabled = mediaStreamEnabled_;
 }
 
 void Photino::GetSmoothScrollingEnabled(bool* enabled) const
@@ -322,7 +322,7 @@ void Photino::GetSmoothScrollingEnabled(bool* enabled) const
     assert(enabled);
     if (!enabled) return;
 
-    *enabled = _smoothScrollingEnabled;
+    *enabled = smoothScrollingEnabled_;
 }
 
 void Photino::GetIgnoreCertificateErrorsEnabled(bool* enabled) const
@@ -330,7 +330,7 @@ void Photino::GetIgnoreCertificateErrorsEnabled(bool* enabled) const
     assert(enabled);
     if (!enabled) return;
 
-    *enabled = _ignoreCertificateErrorsEnabled;
+    *enabled = ignoreCertificateErrorsEnabled_;
 }
 
 void Photino::SetWebKitSettings()
@@ -354,14 +354,14 @@ void Photino::SetWebKitSettings()
         "javascript_can_open_windows_automatically", TRUE, // default: FALSE
 
         // Set user-defined settings
-        "allow_file_access_from_file_urls", _fileSystemAccessEnabled,         // default: FALSE
-        "disable_web_security", !_webSecurityEnabled,                         // default: FALSE
-        "enable_developer_extras", _devToolsEnabled,                          // default: FALSE
-        "enable_media_stream", _mediaStreamEnabled,                           // default: FALSE
-        "enable_smooth_scrolling", _smoothScrollingEnabled,                   // default: TRUE
-        "javascript_can_access_clipboard", _javascriptClipboardAccessEnabled, // default: FALSE
-        "media_playback_requires_user_gesture", !_mediaAutoplayEnabled,       // default: FALSE
-        "user_agent", !_userAgent.empty() ? _userAgent.c_str() : nullptr,     // default: None
+        "allow_file_access_from_file_urls", fileSystemAccessEnabled_,         // default: FALSE
+        "disable_web_security", !webSecurityEnabled_,                         // default: FALSE
+        "enable_developer_extras", devToolsEnabled_,                          // default: FALSE
+        "enable_media_stream", mediaStreamEnabled_,                           // default: FALSE
+        "enable_smooth_scrolling", smoothScrollingEnabled_,                   // default: TRUE
+        "javascript_can_access_clipboard", javascriptClipboardAccessEnabled_, // default: FALSE
+        "media_playback_requires_user_gesture", !mediaAutoplayEnabled_,       // default: FALSE
+        "user_agent", !userAgent_.empty() ? userAgent_.c_str() : nullptr,     // default: None
 
         // Other available settings for reference
         // "default_charset", "iso-8859-1",										// default: iso-8859-1
@@ -411,14 +411,14 @@ void Photino::SetWebKitSettings()
     if (!settings)
         std::abort();
 
-    if (!_browserControlInitParameters.empty())
-        SetWebKitCustomSettings(settings.get(), _browserControlInitParameters); // if any custom init parameters were passed, set them now.
+    if (!browserControlInitParameters_.empty())
+        SetWebKitCustomSettings(settings.get(), browserControlInitParameters_); // if any custom init parameters were passed, set them now.
 
     WebKitWebsiteDataManager* manager = webkit_web_view_get_website_data_manager(WEBKIT_WEB_VIEW(platform_->webview));
     if (manager)
     {
         webkit_website_data_manager_set_tls_errors_policy(manager,
-                                                          _ignoreCertificateErrorsEnabled ? WEBKIT_TLS_ERRORS_POLICY_IGNORE : WEBKIT_TLS_ERRORS_POLICY_FAIL);
+                                                          ignoreCertificateErrorsEnabled_ ? WEBKIT_TLS_ERRORS_POLICY_IGNORE : WEBKIT_TLS_ERRORS_POLICY_FAIL);
     }
 
     webkit_web_view_set_settings(WEBKIT_WEB_VIEW(platform_->webview), settings.get()); // apply the settings to the webview
@@ -490,18 +490,18 @@ void HandleCustomSchemeRequest(WebKitURISchemeRequest* request, gpointer userDat
 void Photino::AddCustomSchemeHandlers()
 {
     assert(platform_->webview);
-    if (!platform_->webview || !_customSchemeCallback) return;
+    if (!platform_->webview || !customSchemeCallback_) return;
 
     WebKitWebContext* context = webkit_web_view_get_context(WEBKIT_WEB_VIEW(platform_->webview));
     if (!context) return;
 
-    for (const auto& scheme : _customSchemeNames)
+    for (const auto& scheme : customSchemeNames_)
     {
         webkit_web_context_register_uri_scheme(
             context,
             scheme.c_str(),
             HandleCustomSchemeRequest,
-            reinterpret_cast<void*>(_customSchemeCallback),
+            reinterpret_cast<void*>(customSchemeCallback_),
             nullptr);
     }
 }
@@ -510,7 +510,7 @@ bool Photino::RegisterCustomSchemeName(const PlatformString& scheme)
 {
     if (!platform_->webview) return true;
 
-    if (!_customSchemeCallback) return false;
+    if (!customSchemeCallback_) return false;
 
     WebKitWebContext* context = webkit_web_view_get_context(WEBKIT_WEB_VIEW(platform_->webview));
     if (!context) return false;
@@ -521,7 +521,7 @@ bool Photino::RegisterCustomSchemeName(const PlatformString& scheme)
         context,
         scheme.c_str(),
         HandleCustomSchemeRequest,
-        reinterpret_cast<void*>(_customSchemeCallback),
+        reinterpret_cast<void*>(customSchemeCallback_),
         nullptr);
 
     return true;

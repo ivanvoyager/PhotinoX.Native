@@ -4,52 +4,52 @@ using namespace PhotinoX::Native;
 
 bool Photino::InvokeClosing() const noexcept
 {
-    if (!_closingCallback || _isClosing)
+    if (!closingCallback_ || isClosing_)
         return false;
 
-    _isClosing = true;
-    bool result = _closingCallback();
-    _isClosing = false;
+    isClosing_ = true;
+    bool result = closingCallback_();
+    isClosing_ = false;
 
     return result;
 }
 
 void Photino::InvokeClose() const noexcept
 {
-    if (_closedCallback) _closedCallback();
+    if (closedCallback_) closedCallback_();
 }
 
 void Photino::InvokeFocusIn() const noexcept
 {
-    if (_focusInCallback) _focusInCallback();
+    if (focusInCallback_) focusInCallback_();
 }
 
 void Photino::InvokeFocusOut() const noexcept
 {
-    if (_focusOutCallback) _focusOutCallback();
+    if (focusOutCallback_) focusOutCallback_();
 }
 
 void Photino::InvokeMove(int x, int y) const noexcept
 {
-    if (_movedCallback) _movedCallback(x, y);
+    if (movedCallback_) movedCallback_(x, y);
 }
 
 void Photino::InvokeResize(int width, int height) const noexcept
 {
-    if (_resizedCallback) _resizedCallback(width, height);
+    if (resizedCallback_) resizedCallback_(width, height);
 }
 
 void Photino::InvokeMaximized() const noexcept
 {
-    if (_maximizedCallback) _maximizedCallback();
+    if (maximizedCallback_) maximizedCallback_();
 }
 
 void Photino::InvokeRestored() const noexcept
 {
-    if (_restoredCallback) _restoredCallback();
+    if (restoredCallback_) restoredCallback_();
 }
 
 void Photino::InvokeMinimized() const noexcept
 {
-    if (_minimizedCallback) _minimizedCallback();
+    if (minimizedCallback_) minimizedCallback_();
 }

@@ -129,35 +129,35 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Lin
         std::abort();
     }
 
-    _startString = ToPlatformString(initParams->StartString);
-    _startUrl = ToPlatformString(initParams->StartUrl);
-    _windowTitle = ToPlatformString(initParams->Title);
-    _temporaryFilesPath = ToPlatformString(initParams->TemporaryFilesPath);
-    _userAgent = ToPlatformString(initParams->UserAgent);
-    _browserControlInitParameters = ToPlatformString(initParams->BrowserControlInitParameters);
-    _notificationRegistrationId = ToPlatformString(initParams->NotificationRegistrationId);
+    startString_ = ToPlatformString(initParams->StartString);
+    startUrl_ = ToPlatformString(initParams->StartUrl);
+    windowTitle_ = ToPlatformString(initParams->Title);
+    temporaryFilesPath_ = ToPlatformString(initParams->TemporaryFilesPath);
+    userAgent_ = ToPlatformString(initParams->UserAgent);
+    browserControlInitParameters_ = ToPlatformString(initParams->BrowserControlInitParameters);
+    notificationRegistrationId_ = ToPlatformString(initParams->NotificationRegistrationId);
 
     for (auto& customSchemeName : initParams->CustomSchemeNames)
     {
         AddCustomSchemeName(customSchemeName);
     }
 
-    _parent = initParams->ParentInstance;
+    parent_ = initParams->ParentInstance;
 
     //these handlers are ALWAYS hooked up
-    _closingCallback = initParams->ClosingHandler;
-    _focusInCallback = initParams->FocusInHandler;
-    _focusOutCallback = initParams->FocusOutHandler;
-    _resizedCallback = initParams->ResizedHandler;
-    _maximizedCallback = initParams->MaximizedHandler;
-    _restoredCallback = initParams->RestoredHandler;
-    _minimizedCallback = initParams->MinimizedHandler;
-    _movedCallback = initParams->MovedHandler;
-    _webMessageReceivedCallback = initParams->WebMessageReceivedHandler;
-    _customSchemeCallback = initParams->CustomSchemeHandler;
-    _closedCallback = initParams->ClosedHandler;
+    closingCallback_ = initParams->ClosingHandler;
+    focusInCallback_ = initParams->FocusInHandler;
+    focusOutCallback_ = initParams->FocusOutHandler;
+    resizedCallback_ = initParams->ResizedHandler;
+    maximizedCallback_ = initParams->MaximizedHandler;
+    restoredCallback_ = initParams->RestoredHandler;
+    minimizedCallback_ = initParams->MinimizedHandler;
+    movedCallback_ = initParams->MovedHandler;
+    webMessageReceivedCallback_ = initParams->WebMessageReceivedHandler;
+    customSchemeCallback_ = initParams->CustomSchemeHandler;
+    closedCallback_ = initParams->ClosedHandler;
 
-    _zoom = initParams->Zoom;
+    zoom_ = initParams->Zoom;
 
     platform_->sizeLimits.minWidth = (std::max)(0, initParams->MinWidth);
     platform_->sizeLimits.minHeight = (std::max)(0, initParams->MinHeight);
@@ -167,29 +167,29 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Lin
     if (platform_->sizeLimits.maxWidth > 0 && platform_->sizeLimits.minWidth > platform_->sizeLimits.maxWidth)    platform_->sizeLimits.maxWidth = platform_->sizeLimits.minWidth;
     if (platform_->sizeLimits.maxHeight > 0 && platform_->sizeLimits.minHeight > platform_->sizeLimits.maxHeight) platform_->sizeLimits.maxHeight = platform_->sizeLimits.minHeight;
 
-    _chromeless = initParams->Chromeless;
-    _fullScreen = initParams->FullScreen;
-    _transparentEnabled = initParams->Transparent;
-    _contextMenuEnabled = initParams->ContextMenuEnabled;
-    _zoomEnabled = initParams->ZoomEnabled;
-    _devToolsEnabled = initParams->DevToolsEnabled;
-    _grantBrowserPermissions = initParams->GrantBrowserPermissions;
-    _mediaAutoplayEnabled = initParams->MediaAutoplayEnabled;
-    _fileSystemAccessEnabled = initParams->FileSystemAccessEnabled;
-    _webSecurityEnabled = initParams->WebSecurityEnabled;
-    _javascriptClipboardAccessEnabled = initParams->JavascriptClipboardAccessEnabled;
-    _mediaStreamEnabled = initParams->MediaStreamEnabled;
-    _smoothScrollingEnabled = initParams->SmoothScrollingEnabled;
-    _ignoreCertificateErrorsEnabled = initParams->IgnoreCertificateErrorsEnabled;
-    _notificationsEnabled = initParams->NotificationsEnabled;
+    chromeless_ = initParams->Chromeless;
+    fullScreen_ = initParams->FullScreen;
+    transparentEnabled_ = initParams->Transparent;
+    contextMenuEnabled_ = initParams->ContextMenuEnabled;
+    zoomEnabled_ = initParams->ZoomEnabled;
+    devToolsEnabled_ = initParams->DevToolsEnabled;
+    grantBrowserPermissions_ = initParams->GrantBrowserPermissions;
+    mediaAutoplayEnabled_ = initParams->MediaAutoplayEnabled;
+    fileSystemAccessEnabled_ = initParams->FileSystemAccessEnabled;
+    webSecurityEnabled_ = initParams->WebSecurityEnabled;
+    javascriptClipboardAccessEnabled_ = initParams->JavascriptClipboardAccessEnabled;
+    mediaStreamEnabled_ = initParams->MediaStreamEnabled;
+    smoothScrollingEnabled_ = initParams->SmoothScrollingEnabled;
+    ignoreCertificateErrorsEnabled_ = initParams->IgnoreCertificateErrorsEnabled;
+    notificationsEnabled_ = initParams->NotificationsEnabled;
 
     platform_->window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
     if (!platform_->window)
         std::abort();
 
-    _dialog = new PhotinoDialog();
+    dialog_ = new PhotinoDialog();
 
-    platform_->notifyInitialized = _notificationsEnabled && AcquireNotifications(_windowTitle);
+    platform_->notifyInitialized = notificationsEnabled_ && AcquireNotifications(windowTitle_);
 
     if (initParams->FullScreen)
     {
@@ -229,7 +229,7 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Lin
             gtk_window_move(GTK_WINDOW(platform_->window), initParams->Left, initParams->Top);
     }
 
-    SetTitle(_windowTitle);
+    SetTitle(windowTitle_);
 
     if (initParams->Chromeless)
         gtk_window_set_decorated(GTK_WINDOW(platform_->window), false);
@@ -287,8 +287,8 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Lin
                      G_CALLBACK(on_focus_out_event),
                      this);
 
-    if (_zoom != 100.0)
-        SetZoom(_zoom);
+    if (zoom_ != 100.0)
+        SetZoom(zoom_);
 
     // gchar* webkitVer = g_strconcat(g_strdup_printf("%d", webkit_get_major_version()), ".", g_strdup_printf("%d", webkit_get_minor_version()), ".", g_strdup_printf("%d", webkit_get_micro_version()), NULL);
     // Photino::ShowNotification("Web Kit Version", webkitVer);
@@ -302,7 +302,8 @@ Photino::~Photino()
         platform_->notifyInitialized = false;
     }
 
-    delete _dialog;
+    delete dialog_;
+    dialog_ = nullptr;
 }
 
 void Photino::GetNotificationsEnabled(bool* enabled) const
@@ -462,7 +463,7 @@ void Photino::Show()
         webkit_user_content_manager_add_script(contentManager.get(), script.get());
 
         g_signal_connect(contentManager.get(), "script-message-received::Photinointerop",
-                         G_CALLBACK(HandleWebMessage), reinterpret_cast<void*>(_webMessageReceivedCallback));
+                         G_CALLBACK(HandleWebMessage), reinterpret_cast<void*>(webMessageReceivedCallback_));
 
         if (!webkit_user_content_manager_register_script_message_handler(contentManager.get(), "Photinointerop"))
             std::abort();
@@ -478,13 +479,13 @@ void Photino::Show()
 
         AddCustomSchemeHandlers();
 
-        if (!_startUrl.empty())
+        if (!startUrl_.empty())
         {
-            NavigateToUrl(_startUrl);
+            NavigateToUrl(startUrl_);
         }
-        else if (!_startString.empty())
+        else if (!startString_.empty())
         {
-            NavigateToString(_startString);
+            NavigateToString(startString_);
         }
         else
         {

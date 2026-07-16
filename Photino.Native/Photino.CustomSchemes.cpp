@@ -16,13 +16,13 @@ bool Photino::IsCustomSchemeRegistered(const PlatformString& scheme) const
         return false;
 
 #ifdef _WIN32
-    for (const auto& existing : _customSchemeNames)
+    for (const auto& existing : customSchemeNames_)
     {
         if (_wcsicmp(existing.c_str(), scheme.c_str()) == 0)
             return true;
     }
 #else
-    for (const auto& existing : _customSchemeNames)
+    for (const auto& existing : customSchemeNames_)
     {
         if (strcasecmp(existing.c_str(), scheme.c_str()) == 0)
             return true;
@@ -41,9 +41,9 @@ bool Photino::AddCustomSchemeName(Utf8String scheme)
 
     if (IsCustomSchemeRegistered(nativeScheme)) return true;
 
-    if (_customSchemeNames.size() >= MaxCustomSchemeNames) return false;
+    if (customSchemeNames_.size() >= MaxCustomSchemeNames) return false;
 
-    _customSchemeNames.emplace_back(std::move(nativeScheme));
+    customSchemeNames_.emplace_back(std::move(nativeScheme));
 
-    return RegisterCustomSchemeName(_customSchemeNames.back());
+    return RegisterCustomSchemeName(customSchemeNames_.back());
 }

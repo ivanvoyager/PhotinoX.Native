@@ -18,7 +18,7 @@ void Photino::Close() const
     assert(platform_->window);
     if (!platform_->window) return;
 
-    if (_chromeless)
+    if (chromeless_)
     {
         if (!PhotinoMacIsShuttingDown() && InvokeClosing())
             return;
@@ -41,7 +41,7 @@ void Photino::SetTitle(const PlatformString& title)
     if (!nsTitle) return;
 
     [platform_->window setTitle:nsTitle];
-    _windowTitle = title;
+    windowTitle_ = title;
 }
 
 void Photino::SetIconFile(const PlatformString& filename)
@@ -60,7 +60,7 @@ void Photino::SetIconFile(const PlatformString& filename)
     {
         [iconButton setImage:icon];
         //[NSApp setApplicationIconImage:icon];
-        _iconFileName = filename;
+        iconFileName_ = filename;
     }
 
     [icon release];
@@ -321,7 +321,7 @@ void Photino::SetFullScreen(bool fullScreen)
     bool isFullScreen = ([platform_->window styleMask] & NSWindowStyleMaskFullScreen) == NSWindowStyleMaskFullScreen;
     if (isFullScreen == fullScreen) return;
 
-    _fullScreen = fullScreen;
+    fullScreen_ = fullScreen;
     [platform_->window toggleFullScreen:nil];
 }
 

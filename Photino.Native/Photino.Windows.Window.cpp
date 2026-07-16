@@ -33,13 +33,13 @@ void Photino::SetTitle(const PlatformString& title)
     if (!SetWindowTextW(platform_->hWnd, title.c_str()))
         return;
 
-    _windowTitle = title;
+    windowTitle_ = title;
 
-    if (_notificationsEnabled)
+    if (notificationsEnabled_)
     {
         WinToast::instance()->setAppName(title);
 
-        if (_notificationRegistrationId.empty())
+        if (notificationRegistrationId_.empty())
             WinToast::instance()->setAppUserModelId(title);
     }
 }
@@ -70,7 +70,7 @@ void Photino::SetIconFile(const PlatformString& filename)
     if (!iconSmall && !iconBig)
         return;
 
-    _iconFileName = filename;
+    iconFileName_ = filename;
 
     if (iconSmall)
         SendMessageW(platform_->hWnd, WM_SETICON, ICON_SMALL, reinterpret_cast<LPARAM>(iconSmall));
@@ -276,7 +276,7 @@ void Photino::GetFullScreen(bool* fullScreen) const
     if (!fullScreen)
         return;
 
-    *fullScreen = _fullScreen;
+    *fullScreen = fullScreen_;
 }
 
 void Photino::SetFullScreen(const bool fullScreen)
@@ -284,7 +284,7 @@ void Photino::SetFullScreen(const bool fullScreen)
     assert(platform_->hWnd);
     if (!platform_->hWnd) return;
 
-    _fullScreen = fullScreen;
+    fullScreen_ = fullScreen;
     LONG_PTR style = GetWindowLongPtrW(platform_->hWnd, GWL_STYLE);
     if (fullScreen)
     {
@@ -293,7 +293,7 @@ void Photino::SetFullScreen(const bool fullScreen)
     }
     else
     {
-        if (_chromeless)
+        if (chromeless_)
         {
             style |= WS_POPUP;
             style &= ~WS_OVERLAPPEDWINDOW;
