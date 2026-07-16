@@ -509,14 +509,18 @@ void Photino::AddCustomSchemeHandlers()
 
 bool Photino::RegisterCustomSchemeName(const PlatformString& scheme)
 {
-    if (!platform_->webview) return true;
+    if (scheme.empty())
+        return false;
 
-    if (!customSchemeCallback_) return false;
+    if (!platform_->webview)
+        return true;
+
+    if (!customSchemeCallback_)
+        return false;
 
     WebKitWebContext* context = webkit_web_view_get_context(WEBKIT_WEB_VIEW(platform_->webview));
-    if (!context) return false;
-
-    if (scheme.empty()) return false;
+    if (!context)
+        return false;
 
     webkit_web_context_register_uri_scheme(
         context,

@@ -17,6 +17,7 @@
 
 struct ICoreWebView2;
 struct ICoreWebView2Environment;
+struct ICoreWebView2EnvironmentOptions;
 struct ICoreWebView2Controller;
 struct ICoreWebView2WebMessageReceivedEventArgs;
 struct ICoreWebView2WebResourceRequestedEventArgs;
@@ -84,6 +85,7 @@ namespace PhotinoX::Native
         HRESULT HandlePermissionRequested(ICoreWebView2* webview, ICoreWebView2PermissionRequestedEventArgs* args);
         HRESULT HandleWebViewControllerCreated(HRESULT result, ICoreWebView2Controller* controller);
         HRESULT HandleWebViewEnvironmentCreated(HRESULT result, ICoreWebView2Environment* environment);
+        HRESULT ConfigureCustomSchemeRegistrations(ICoreWebView2EnvironmentOptions* options) const;
         void AttachWebView();
 
         static bool EnsureWebViewIsInstalled();
