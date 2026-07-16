@@ -1,6 +1,5 @@
 #include "Photino.Export.h"
 #include "Photino.h"
-#include "Photino.Callbacks.h"
 #include "Photino.Strings.h"
 
 #include <cassert>

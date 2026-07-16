@@ -1,5 +1,4 @@
 #include "Photino.Export.h"
-#include "Photino.Dialog.h"
 #include "Photino.Strings.h"
 #include "Photino.h"
 
