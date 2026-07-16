@@ -2,6 +2,7 @@
 
 #include "Photino.Callbacks.h"
 #include "Photino.InitParams.h"
+#include "Photino.Options.h"
 #include "Photino.Strings.h"
 #include "Photino.Monitor.h"
 
@@ -47,43 +48,10 @@ namespace PhotinoX::Native
         ClosedCallback closedCallback_ = nullptr;
         FocusInCallback focusInCallback_ = nullptr;
         FocusOutCallback focusOutCallback_ = nullptr;
-        std::vector<PlatformString> customSchemeNames_;
         WebResourceRequestedCallback customSchemeCallback_ = nullptr;
+        std::vector<PlatformString> customSchemeNames_;
 
-        // Window metadata
-        PlatformString windowTitle_;
-        PlatformString iconFileName_;
-
-        PlatformString startUrl_;
-        PlatformString startString_;
-        PlatformString temporaryFilesPath_; // TODO: Currently supported only on Windows.
-        PlatformString userAgent_;
-        PlatformString browserControlInitParameters_;
-        PlatformString notificationRegistrationId_; // TODO: Currently supported only on Windows.
-
-        bool transparentEnabled_ = false;
-        bool devToolsEnabled_ = true;
-        bool grantBrowserPermissions_ = true;
-#if defined(_WIN32) || defined(__linux__)
-        bool mediaAutoplayEnabled_ = true;
-#endif
-        bool fileSystemAccessEnabled_ = true;
-        bool webSecurityEnabled_ = true;
-        bool javascriptClipboardAccessEnabled_ = true;
-        bool mediaStreamEnabled_ = true;
-#if defined(_WIN32) || defined(__linux__)
-        bool smoothScrollingEnabled_ = true;
-#endif
-        bool ignoreCertificateErrorsEnabled_ = false;
-        bool notificationsEnabled_ = true;
-        bool contextMenuEnabled_ = true;
-        bool zoomEnabled_ = true;
-        mutable bool isClosing_ = false;
-
-        int zoom_ = 100;
-        bool chromeless_ = false;
-        bool fullScreen_ = false;
-
+        PhotinoOptions options_;
         Photino* parent_ = nullptr;
         PhotinoDialog* dialog_ = nullptr;
 
@@ -94,6 +62,12 @@ namespace PhotinoX::Native
 #elif defined(__APPLE__)
         std::unique_ptr<MacState> platform_;
 #endif
+        mutable bool isClosing_ = false;
+
+        void InitializeFromInitParams(const PhotinoInitParams* initParams);
+        void InitializeOptions(const PhotinoInitParams* initParams);
+        void InitializeCallbacks(const PhotinoInitParams* initParams);
+        void InitializeCustomSchemes(const PhotinoInitParams* initParams);
 
         void Show();
 
@@ -128,7 +102,7 @@ namespace PhotinoX::Native
         void AddCustomSchemeHandlers();
 
         void SetUserAgent(const PlatformString& userAgent);
-        void ConfigureWebViewPreferences(const PhotinoInitParams* initParams);
+        void ConfigureWebViewPreferences();
 #endif
     public:
 #ifdef _WIN32
@@ -160,10 +134,10 @@ namespace PhotinoX::Native
         void Close() const;
 
         // Window metadata
-        const PlatformString& GetTitle() const noexcept { return windowTitle_; }
+        const PlatformString& GetTitle() const noexcept { return options_.windowTitle; }
         void SetTitle(const PlatformString& title);
 
-        const PlatformString& GetIconFile() const noexcept { return iconFileName_; }
+        const PlatformString& GetIconFile() const noexcept { return options_.iconFileName; }
         void SetIconFile(const PlatformString& filename);
 
         // Window geometry
@@ -227,7 +201,7 @@ namespace PhotinoX::Native
         void SetDevToolsEnabled(bool enabled);
         
         void GetGrantBrowserPermissions(bool* grant) const;
-        const PlatformString& GetUserAgent() const noexcept { return userAgent_; }
+        const PlatformString& GetUserAgent() const noexcept { return options_.userAgent; }
         void GetMediaAutoplayEnabled(bool* enabled) const;
         void GetFileSystemAccessEnabled(bool* enabled) const;
         void GetWebSecurityEnabled(bool* enabled) const;

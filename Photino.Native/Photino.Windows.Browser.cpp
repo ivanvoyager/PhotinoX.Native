@@ -25,7 +25,7 @@ void Photino::GetTransparentEnabled(bool* enabled) const
     assert(enabled);
     if (!enabled) return;
 
-    *enabled = transparentEnabled_;
+    *enabled = options_.transparentEnabled;
 
     if (!platform_->webViewController) return;
 
@@ -39,7 +39,7 @@ void Photino::GetTransparentEnabled(bool* enabled) const
 
 void Photino::SetTransparentEnabled(const bool enabled)
 {
-    transparentEnabled_ = enabled;
+    options_.transparentEnabled = enabled;
 
     assert(platform_->webViewController && platform_->webViewWindow);
     if (!platform_->webViewController || !platform_->webViewWindow) return;
@@ -127,7 +127,7 @@ void Photino::GetContextMenuEnabled(bool* enabled) const
     assert(enabled);
     if (!enabled) return;
 
-    *enabled = contextMenuEnabled_;
+    *enabled = options_.contextMenuEnabled;
 
     if (!platform_->webViewWindow) return;
 
@@ -141,7 +141,7 @@ void Photino::GetContextMenuEnabled(bool* enabled) const
 
 void Photino::SetContextMenuEnabled(const bool enabled)
 {
-    contextMenuEnabled_ = enabled;
+    options_.contextMenuEnabled = enabled;
     if (!platform_->webViewWindow) return;
 
     wil::com_ptr<ICoreWebView2Settings> settings;
@@ -159,7 +159,7 @@ void Photino::GetZoomEnabled(bool* enabled) const
     assert(enabled && platform_->webViewWindow);
     if (!enabled) return;
 
-    *enabled = zoomEnabled_;
+    *enabled = options_.zoomEnabled;
 
     if (!platform_->webViewWindow) return;
 
@@ -173,7 +173,7 @@ void Photino::GetZoomEnabled(bool* enabled) const
 
 void Photino::SetZoomEnabled(const bool enabled)
 {
-    zoomEnabled_ = enabled;
+    options_.zoomEnabled = enabled;
 
     assert(platform_->webViewWindow);
     if (!platform_->webViewWindow) return;
@@ -193,7 +193,7 @@ void Photino::GetZoom(int* zoom) const
     assert(zoom);
     if (!zoom) return;
 
-    *zoom = zoom_;
+    *zoom = options_.zoom;
 
     if (!platform_->webViewController) return;
 
@@ -211,7 +211,7 @@ void Photino::SetZoom(int zoom)
     else if (zoom > 500)
         zoom = 500;
 
-    zoom_ = zoom;
+    options_.zoom = zoom;
 
     assert(platform_->webViewController);
     if (!platform_->webViewController) return;
@@ -226,7 +226,7 @@ void Photino::GetDevToolsEnabled(bool* enabled) const
     assert(enabled);
     if (!enabled) return;
 
-    *enabled = devToolsEnabled_;
+    *enabled = options_.devToolsEnabled;
 
     if (!platform_->webViewWindow) return;
 
@@ -240,7 +240,7 @@ void Photino::GetDevToolsEnabled(bool* enabled) const
 
 void Photino::SetDevToolsEnabled(const bool enabled)
 {
-    devToolsEnabled_ = enabled;
+    options_.devToolsEnabled = enabled;
 
     if (!platform_->webViewWindow) return;
 
@@ -259,7 +259,7 @@ void Photino::GetGrantBrowserPermissions(bool* grant) const
     assert(grant);
     if (!grant) return;
 
-    *grant = grantBrowserPermissions_;
+    *grant = options_.grantBrowserPermissions;
 }
 
 void Photino::GetMediaAutoplayEnabled(bool* enabled) const
@@ -267,7 +267,7 @@ void Photino::GetMediaAutoplayEnabled(bool* enabled) const
     assert(enabled);
     if (!enabled) return;
 
-    *enabled = mediaAutoplayEnabled_;
+    *enabled = options_.mediaAutoplayEnabled;
 }
 
 void Photino::GetFileSystemAccessEnabled(bool* enabled) const
@@ -275,7 +275,7 @@ void Photino::GetFileSystemAccessEnabled(bool* enabled) const
     assert(enabled);
     if (!enabled) return;
 
-    *enabled = fileSystemAccessEnabled_;
+    *enabled = options_.fileSystemAccessEnabled;
 }
 
 void Photino::GetWebSecurityEnabled(bool* enabled) const
@@ -283,7 +283,7 @@ void Photino::GetWebSecurityEnabled(bool* enabled) const
     assert(enabled);
     if (!enabled) return;
 
-    *enabled = webSecurityEnabled_;
+    *enabled = options_.webSecurityEnabled;
 }
 
 void Photino::GetJavascriptClipboardAccessEnabled(bool* enabled) const
@@ -291,7 +291,7 @@ void Photino::GetJavascriptClipboardAccessEnabled(bool* enabled) const
     assert(enabled);
     if (!enabled) return;
 
-    *enabled = javascriptClipboardAccessEnabled_;
+    *enabled = options_.javascriptClipboardAccessEnabled;
 }
 
 void Photino::GetMediaStreamEnabled(bool* enabled) const
@@ -299,7 +299,7 @@ void Photino::GetMediaStreamEnabled(bool* enabled) const
     assert(enabled);
     if (!enabled) return;
 
-    *enabled = mediaStreamEnabled_;
+    *enabled = options_.mediaStreamEnabled;
 }
 
 void Photino::GetSmoothScrollingEnabled(bool* enabled) const
@@ -307,7 +307,7 @@ void Photino::GetSmoothScrollingEnabled(bool* enabled) const
     assert(enabled);
     if (!enabled) return;
 
-    *enabled = smoothScrollingEnabled_;
+    *enabled = options_.smoothScrollingEnabled;
 }
 
 void Photino::GetIgnoreCertificateErrorsEnabled(bool* enabled) const
@@ -315,7 +315,7 @@ void Photino::GetIgnoreCertificateErrorsEnabled(bool* enabled) const
     assert(enabled);
     if (!enabled) return;
 
-    *enabled = ignoreCertificateErrorsEnabled_;
+    *enabled = options_.ignoreCertificateErrorsEnabled;
 }
 
 PlatformString Photino::BuildStartupString() const
@@ -328,39 +328,39 @@ PlatformString Photino::BuildStartupString() const
 
     PlatformString startupString;
 
-    if (!userAgent_.empty())
+    if (!options_.userAgent.empty())
     {
-        PlatformString userAgent = userAgent_;
+        PlatformString userAgent = options_.userAgent;
         std::ranges::replace(userAgent, L'"', L'\'');
         startupString += L"--user-agent=\"" + userAgent + L"\" ";
     }
 
-    if (mediaAutoplayEnabled_)
+    if (options_.mediaAutoplayEnabled)
         startupString += L"--autoplay-policy=no-user-gesture-required ";
 
-    if (fileSystemAccessEnabled_)
+    if (options_.fileSystemAccessEnabled)
         startupString += L"--allow-file-access-from-files ";
 
-    if (!webSecurityEnabled_)
+    if (!options_.webSecurityEnabled)
         startupString += L"--disable-web-security ";
 
-    if (javascriptClipboardAccessEnabled_)
+    if (options_.javascriptClipboardAccessEnabled)
         startupString += L"--enable-javascript-clipboard-access ";
 
-    if (mediaStreamEnabled_)
+    if (options_.mediaStreamEnabled)
         startupString += L"--enable-usermedia-screen-capturing ";
 
-    if (!smoothScrollingEnabled_)
+    if (!options_.smoothScrollingEnabled)
         startupString += L"--disable-smooth-scrolling ";
 
-    if (ignoreCertificateErrorsEnabled_)
+    if (options_.ignoreCertificateErrorsEnabled)
         startupString += L"--ignore-certificate-errors ";
 
-    if (!browserControlInitParameters_.empty())
+    if (!options_.browserControlInitParameters.empty())
     {
         if (!startupString.empty() && startupString.back() != L' ')
             startupString += L' ';
-        startupString += browserControlInitParameters_; // e.g.--hide-scrollbars
+        startupString += options_.browserControlInitParameters; // e.g.--hide-scrollbars
     }
 
     return startupString;
@@ -374,13 +374,13 @@ HRESULT Photino::CompleteWebViewInitialization()
 
     platform_->webViewInitialized = true;
 
-    if (!startUrl_.empty())
+    if (!options_.startUrl.empty())
     {
-        NavigateToUrl(startUrl_);
+        NavigateToUrl(options_.startUrl);
     }
-    else if (!startString_.empty())
+    else if (!options_.startString.empty())
     {
-        NavigateToString(startString_);
+        NavigateToString(options_.startString);
     }
     else
     {
@@ -388,20 +388,20 @@ HRESULT Photino::CompleteWebViewInitialization()
         std::abort();
     }
 
-    if (contextMenuEnabled_ == false)
+    if (options_.contextMenuEnabled == false)
         SetContextMenuEnabled(false);
 
-    if (zoomEnabled_ == false)
+    if (options_.zoomEnabled == false)
         SetZoomEnabled(false);
 
-    if (devToolsEnabled_ == false)
+    if (options_.devToolsEnabled == false)
         SetDevToolsEnabled(false);
 
-    if (transparentEnabled_ == true)
+    if (options_.transparentEnabled == true)
         SetTransparentEnabled(true);
 
-    if (zoom_ != 100)
-        SetZoom(zoom_);
+    if (options_.zoom != 100)
+        SetZoom(options_.zoom);
 
     RefitContent();
     FocusWebView2();
@@ -540,7 +540,7 @@ HRESULT Photino::HandlePermissionRequested(ICoreWebView2* webview, ICoreWebView2
 {
     if (!args) return E_POINTER;
 
-    if (grantBrowserPermissions_)
+    if (options_.grantBrowserPermissions)
         return args->put_State(COREWEBVIEW2_PERMISSION_STATE_ALLOW);
 
     return S_OK;
@@ -640,7 +640,7 @@ void Photino::AttachWebView()
     }
 
     PCWSTR runtimePath = g_webview2RuntimePath.empty() ? nullptr : g_webview2RuntimePath.c_str();
-    PCWSTR userDataFolder = temporaryFilesPath_.empty() ? nullptr : temporaryFilesPath_.c_str();
+    PCWSTR userDataFolder = options_.temporaryFilesPath.empty() ? nullptr : options_.temporaryFilesPath.c_str();
 
     HRESULT envResult = CreateCoreWebView2EnvironmentWithOptions(runtimePath, userDataFolder, options.Get(),
                                                                  Callback<ICoreWebView2CreateCoreWebView2EnvironmentCompletedHandler>(this, &Photino::HandleWebViewEnvironmentCreated)

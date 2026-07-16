@@ -25,7 +25,7 @@ void Photino::SetTitle(const PlatformString& title)
     if (!platform_->window) return;
 
     gtk_window_set_title(GTK_WINDOW(platform_->window), title.c_str());
-    windowTitle_ = title;
+    options_.windowTitle = title;
 }
 
 void Photino::SetIconFile(const PlatformString& filename)
@@ -36,7 +36,7 @@ void Photino::SetIconFile(const PlatformString& filename)
     GError* error = nullptr;
     if (gtk_window_set_icon_from_file(GTK_WINDOW(platform_->window), filename.c_str(), &error))
     {
-        iconFileName_ = filename;
+        options_.iconFileName = filename;
         return;
     }
 
@@ -277,12 +277,12 @@ void Photino::GetFullScreen(bool* fullScreen) const
     assert(fullScreen);
     if (!fullScreen) return;
 
-    *fullScreen = fullScreen_;
+    *fullScreen = options_.fullScreen;
 }
 
 void Photino::SetFullScreen(bool fullScreen)
 {
-    fullScreen_ = fullScreen;
+    options_.fullScreen = fullScreen;
 
     assert(platform_->window);
     if (!platform_->window) return;

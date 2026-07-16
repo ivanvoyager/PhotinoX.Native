@@ -129,35 +129,7 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Lin
         std::abort();
     }
 
-    startString_ = ToPlatformString(initParams->StartString);
-    startUrl_ = ToPlatformString(initParams->StartUrl);
-    windowTitle_ = ToPlatformString(initParams->Title);
-    temporaryFilesPath_ = ToPlatformString(initParams->TemporaryFilesPath);
-    userAgent_ = ToPlatformString(initParams->UserAgent);
-    browserControlInitParameters_ = ToPlatformString(initParams->BrowserControlInitParameters);
-    notificationRegistrationId_ = ToPlatformString(initParams->NotificationRegistrationId);
-
-    for (auto& customSchemeName : initParams->CustomSchemeNames)
-    {
-        AddCustomSchemeName(customSchemeName);
-    }
-
-    parent_ = initParams->ParentInstance;
-
-    //these handlers are ALWAYS hooked up
-    closingCallback_ = initParams->ClosingHandler;
-    focusInCallback_ = initParams->FocusInHandler;
-    focusOutCallback_ = initParams->FocusOutHandler;
-    resizedCallback_ = initParams->ResizedHandler;
-    maximizedCallback_ = initParams->MaximizedHandler;
-    restoredCallback_ = initParams->RestoredHandler;
-    minimizedCallback_ = initParams->MinimizedHandler;
-    movedCallback_ = initParams->MovedHandler;
-    webMessageReceivedCallback_ = initParams->WebMessageReceivedHandler;
-    customSchemeCallback_ = initParams->CustomSchemeHandler;
-    closedCallback_ = initParams->ClosedHandler;
-
-    zoom_ = initParams->Zoom;
+    InitializeFromInitParams(initParams);
 
     platform_->sizeLimits.minWidth = (std::max)(0, initParams->MinWidth);
     platform_->sizeLimits.minHeight = (std::max)(0, initParams->MinHeight);
@@ -167,21 +139,6 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Lin
     if (platform_->sizeLimits.maxWidth > 0 && platform_->sizeLimits.minWidth > platform_->sizeLimits.maxWidth)    platform_->sizeLimits.maxWidth = platform_->sizeLimits.minWidth;
     if (platform_->sizeLimits.maxHeight > 0 && platform_->sizeLimits.minHeight > platform_->sizeLimits.maxHeight) platform_->sizeLimits.maxHeight = platform_->sizeLimits.minHeight;
 
-    chromeless_ = initParams->Chromeless;
-    fullScreen_ = initParams->FullScreen;
-    transparentEnabled_ = initParams->Transparent;
-    contextMenuEnabled_ = initParams->ContextMenuEnabled;
-    zoomEnabled_ = initParams->ZoomEnabled;
-    devToolsEnabled_ = initParams->DevToolsEnabled;
-    grantBrowserPermissions_ = initParams->GrantBrowserPermissions;
-    mediaAutoplayEnabled_ = initParams->MediaAutoplayEnabled;
-    fileSystemAccessEnabled_ = initParams->FileSystemAccessEnabled;
-    webSecurityEnabled_ = initParams->WebSecurityEnabled;
-    javascriptClipboardAccessEnabled_ = initParams->JavascriptClipboardAccessEnabled;
-    mediaStreamEnabled_ = initParams->MediaStreamEnabled;
-    smoothScrollingEnabled_ = initParams->SmoothScrollingEnabled;
-    ignoreCertificateErrorsEnabled_ = initParams->IgnoreCertificateErrorsEnabled;
-    notificationsEnabled_ = initParams->NotificationsEnabled;
 
     platform_->window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
     if (!platform_->window)
@@ -189,9 +146,9 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Lin
 
     dialog_ = new PhotinoDialog();
 
-    platform_->notifyInitialized = notificationsEnabled_ && AcquireNotifications(windowTitle_);
+    platform_->notifyInitialized = options_.notificationsEnabled && AcquireNotifications(options_.windowTitle);
 
-    if (initParams->FullScreen)
+    if (options_.fullScreen)
     {
         SetFullScreen(true);
     }
@@ -223,18 +180,18 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Lin
 
         if (initParams->UseOsDefaultLocation)
             gtk_window_set_position(GTK_WINDOW(platform_->window), GTK_WIN_POS_NONE);
-        else if (initParams->CenterOnInitialize && !initParams->FullScreen)
+        else if (initParams->CenterOnInitialize && !options_.fullScreen)
             gtk_window_set_position(GTK_WINDOW(platform_->window), GTK_WIN_POS_CENTER);
         else
             gtk_window_move(GTK_WINDOW(platform_->window), initParams->Left, initParams->Top);
     }
 
-    SetTitle(windowTitle_);
+    SetTitle(options_.windowTitle);
 
-    if (initParams->Chromeless)
+    if (options_.chromeless)
         gtk_window_set_decorated(GTK_WINDOW(platform_->window), false);
 
-    SetIconFile(ToPlatformString(initParams->WindowIconFile));
+    SetIconFile(options_.iconFileName);
 
     if (initParams->Minimized)
         SetMinimized(true);
@@ -268,7 +225,7 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Lin
                      G_CALLBACK(on_widget_destroyed),
                      this);
 
-    if (initParams->Transparent)
+    if (options_.transparentEnabled)
         SetTransparentEnabled(true);//visual/app-paintable
 
     Show();
@@ -276,7 +233,7 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Lin
     if (!platform_->webview)
         std::abort();
 
-    if (initParams->Transparent)
+    if (options_.transparentEnabled)
         SetTransparentEnabled(true);//WebKit background alpha
 
     g_signal_connect(G_OBJECT(platform_->window), "focus-in-event",
@@ -287,8 +244,8 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Lin
                      G_CALLBACK(on_focus_out_event),
                      this);
 
-    if (zoom_ != 100.0)
-        SetZoom(zoom_);
+    if (options_.zoom != 100.0)
+        SetZoom(options_.zoom);
 
     // gchar* webkitVer = g_strconcat(g_strdup_printf("%d", webkit_get_major_version()), ".", g_strdup_printf("%d", webkit_get_minor_version()), ".", g_strdup_printf("%d", webkit_get_micro_version()), NULL);
     // Photino::ShowNotification("Web Kit Version", webkitVer);
@@ -479,13 +436,13 @@ void Photino::Show()
 
         AddCustomSchemeHandlers();
 
-        if (!startUrl_.empty())
+        if (!options_.startUrl.empty())
         {
-            NavigateToUrl(startUrl_);
+            NavigateToUrl(options_.startUrl);
         }
-        else if (!startString_.empty())
+        else if (!options_.startString.empty())
         {
-            NavigateToString(startString_);
+            NavigateToString(options_.startString);
         }
         else
         {
