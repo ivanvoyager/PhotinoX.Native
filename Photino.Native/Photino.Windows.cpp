@@ -91,35 +91,7 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Win
         std::abort();
     }
 
-    startString_ = ToPlatformString(initParams->StartString);
-    startUrl_ = ToPlatformString(initParams->StartUrl);
-    windowTitle_ = ToPlatformString(initParams->Title);
-    temporaryFilesPath_ = ToPlatformString(initParams->TemporaryFilesPath);
-    userAgent_ = ToPlatformString(initParams->UserAgent);
-    browserControlInitParameters_ = ToPlatformString(initParams->BrowserControlInitParameters);
-    notificationRegistrationId_ = ToPlatformString(initParams->NotificationRegistrationId);
-
-    for (auto& customSchemeName : initParams->CustomSchemeNames)
-    {
-        AddCustomSchemeName(customSchemeName);
-    }
-
-    parent_ = initParams->ParentInstance;
-
-    // these handlers are ALWAYS hooked up
-    closingCallback_ = initParams->ClosingHandler;
-    focusInCallback_ = initParams->FocusInHandler;
-    focusOutCallback_ = initParams->FocusOutHandler;
-    resizedCallback_ = initParams->ResizedHandler;
-    maximizedCallback_ = initParams->MaximizedHandler;
-    restoredCallback_ = initParams->RestoredHandler;
-    minimizedCallback_ = initParams->MinimizedHandler;
-    movedCallback_ = initParams->MovedHandler;
-    webMessageReceivedCallback_ = initParams->WebMessageReceivedHandler;
-    customSchemeCallback_ = initParams->CustomSchemeHandler;
-    closedCallback_ = initParams->ClosedHandler;
-
-    zoom_ = initParams->Zoom;
+    InitializeFromInitParams(initParams);
 
     platform_->sizeLimits.minWidth = (std::max)(0, initParams->MinWidth);
     platform_->sizeLimits.minHeight = (std::max)(0, initParams->MinHeight);
@@ -128,22 +100,6 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Win
 
     if (platform_->sizeLimits.maxWidth > 0 && platform_->sizeLimits.minWidth > platform_->sizeLimits.maxWidth)    platform_->sizeLimits.maxWidth = platform_->sizeLimits.minWidth;
     if (platform_->sizeLimits.maxHeight > 0 && platform_->sizeLimits.minHeight > platform_->sizeLimits.maxHeight) platform_->sizeLimits.maxHeight = platform_->sizeLimits.minHeight;
-
-    chromeless_ = initParams->Chromeless;
-    fullScreen_ = initParams->FullScreen;
-    transparentEnabled_ = initParams->Transparent;
-    contextMenuEnabled_ = initParams->ContextMenuEnabled;
-    zoomEnabled_ = initParams->ZoomEnabled;
-    devToolsEnabled_ = initParams->DevToolsEnabled;
-    grantBrowserPermissions_ = initParams->GrantBrowserPermissions;
-    mediaAutoplayEnabled_ = initParams->MediaAutoplayEnabled;
-    fileSystemAccessEnabled_ = initParams->FileSystemAccessEnabled;
-    webSecurityEnabled_ = initParams->WebSecurityEnabled;
-    javascriptClipboardAccessEnabled_ = initParams->JavascriptClipboardAccessEnabled;
-    mediaStreamEnabled_ = initParams->MediaStreamEnabled;
-    smoothScrollingEnabled_ = initParams->SmoothScrollingEnabled;
-    ignoreCertificateErrorsEnabled_ = initParams->IgnoreCertificateErrorsEnabled;
-    notificationsEnabled_ = initParams->NotificationsEnabled;
 
     //wchar_t msg[50];
     //swprintf(msg, 50, L"Height: %i  Width: %i  Left: %d  Top: %d", initParams->Height, initParams->Width, initParams->Left, initParams->Top);
@@ -166,7 +122,7 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Win
         initParams->Top = CW_USEDEFAULT;
     }
 
-    if (initParams->FullScreen)
+    if (options_.fullScreen)
     {
         initParams->Left = 0;
         initParams->Top = 0;
@@ -174,7 +130,7 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Win
         initParams->Height = GetSystemMetrics(SM_CYSCREEN);
     }
 
-    if (initParams->Chromeless)
+    if (options_.chromeless)
     {
         //CW_USEDEFAULT CAN NOT BE USED ON POPUP WINDOWS
         if (initParams->Left == CW_USEDEFAULT && initParams->Top == CW_USEDEFAULT) initParams->CenterOnInitialize = true;
@@ -193,10 +149,10 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Win
 
     //Create the window
     platform_->hWnd = CreateWindowExW(
-        initParams->Transparent ? WS_EX_LAYERED : 0, //WS_EX_OVERLAPPEDWINDOW, //An optional extended window style.
-        CLASS_NAME,					//Window class
-        windowTitle_.c_str(),		//Window text
-        initParams->Chromeless || initParams->FullScreen ? WS_POPUP : WS_OVERLAPPEDWINDOW,	//Window style
+        options_.transparentEnabled ? WS_EX_LAYERED : 0,                            	// WS_EX_OVERLAPPEDWINDOW, //An optional extended window style.
+        CLASS_NAME,																		// Window class
+        options_.windowTitle.c_str(),                                               	// Window text
+        options_.chromeless || options_.fullScreen ? WS_POPUP : WS_OVERLAPPEDWINDOW,	// Window style
 
         // Size and position
         initParams->Left, initParams->Top, initParams->Width, initParams->Height,
@@ -212,7 +168,7 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Win
 
     g_hwndToPhotino[platform_->hWnd] = this;
 
-    SetIconFile(ToPlatformString(initParams->WindowIconFile));
+    SetIconFile(options_.iconFileName);
 
     if (initParams->CenterOnInitialize)
         Center();
@@ -228,13 +184,13 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Win
     if (initParams->Topmost)
         SetTopmost(true);
 
-    if (notificationsEnabled_)
+    if (options_.notificationsEnabled)
     {
-        WinToast::instance()->setAppName(windowTitle_);
-        if (!notificationRegistrationId_.empty())
-            WinToast::instance()->setAppUserModelId(notificationRegistrationId_);
+        WinToast::instance()->setAppName(options_.windowTitle);
+        if (!options_.notificationRegistrationId.empty())
+            WinToast::instance()->setAppUserModelId(options_.notificationRegistrationId);
         else
-            WinToast::instance()->setAppUserModelId(windowTitle_);
+            WinToast::instance()->setAppUserModelId(options_.windowTitle);
 
         platform_->toastHandler = new WinToastHandler(this);
         WinToast::instance()->initialize();
@@ -498,21 +454,21 @@ void Photino::GetNotificationsEnabled(bool* enabled) const
     assert(enabled);
     if (!enabled) return;
 
-    *enabled = notificationsEnabled_;
+    *enabled = options_.notificationsEnabled;
 }
 
 
 void Photino::ShowNotification(const PlatformString& title, const PlatformString& message) const
 {
-    if (!notificationsEnabled_ || !platform_->toastHandler || !WinToast::isCompatible())
+    if (!options_.notificationsEnabled || !platform_->toastHandler || !WinToast::isCompatible())
         return;
 
     WinToastTemplate toast = WinToastTemplate(WinToastTemplate::ImageAndText02);
     toast.setTextField(title, WinToastTemplate::FirstLine);
     toast.setTextField(message, WinToastTemplate::SecondLine);
 
-    if (!iconFileName_.empty())
-        toast.setImagePath(iconFileName_);
+    if (!options_.iconFileName.empty())
+        toast.setImagePath(options_.iconFileName);
 
     INT64 result = WinToast::instance()->showToast(toast, platform_->toastHandler);
     assert(result >= 0);

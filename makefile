@@ -50,6 +50,7 @@ build-photino-mac-universal: | $(DEST_PATH_X64)
 		-o $(DEST_PATH_X64)/$(DEST_FILE).dylib \
 		$(SRC)/Photino.Callbacks.cpp \
 		$(SRC)/Photino.CustomSchemes.cpp \
+		$(SRC)/Photino.Initialization.cpp \
 		$(SRC)/Photino.Mac.AppDelegate.mm \
 		$(SRC)/Photino.Mac.UiDelegate.mm \
 		$(SRC)/Photino.Mac.WindowDelegate.mm \
@@ -82,6 +83,7 @@ build-photino-linux-x64: | $(DEST_PATH_X64)
 		-o $(DEST_PATH_X64)/$(DEST_FILE).so \
 		$(SRC)/Photino.Callbacks.cpp \
 		$(SRC)/Photino.CustomSchemes.cpp \
+		$(SRC)/Photino.Initialization.cpp \
 		$(SRC)/Photino.Linux.Browser.cpp \
 		$(SRC)/Photino.Linux.Dialog.cpp \
 		$(SRC)/Photino.Linux.Window.cpp \
@@ -102,6 +104,7 @@ build-photino-linux-arm64: | $(DEST_PATH_ARM64)
 		-o $(DEST_PATH_ARM64)/$(DEST_FILE).so \
 		$(SRC)/Photino.Callbacks.cpp \
 		$(SRC)/Photino.CustomSchemes.cpp \
+		$(SRC)/Photino.Initialization.cpp \
 		$(SRC)/Photino.Linux.Browser.cpp \
 		$(SRC)/Photino.Linux.Dialog.cpp \
 		$(SRC)/Photino.Linux.Window.cpp \

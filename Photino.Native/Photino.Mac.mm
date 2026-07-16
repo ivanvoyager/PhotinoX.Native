@@ -169,49 +169,7 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Mac
             std::abort();
         }
 
-        startString_ = ToPlatformString(initParams->StartString);
-        startUrl_ = ToPlatformString(initParams->StartUrl);
-        windowTitle_ = ToPlatformString(initParams->Title);
-        temporaryFilesPath_ = ToPlatformString(initParams->TemporaryFilesPath);
-        userAgent_ = ToPlatformString(initParams->UserAgent);
-        browserControlInitParameters_ = ToPlatformString(initParams->BrowserControlInitParameters);
-        notificationRegistrationId_ = ToPlatformString(initParams->NotificationRegistrationId);
-
-        for (auto& customSchemeName : initParams->CustomSchemeNames)
-        {
-            AddCustomSchemeName(customSchemeName);
-        }
-
-        parent_ = initParams->ParentInstance;
-
-        //these handlers are ALWAYS hooked up
-        closingCallback_ = initParams->ClosingHandler;
-        focusInCallback_ = initParams->FocusInHandler;
-        focusOutCallback_ = initParams->FocusOutHandler;
-        resizedCallback_ = initParams->ResizedHandler;
-        maximizedCallback_ = initParams->MaximizedHandler;
-        restoredCallback_ = initParams->RestoredHandler;
-        minimizedCallback_ = initParams->MinimizedHandler;
-        movedCallback_ = initParams->MovedHandler;
-        webMessageReceivedCallback_ = initParams->WebMessageReceivedHandler;
-        customSchemeCallback_ = initParams->CustomSchemeHandler;
-        closedCallback_ = initParams->ClosedHandler;
-
-        zoom_ = initParams->Zoom;//??
-        chromeless_ = initParams->Chromeless;
-        fullScreen_ = initParams->FullScreen;
-        transparentEnabled_ = initParams->Transparent;// Set transparency (not yet implemented)
-        contextMenuEnabled_ = true; //not configurable on mac //initParams->ContextMenuEnabled;
-        zoomEnabled_ = initParams->ZoomEnabled;//??
-        devToolsEnabled_ = initParams->DevToolsEnabled;
-
-        grantBrowserPermissions_ = initParams->GrantBrowserPermissions;
-        fileSystemAccessEnabled_ = initParams->FileSystemAccessEnabled;
-        webSecurityEnabled_ = initParams->WebSecurityEnabled;
-        javascriptClipboardAccessEnabled_ = initParams->JavascriptClipboardAccessEnabled;
-        mediaStreamEnabled_ = initParams->MediaStreamEnabled;//??
-        ignoreCertificateErrorsEnabled_ = initParams->IgnoreCertificateErrorsEnabled;//??
-        notificationsEnabled_ = initParams->NotificationsEnabled;
+        InitializeFromInitParams(initParams);
 
         if (initParams->UseOsDefaultSize)
 	    {
@@ -233,7 +191,7 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Mac
         // Create Window
         NSRect frame = NSMakeRect(0, 0, 0, 0);
 
-        if (initParams->Chromeless)
+        if (options_.chromeless)
         {
             // For MouseMoved events, Photino.Mac.NSWindowBorderless.mm
             // https://stackoverflow.com/questions/2520127/getting-a-borderless-window-to-receive-mousemoved-events-cocoa-osx
@@ -272,8 +230,8 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Mac
         platform_->window.delegate = platform_->windowDelegate;
     
         // Set Window options
-        SetTitle(windowTitle_);
-        SetIconFile(ToPlatformString(initParams->WindowIconFile));
+        SetTitle(options_.windowTitle);
+        SetIconFile(options_.iconFileName);
 
 	    SetTopmost(initParams->Topmost);
         SetPosition(initParams->Left, initParams->Top);
@@ -304,7 +262,7 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Mac
         AddCustomSchemeHandlers();
 
         // Set initialized WebKit (Configuration) options
-        ConfigureWebViewPreferences(initParams);
+        ConfigureWebViewPreferences();
 
         // Create WebView
         AttachWebView();
@@ -312,7 +270,7 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Mac
         dialog_ = new PhotinoDialog();
 
         Show();
-        SetFullScreen(initParams->FullScreen);
+        SetFullScreen(options_.fullScreen);
     }
 }
 
@@ -378,12 +336,12 @@ void Photino::GetNotificationsEnabled(bool* enabled) const
     assert(enabled);
     if (!enabled) return;
 
-    *enabled = notificationsEnabled_;
+    *enabled = options_.notificationsEnabled;
 }
 
 void Photino::ShowNotification(const PlatformString& title, const PlatformString& body) const
 {
-    if (!notificationsEnabled_) return;
+    if (!options_.notificationsEnabled) return;
 
     NSString* nsTitle = ToNSString(title);
     if (!nsTitle) return;

@@ -21,7 +21,7 @@ namespace PhotinoX::Native
         Utf8String NotificationRegistrationId;                  // #8
         Utf8String CustomSchemeNames[MaxCustomSchemeNames];     // #9
 
-        Photino *ParentInstance;                                // #10
+        Photino* ParentInstance;                                // #10
 
         ClosingCallback ClosingHandler;                         // #11
         FocusInCallback FocusInHandler;                         // #12
@@ -66,8 +66,8 @@ namespace PhotinoX::Native
         bool MediaStreamEnabled;                                // #49
         bool SmoothScrollingEnabled;                            // #50
         bool IgnoreCertificateErrorsEnabled;                    // #51
-        bool NotificationsEnabled;             // #52
+        bool NotificationsEnabled;                              // #52
 
-        int Size; // #53
+        int Size;                                               // #53
     };
 }

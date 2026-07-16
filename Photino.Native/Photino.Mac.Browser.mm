@@ -53,16 +53,13 @@ namespace
     }
 }
 
-void Photino::ConfigureWebViewPreferences(const PhotinoInitParams* initParams)
+void Photino::ConfigureWebViewPreferences()
 {
-    assert(initParams);
-    if (!initParams) return;
-
-    SetPreference(platform_->webViewConfiguration, @"developerExtrasEnabled", initParams->DevToolsEnabled ? @YES : @NO);
-    SetPreference(platform_->webViewConfiguration, @"allowFileAccessFromFileURLs", initParams->FileSystemAccessEnabled ? @YES : @NO);
-    SetPreference(platform_->webViewConfiguration, @"webSecurityEnabled", initParams->WebSecurityEnabled ? @YES : @NO);
-    SetPreference(platform_->webViewConfiguration, @"javaScriptCanAccessClipboard", initParams->JavascriptClipboardAccessEnabled ? @YES : @NO);
-    SetPreference(platform_->webViewConfiguration, @"mediaStreamEnabled", initParams->MediaStreamEnabled ? @YES : @NO);
+    SetPreference(platform_->webViewConfiguration, @"developerExtrasEnabled", options_.devToolsEnabled ? @YES : @NO);
+    SetPreference(platform_->webViewConfiguration, @"allowFileAccessFromFileURLs", options_.fileSystemAccessEnabled ? @YES : @NO);
+    SetPreference(platform_->webViewConfiguration, @"webSecurityEnabled", options_.webSecurityEnabled ? @YES : @NO);
+    SetPreference(platform_->webViewConfiguration, @"javaScriptCanAccessClipboard", options_.javascriptClipboardAccessEnabled ? @YES : @NO);
+    SetPreference(platform_->webViewConfiguration, @"mediaStreamEnabled", options_.mediaStreamEnabled ? @YES : @NO);
 
     SetPreference(platform_->webViewConfiguration, @"mediaDevicesEnabled", @YES);
     SetPreference(platform_->webViewConfiguration, @"mediaCaptureRequiresSecureConnection", @NO);
@@ -75,10 +72,10 @@ void Photino::ConfigureWebViewPreferences(const PhotinoInitParams* initParams)
     SetPreference(platform_->webViewConfiguration, @"notificationsEnabled", @YES);
     SetPreference(platform_->webViewConfiguration, @"screenCaptureEnabled", @YES);
 
-    if (browserControlInitParameters_.empty())
+    if (options_.browserControlInitParameters.empty())
         return;
 
-    json wkPreferences = json::parse(browserControlInitParameters_, nullptr, false);
+    json wkPreferences = json::parse(options_.browserControlInitParameters, nullptr, false);
     if (wkPreferences.is_discarded() || !wkPreferences.is_object())
         std::abort();
 
@@ -120,12 +117,12 @@ void Photino::GetTransparentEnabled(bool* enabled) const
     assert(enabled);
     if (!enabled) return;
     //! Not implemented (supported?) on macOS
-    *enabled = transparentEnabled_;
+    *enabled = options_.transparentEnabled;
 }
 
 void Photino::SetTransparentEnabled(bool enabled)
 {
-    transparentEnabled_ = enabled;
+    options_.transparentEnabled = enabled;
 
     //! Not implemented (supported?) on macOS
 }
@@ -184,12 +181,12 @@ void Photino::GetContextMenuEnabled(bool* enabled) const
     assert(enabled);
     if (!enabled) return;
 
-    *enabled = contextMenuEnabled_;
+    *enabled = options_.contextMenuEnabled;
 }
 
 void Photino::SetContextMenuEnabled(bool enabled)
 {
-    contextMenuEnabled_ = enabled;
+    options_.contextMenuEnabled = enabled;
 
     //! Not supported on macOS
 }
@@ -199,12 +196,12 @@ void Photino::GetZoomEnabled(bool* enabled) const
     assert(enabled);
     if (!enabled) return;
 
-    *enabled = zoomEnabled_;
+    *enabled = options_.zoomEnabled;
 }
 
 void Photino::SetZoomEnabled(bool enabled)
 {
-    zoomEnabled_ = enabled;
+    options_.zoomEnabled = enabled;
 
     //! Not implemented (supported?) on macOS
 }
@@ -214,7 +211,7 @@ void Photino::GetZoom(int* zoom) const
     assert(zoom);
     if (!zoom) return;
 
-    *zoom = zoom_;
+    *zoom = options_.zoom;
 
     if (!platform_->webView) return;
 
@@ -230,7 +227,7 @@ void Photino::SetZoom(int zoom)
     else if (zoom > 500)
         zoom = 500;
 
-    zoom_ = zoom;
+    options_.zoom = zoom;
 
     if (!platform_->webView) return;
 
@@ -243,22 +240,22 @@ void Photino::GetDevToolsEnabled(bool* enabled) const
     assert(enabled);
     if (!enabled) return;
 
-    *enabled = devToolsEnabled_;
+    *enabled = options_.devToolsEnabled;
 }
 
 void Photino::SetDevToolsEnabled(bool enabled)
 {
-    devToolsEnabled_ = enabled;
+    options_.devToolsEnabled = enabled;
 
     SetPreference(platform_->webViewConfiguration, @"developerExtrasEnabled", enabled ? @YES : @NO);
 }
 
-void Photino::GetGrantBrowserPermissions(bool* enabled) const
+void Photino::GetGrantBrowserPermissions(bool* grant) const
 {
-    assert(enabled);
-    if (!enabled) return;
+    assert(grant);
+    if (!grant) return;
 
-    *enabled = grantBrowserPermissions_;
+    *grant = options_.grantBrowserPermissions;
 }
 
 //! Always enabled on macOS. This is always true.
@@ -275,7 +272,7 @@ void Photino::GetFileSystemAccessEnabled(bool* enabled) const
     assert(enabled);
     if (!enabled) return;
 
-    *enabled = fileSystemAccessEnabled_;
+    *enabled = options_.fileSystemAccessEnabled;
 }
 
 void Photino::GetWebSecurityEnabled(bool* enabled) const
@@ -283,7 +280,7 @@ void Photino::GetWebSecurityEnabled(bool* enabled) const
     assert(enabled);
     if (!enabled) return;
 
-    *enabled = webSecurityEnabled_;
+    *enabled = options_.webSecurityEnabled;
 }
 
 void Photino::GetJavascriptClipboardAccessEnabled(bool* enabled) const
@@ -291,7 +288,7 @@ void Photino::GetJavascriptClipboardAccessEnabled(bool* enabled) const
     assert(enabled);
     if (!enabled) return;
 
-    *enabled = javascriptClipboardAccessEnabled_;
+    *enabled = options_.javascriptClipboardAccessEnabled;
 }
 
 void Photino::GetMediaStreamEnabled(bool* enabled) const
@@ -299,7 +296,7 @@ void Photino::GetMediaStreamEnabled(bool* enabled) const
     assert(enabled);
     if (!enabled) return;
 
-    *enabled = mediaStreamEnabled_;
+    *enabled = options_.mediaStreamEnabled;
 }
 
 //! Not supported on macOS. This is always false.
@@ -316,12 +313,12 @@ void Photino::GetIgnoreCertificateErrorsEnabled(bool* enabled) const
     assert(enabled);
     if (!enabled) return;
 
-	*enabled = ignoreCertificateErrorsEnabled_;
+	*enabled = options_.ignoreCertificateErrorsEnabled;
 }
 
 void Photino::SetUserAgent(const PlatformString& userAgent)
 {
-    userAgent_ = userAgent;
+    options_.userAgent = userAgent;
 
     if (!platform_->webView) return;
 
@@ -438,15 +435,15 @@ void Photino::AttachWebView()
     [platform_->window.contentView addSubview: platform_->webView];
     [platform_->window.contentView setAutoresizesSubviews: true];
 
-    SetUserAgent(userAgent_);
+    SetUserAgent(options_.userAgent);
 
-    if (!startUrl_.empty())
+    if (!options_.startUrl.empty())
     {
-        NavigateToUrl(startUrl_);
+        NavigateToUrl(options_.startUrl);
     }
-    else if (!startString_.empty())
+    else if (!options_.startString.empty())
     {
-        NavigateToString(startString_);
+        NavigateToString(options_.startString);
     }
     else
     {

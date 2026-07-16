@@ -285,6 +285,7 @@
     <None Include="Photino.Linux.Browser.cpp" />
     <ClCompile Include="Photino.Callbacks.cpp" />
     <ClCompile Include="Photino.CustomSchemes.cpp" />
+    <ClCompile Include="Photino.Initialization.cpp" />
     <ClCompile Include="Photino.Windows.Browser.cpp" />
     <ClCompile Include="Photino.Windows.Window.cpp" />
     <None Include="cpp.hint" />
@@ -321,6 +322,7 @@
     <ClInclude Include="Photino.Dialog.h" />
     <ClInclude Include="Photino.Memory.h" />
     <ClInclude Include="Photino.Monitor.h" />
+    <ClInclude Include="Photino.Options.h" />
     <ClInclude Include="Photino.Strings.h" />
     <ClInclude Include="Photino.Windows.State.h" />
     <ClInclude Include="Photino.Windows.ToastHandler.h" />
