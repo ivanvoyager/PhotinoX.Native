@@ -6,9 +6,11 @@
 #include <strings.h>
 #endif
 
+#include <utility>
+
 using namespace PhotinoX::Native;
 
-bool Photino::IsCustomScheme(const PlatformString& scheme) const
+bool Photino::IsCustomSchemeRegistered(const PlatformString& scheme) const
 {
     if (scheme.empty())
         return false;
@@ -28,4 +30,20 @@ bool Photino::IsCustomScheme(const PlatformString& scheme) const
 #endif
 
     return false;
+}
+
+bool Photino::AddCustomSchemeName(Utf8String scheme)
+{
+    if (!scheme || *scheme == '\0') return false;
+
+    PlatformString nativeScheme = ToPlatformString(scheme);
+    if (nativeScheme.empty()) return false;
+
+    if (IsCustomSchemeRegistered(nativeScheme)) return true;
+
+    if (_customSchemeNames.size() >= MaxCustomSchemeNames) return false;
+
+    _customSchemeNames.emplace_back(std::move(nativeScheme));
+
+    return RegisterCustomSchemeName(_customSchemeNames.back());
 }

@@ -114,24 +114,24 @@ void Photino::SetSize(int width, int height)
     int newWidth = width;
     int newHeight = height;
 
-    if (_sizeLimits.minWidth > 0 && newWidth < _sizeLimits.minWidth)    newWidth = _sizeLimits.minWidth;
-    if (_sizeLimits.minHeight > 0 && newHeight < _sizeLimits.minHeight) newHeight = _sizeLimits.minHeight;
-    if (_sizeLimits.maxWidth > 0 && newWidth > _sizeLimits.maxWidth)    newWidth = _sizeLimits.maxWidth;
-    if (_sizeLimits.maxHeight > 0 && newHeight > _sizeLimits.maxHeight) newHeight = _sizeLimits.maxHeight;
+    if (platform_->sizeLimits.minWidth > 0 && newWidth < platform_->sizeLimits.minWidth)    newWidth = platform_->sizeLimits.minWidth;
+    if (platform_->sizeLimits.minHeight > 0 && newHeight < platform_->sizeLimits.minHeight) newHeight = platform_->sizeLimits.minHeight;
+    if (platform_->sizeLimits.maxWidth > 0 && newWidth > platform_->sizeLimits.maxWidth)    newWidth = platform_->sizeLimits.maxWidth;
+    if (platform_->sizeLimits.maxHeight > 0 && newHeight > platform_->sizeLimits.maxHeight) newHeight = platform_->sizeLimits.maxHeight;
 
     gtk_window_resize(GTK_WINDOW(platform_->window), newWidth, newHeight);
 }
 
 void Photino::SetMinSize(int width, int height)
 {
-    _sizeLimits.minWidth = (std::max)(0, width);
-    _sizeLimits.minHeight = (std::max)(0, height);
+    platform_->sizeLimits.minWidth = (std::max)(0, width);
+    platform_->sizeLimits.minHeight = (std::max)(0, height);
 
-    if (_sizeLimits.maxWidth > 0 && _sizeLimits.minWidth > _sizeLimits.maxWidth)
-        _sizeLimits.maxWidth = _sizeLimits.minWidth;
+    if (platform_->sizeLimits.maxWidth > 0 && platform_->sizeLimits.minWidth > platform_->sizeLimits.maxWidth)
+        platform_->sizeLimits.maxWidth = platform_->sizeLimits.minWidth;
 
-    if (_sizeLimits.maxHeight > 0 && _sizeLimits.minHeight > _sizeLimits.maxHeight)
-        _sizeLimits.maxHeight = _sizeLimits.minHeight;
+    if (platform_->sizeLimits.maxHeight > 0 && platform_->sizeLimits.minHeight > platform_->sizeLimits.maxHeight)
+        platform_->sizeLimits.maxHeight = platform_->sizeLimits.minHeight;
 
     ApplyGeometryHints();
 }
@@ -139,14 +139,14 @@ void Photino::SetMinSize(int width, int height)
 void Photino::SetMaxSize(int width, int height)
 {
 
-    _sizeLimits.maxWidth = (std::max)(0, width);
-    _sizeLimits.maxHeight = (std::max)(0, height);
+    platform_->sizeLimits.maxWidth = (std::max)(0, width);
+    platform_->sizeLimits.maxHeight = (std::max)(0, height);
 
-    if (_sizeLimits.maxWidth > 0 && _sizeLimits.maxWidth < _sizeLimits.minWidth)
-        _sizeLimits.minWidth = _sizeLimits.maxWidth;
+    if (platform_->sizeLimits.maxWidth > 0 && platform_->sizeLimits.maxWidth < platform_->sizeLimits.minWidth)
+        platform_->sizeLimits.minWidth = platform_->sizeLimits.maxWidth;
 
-    if (_sizeLimits.maxHeight > 0 && _sizeLimits.maxHeight < _sizeLimits.minHeight)
-        _sizeLimits.minHeight = _sizeLimits.maxHeight;
+    if (platform_->sizeLimits.maxHeight > 0 && platform_->sizeLimits.maxHeight < platform_->sizeLimits.minHeight)
+        platform_->sizeLimits.minHeight = platform_->sizeLimits.maxHeight;
 
     ApplyGeometryHints();
 }
@@ -155,10 +155,10 @@ void Photino::ApplyGeometryHints()
 {
     if (!platform_->window) return;
 
-    platform_->hints.min_width = _sizeLimits.minWidth;
-    platform_->hints.min_height = _sizeLimits.minHeight;
-    platform_->hints.max_width = _sizeLimits.maxWidth > 0 ? _sizeLimits.maxWidth : G_MAXINT;
-    platform_->hints.max_height = _sizeLimits.maxHeight > 0 ? _sizeLimits.maxHeight : G_MAXINT;
+    platform_->hints.min_width = platform_->sizeLimits.minWidth;
+    platform_->hints.min_height = platform_->sizeLimits.minHeight;
+    platform_->hints.max_width = platform_->sizeLimits.maxWidth > 0 ? platform_->sizeLimits.maxWidth : G_MAXINT;
+    platform_->hints.max_height = platform_->sizeLimits.maxHeight > 0 ? platform_->sizeLimits.maxHeight : G_MAXINT;
 
     gtk_window_set_geometry_hints(
         GTK_WINDOW(platform_->window),

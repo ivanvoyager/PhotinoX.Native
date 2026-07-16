@@ -15,6 +15,69 @@
 using json = nlohmann::json;
 using namespace PhotinoX::Native;
 
+namespace
+{
+    void SetWebKitCustomSettings(WebKitSettings* settings, const PlatformString& browserControlInitParameters)
+    {
+        assert(settings);
+        if (!settings) return;
+
+        json data = json::parse(browserControlInitParameters, nullptr, false);
+        if (data.is_discarded() || !data.is_object())
+        {
+            GtkWidget* dialog = gtk_message_dialog_new(
+                nullptr, GTK_DIALOG_DESTROY_WITH_PARENT, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Invalid WebKit custom settings JSON.");
+            gtk_dialog_run(GTK_DIALOG(dialog));
+            gtk_widget_destroy(dialog);
+            std::abort();
+        }
+
+        for (auto it = data.begin(); it != data.end(); ++it)
+        {
+            // Use g_object_set_property to set the property on the settings object
+            // instead of relying on the webkit2gtk API to set the properties.
+            // https://docs.gtk.org/gobject/method.Object.set_property.html
+            std::string propertyName = it.key();
+            const json& value = it.value();
+
+            GValue propertyValue = G_VALUE_INIT;
+
+            if (value.is_string())
+            {
+                g_value_init(&propertyValue, G_TYPE_STRING);
+                g_value_set_string(&propertyValue, value.get<std::string>().c_str());
+            }
+            else if (value.is_boolean())
+            {
+                g_value_init(&propertyValue, G_TYPE_BOOLEAN);
+                g_value_set_boolean(&propertyValue, value.get<bool>());
+            }
+            else if (value.is_number_integer())
+            {
+                g_value_init(&propertyValue, G_TYPE_INT);
+                g_value_set_int(&propertyValue, value.get<int>());
+            }
+            else if (value.is_number_float())
+            {
+                g_value_init(&propertyValue, G_TYPE_DOUBLE);
+                g_value_set_double(&propertyValue, value.get<double>());
+            }
+            else
+            {
+                // Throw an error
+                GtkWidget* dialog = gtk_message_dialog_new(
+                    nullptr, GTK_DIALOG_DESTROY_WITH_PARENT, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Invalid value type for key: %s", propertyName.c_str());
+                gtk_dialog_run(GTK_DIALOG(dialog));
+                gtk_widget_destroy(dialog);
+                std::abort();
+            }
+
+            g_object_set_property(G_OBJECT(settings), propertyName.c_str(), &propertyValue);
+            g_value_unset(&propertyValue);
+        }
+    }
+}
+
 struct InvokeJSWaitInfo
 {
     bool isCompleted = false;
@@ -349,7 +412,7 @@ void Photino::SetWebKitSettings()
         std::abort();
 
     if (!_browserControlInitParameters.empty())
-        SetWebKitCustomSettings(settings.get()); // if any custom init parameters were passed, set them now.
+        SetWebKitCustomSettings(settings.get(), _browserControlInitParameters); // if any custom init parameters were passed, set them now.
 
     WebKitWebsiteDataManager* manager = webkit_web_view_get_website_data_manager(WEBKIT_WEB_VIEW(platform_->webview));
     if (manager)
@@ -359,67 +422,6 @@ void Photino::SetWebKitSettings()
     }
 
     webkit_web_view_set_settings(WEBKIT_WEB_VIEW(platform_->webview), settings.get()); // apply the settings to the webview
-}
-
-void Photino::SetWebKitCustomSettings(WebKitSettings* settings)
-{
-    assert(settings);
-    if (!settings) return;
-
-    // parse the JSON out of _browserControlInitParameters
-    json data = json::parse(_browserControlInitParameters, nullptr, false);
-    if (data.is_discarded() || !data.is_object())
-    {
-        GtkWidget* dialog = gtk_message_dialog_new(
-            nullptr, GTK_DIALOG_DESTROY_WITH_PARENT, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Invalid WebKit custom settings JSON.");
-        gtk_dialog_run(GTK_DIALOG(dialog));
-        gtk_widget_destroy(dialog);
-        std::abort();
-    }
-
-    for (auto it = data.begin(); it != data.end(); ++it)
-    {
-        // Use g_object_set_property to set the property on the settings object
-        // instead of relying on the webkit2gtk API to set the properties.
-        // https://docs.gtk.org/gobject/method.Object.set_property.html
-        std::string propertyName = it.key();
-        const json& value = it.value();
-
-        GValue propertyValue = G_VALUE_INIT;
-
-        if (value.is_string())
-        {
-            g_value_init(&propertyValue, G_TYPE_STRING);
-            g_value_set_string(&propertyValue, value.get<std::string>().c_str());
-        }
-        else if (value.is_boolean())
-        {
-            g_value_init(&propertyValue, G_TYPE_BOOLEAN);
-            g_value_set_boolean(&propertyValue, value.get<bool>());
-        }
-        else if (value.is_number_integer())
-        {
-            g_value_init(&propertyValue, G_TYPE_INT);
-            g_value_set_int(&propertyValue, value.get<int>());
-        }
-        else if (value.is_number_float())
-        {
-            g_value_init(&propertyValue, G_TYPE_DOUBLE);
-            g_value_set_double(&propertyValue, value.get<double>());
-        }
-        else
-        {
-            // Throw an error
-            GtkWidget* dialog = gtk_message_dialog_new(
-                nullptr, GTK_DIALOG_DESTROY_WITH_PARENT, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Invalid value type for key: %s", propertyName.c_str());
-            gtk_dialog_run(GTK_DIALOG(dialog));
-            gtk_widget_destroy(dialog);
-            std::abort();
-        }
-
-        g_object_set_property(G_OBJECT(settings), propertyName.c_str(), &propertyValue);
-        g_value_unset(&propertyValue);
-    }
 }
 
 static void FreeNativeMemory(gpointer data)

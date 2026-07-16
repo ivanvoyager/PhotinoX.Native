@@ -13,7 +13,6 @@
 #include <memory>
 #include <mutex>
 
-#include <Shlwapi.h>
 #include <Windows.h>
 
 #define WM_USER_INVOKE (WM_USER + 0x0002)
@@ -122,13 +121,13 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Win
 
     _zoom = initParams->Zoom;
 
-    _sizeLimits.minWidth = (std::max)(0, initParams->MinWidth);
-    _sizeLimits.minHeight = (std::max)(0, initParams->MinHeight);
-    _sizeLimits.maxWidth = (std::max)(0, initParams->MaxWidth);
-    _sizeLimits.maxHeight = (std::max)(0, initParams->MaxHeight);
+    platform_->sizeLimits.minWidth = (std::max)(0, initParams->MinWidth);
+    platform_->sizeLimits.minHeight = (std::max)(0, initParams->MinHeight);
+    platform_->sizeLimits.maxWidth = (std::max)(0, initParams->MaxWidth);
+    platform_->sizeLimits.maxHeight = (std::max)(0, initParams->MaxHeight);
 
-    if (_sizeLimits.maxWidth > 0 && _sizeLimits.minWidth > _sizeLimits.maxWidth)    _sizeLimits.maxWidth = _sizeLimits.minWidth;
-    if (_sizeLimits.maxHeight > 0 && _sizeLimits.minHeight > _sizeLimits.maxHeight) _sizeLimits.maxHeight = _sizeLimits.minHeight;
+    if (platform_->sizeLimits.maxWidth > 0 && platform_->sizeLimits.minWidth > platform_->sizeLimits.maxWidth)    platform_->sizeLimits.maxWidth = platform_->sizeLimits.minWidth;
+    if (platform_->sizeLimits.maxHeight > 0 && platform_->sizeLimits.minHeight > platform_->sizeLimits.maxHeight) platform_->sizeLimits.maxHeight = platform_->sizeLimits.minHeight;
 
     _chromeless = initParams->Chromeless;
     _fullScreen = initParams->FullScreen;
@@ -193,7 +192,7 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Win
     HWND parentHwnd = _parent ? _parent->GetHwnd() : nullptr;
 
     //Create the window
-    _hWnd = CreateWindowExW(
+    platform_->hWnd = CreateWindowExW(
         initParams->Transparent ? WS_EX_LAYERED : 0, //WS_EX_OVERLAPPEDWINDOW, //An optional extended window style.
         CLASS_NAME,					//Window class
         _windowTitle.c_str(),		//Window text
@@ -208,10 +207,10 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Win
         this        //Additional application data
     );
 
-    if (!_hWnd)
+    if (!platform_->hWnd)
         std::abort();
 
-    g_hwndToPhotino[_hWnd] = this;
+    g_hwndToPhotino[platform_->hWnd] = this;
 
     SetIconFile(ToPlatformString(initParams->WindowIconFile));
 
@@ -237,13 +236,13 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Win
         else
             WinToast::instance()->setAppUserModelId(_windowTitle);
 
-        _toastHandler = new WinToastHandler(this);
+        platform_->toastHandler = new WinToastHandler(this);
         WinToast::instance()->initialize();
     }
 
     _dialog = new PhotinoDialog(this);
 
-    _isAlreadyShown = initParams->Minimized || initParams->Maximized;
+    platform_->isAlreadyShown = initParams->Minimized || initParams->Maximized;
     Show();
 }
 
@@ -252,16 +251,16 @@ Photino::~Photino()
     delete _dialog;
     _dialog = nullptr;
 
-    delete _toastHandler;
-    _toastHandler = nullptr;
+    delete platform_->toastHandler;
+    platform_->toastHandler = nullptr;
 }
 
 void Photino::ApplySizeLimits(MINMAXINFO& info) const noexcept
 {
-    if (_sizeLimits.minWidth > 0)   info.ptMinTrackSize.x = _sizeLimits.minWidth;
-    if (_sizeLimits.minHeight > 0)  info.ptMinTrackSize.y = _sizeLimits.minHeight;
-    if (_sizeLimits.maxWidth > 0)   info.ptMaxTrackSize.x = _sizeLimits.maxWidth;
-    if (_sizeLimits.maxHeight > 0)  info.ptMaxTrackSize.y = _sizeLimits.maxHeight;
+    if (platform_->sizeLimits.minWidth > 0)   info.ptMinTrackSize.x = platform_->sizeLimits.minWidth;
+    if (platform_->sizeLimits.minHeight > 0)  info.ptMinTrackSize.y = platform_->sizeLimits.minHeight;
+    if (platform_->sizeLimits.maxWidth > 0)   info.ptMaxTrackSize.x = platform_->sizeLimits.maxWidth;
+    if (platform_->sizeLimits.maxHeight > 0)  info.ptMaxTrackSize.y = platform_->sizeLimits.maxHeight;
 }
 
 LRESULT CALLBACK WindowProc(const HWND hwnd, const UINT uMsg, const WPARAM wParam, const LPARAM lParam)
@@ -381,13 +380,10 @@ LRESULT CALLBACK WindowProc(const HWND hwnd, const UINT uMsg, const WPARAM wPara
         if (const auto it = g_hwndToPhotino.find(hwnd); it != g_hwndToPhotino.end())
         {
             auto photino = it->second;
-            g_hwndToPhotino.erase(it);
-
             if (photino)
             {
                 photino->CloseWebView();
                 photino->InvokeClose();
-                delete photino;
             }
         }
 
@@ -397,6 +393,19 @@ LRESULT CALLBACK WindowProc(const HWND hwnd, const UINT uMsg, const WPARAM wPara
             g_uiThreadWindowHandle = nullptr;
 
             PostQuitMessage(0);
+        }
+
+        return 0;
+    }
+
+    case WM_NCDESTROY:
+    {
+        if (const auto it = g_hwndToPhotino.find(hwnd); it != g_hwndToPhotino.end())
+        {
+            auto photino = it->second;
+            g_hwndToPhotino.erase(it);
+
+            delete photino;
         }
 
         return 0;
@@ -495,7 +504,7 @@ void Photino::GetNotificationsEnabled(bool* enabled) const
 
 void Photino::ShowNotification(const PlatformString& title, const PlatformString& message) const
 {
-    if (!_notificationsEnabled || !_toastHandler || !WinToast::isCompatible())
+    if (!_notificationsEnabled || !platform_->toastHandler || !WinToast::isCompatible())
         return;
 
     WinToastTemplate toast = WinToastTemplate(WinToastTemplate::ImageAndText02);
@@ -505,20 +514,20 @@ void Photino::ShowNotification(const PlatformString& title, const PlatformString
     if (!_iconFileName.empty())
         toast.setImagePath(_iconFileName);
 
-    INT64 result = WinToast::instance()->showToast(toast, _toastHandler);
+    INT64 result = WinToast::instance()->showToast(toast, platform_->toastHandler);
     assert(result >= 0);
 }
 
 void Photino::WaitForExit() const
 {
-    assert(_hWnd);
-    if (!_hWnd) return;
+    assert(platform_->hWnd);
+    if (!platform_->hWnd) return;
 
     bool expected = false;
     if (!g_messageLoopRunning.compare_exchange_strong(expected, true, std::memory_order_acq_rel)) return;
 
     g_isShuttingDown.store(false, std::memory_order_release);
-    g_uiThreadWindowHandle = _hWnd;
+    g_uiThreadWindowHandle = platform_->hWnd;
 
     // Run the message loop
     MSG msg{};
@@ -539,12 +548,12 @@ void Photino::WaitForExit() const
 
 void Photino::Invoke(InvokeCallback callback) const
 {
-    assert(_hWnd && callback);
-    if (!_hWnd || !callback) return;
+    assert(platform_->hWnd && callback);
+    if (!platform_->hWnd || !callback) return;
 
     if (g_isShuttingDown.load(std::memory_order_acquire)) return;
 
-    DWORD windowThreadId = GetWindowThreadProcessId(_hWnd, nullptr);
+    DWORD windowThreadId = GetWindowThreadProcessId(platform_->hWnd, nullptr);
     DWORD currentThreadId = GetCurrentThreadId();
     if (windowThreadId == currentThreadId)
     {
@@ -552,30 +561,30 @@ void Photino::Invoke(InvokeCallback callback) const
         return;
     }
 
-    if (!IsWindow(_hWnd))
+    if (!IsWindow(platform_->hWnd))
         return;
 
     // Block until the callback is actually executed and completed
-    LRESULT result = SendMessageW(_hWnd, WM_USER_INVOKE, reinterpret_cast<WPARAM>(callback), 0);
+    LRESULT result = SendMessageW(platform_->hWnd, WM_USER_INVOKE, reinterpret_cast<WPARAM>(callback), 0);
 }
 
 void Photino::Show()
 {
-    if (!_hWnd)
+    if (!platform_->hWnd)
         std::abort();
 
-    if (!_isAlreadyShown)
+    if (!platform_->isAlreadyShown)
     {
-        ShowWindow(_hWnd, SW_SHOWDEFAULT);	//causes maximized and minimized to not work
-        _isAlreadyShown = true;
+        ShowWindow(platform_->hWnd, SW_SHOWDEFAULT); // causes maximized and minimized to not work
+        platform_->isAlreadyShown = true;
     }
 
-    UpdateWindow(_hWnd);
+    UpdateWindow(platform_->hWnd);
 
     // Strangely, it only works to create the webview2 *after* the window has been shown,
     // so defer it until here. This unfortunately means you can't call the Navigate methods
     // until the window is shown.
-    if (!_webviewController)
+    if (!platform_->webViewController)
     {
         if (!g_webview2RuntimePath.empty() || EnsureWebViewIsInstalled())
             AttachWebView();

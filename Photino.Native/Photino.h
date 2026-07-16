@@ -3,25 +3,23 @@
 #include "Photino.Callbacks.h"
 #include "Photino.InitParams.h"
 #include "Photino.Strings.h"
-#include "Photino.Geometry.h"
 #include "Photino.Monitor.h"
 
 #include <memory>
-#include <utility>
 #include <vector>
 
 #ifdef _WIN32
-#include <WebView2.h>
 #include <Windows.h>
-#include <wil/com.h>
-class WinToastHandler;
+
+struct ICoreWebView2;
+struct ICoreWebView2Environment;
+struct ICoreWebView2Controller;
+struct ICoreWebView2WebMessageReceivedEventArgs;
+struct ICoreWebView2WebResourceRequestedEventArgs;
+struct ICoreWebView2PermissionRequestedEventArgs;
 #endif
 
-#ifdef __linux__
-typedef struct _WebKitSettings WebKitSettings;
-#endif
-
-#if defined(__APPLE__) && defined(__OBJC__)
+#ifdef __OBJC__
 @class NSString;
 @class NSNumber;
 #endif
@@ -30,13 +28,9 @@ namespace PhotinoX::Native
 {
 #ifdef _WIN32
     struct WindowsState;
-#endif
-
-#ifdef __linux__
+#elif defined(__linux__)
     struct LinuxState;
-#endif
-
-#ifdef __APPLE__
+#elif defined(__APPLE__)
     struct MacState;
 #endif
 
@@ -105,20 +99,11 @@ namespace PhotinoX::Native
 
         void Show();
 
-        bool IsCustomScheme(const PlatformString& scheme) const;
+        bool IsCustomSchemeRegistered(const PlatformString& scheme) const;
 
         bool RegisterCustomSchemeName(const PlatformString& scheme);
 
 #ifdef _WIN32
-        HWND _hWnd = nullptr;
-        WinToastHandler* _toastHandler = nullptr;
-        wil::com_ptr<ICoreWebView2Environment> _webviewEnvironment = nullptr;
-        wil::com_ptr<ICoreWebView2Controller> _webviewController = nullptr;
-        wil::com_ptr<ICoreWebView2> _webviewWindow = nullptr;
-        PlatformString _scriptId;
-        WindowSizeLimits _sizeLimits;
-        bool _webViewInitialized = false;
-        bool _isAlreadyShown = false;
 
         PlatformString BuildStartupString() const;
         HRESULT CompleteWebViewInitialization();
@@ -135,15 +120,11 @@ namespace PhotinoX::Native
         void NotifyWebView2WindowMove() const;
 
 #elif defined(__linux__)
-        WindowGeometry _lastGeometry;
-        WindowSizeLimits _sizeLimits;
-        bool _notifyInitialized = false;
 
         void ApplyGeometryHints();
 
         void AddCustomSchemeHandlers();
         void SetWebKitSettings();
-        void SetWebKitCustomSettings(WebKitSettings* settings);
 
 #elif defined(__APPLE__)
         std::vector<Monitor> GetMonitors() const;
@@ -185,7 +166,7 @@ namespace PhotinoX::Native
 
         // Platform handles
 #ifdef _WIN32
-        HWND GetHwnd() const noexcept { return _hWnd; }
+        HWND GetHwnd() const noexcept;
 #elif defined(__linux__)
         void* GetGtkWidget() const noexcept;
 #elif defined(__APPLE__)
@@ -201,7 +182,7 @@ namespace PhotinoX::Native
         const PlatformString& GetIconFile() const noexcept { return _iconFileName; }
         void SetIconFile(const PlatformString& filename);
 
-         // Window geometry
+        // Window geometry
         void GetPosition(int* x, int* y) const;
         void SetPosition(int x, int y);
 
@@ -247,21 +228,7 @@ namespace PhotinoX::Native
 
         void SendWebMessage(const PlatformString& message) const;
 
-        bool AddCustomSchemeName(Utf8String scheme)
-        {
-            if (!scheme || *scheme == '\0') return false;
-
-            PlatformString nativeScheme = ToPlatformString(scheme);
-            if (nativeScheme.empty()) return false;
-
-            if (IsCustomScheme(nativeScheme)) return true;
-
-            if (_customSchemeNames.size() >= MaxCustomSchemeNames) return false;
-
-            _customSchemeNames.emplace_back(std::move(nativeScheme));
-
-            return RegisterCustomSchemeName(_customSchemeNames.back());
-        }
+        bool AddCustomSchemeName(Utf8String scheme);
 
         void GetContextMenuEnabled(bool* enabled) const;
         void SetContextMenuEnabled(bool enabled);

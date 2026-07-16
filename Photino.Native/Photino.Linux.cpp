@@ -159,13 +159,13 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Lin
 
     _zoom = initParams->Zoom;
 
-    _sizeLimits.minWidth = (std::max)(0, initParams->MinWidth);
-    _sizeLimits.minHeight = (std::max)(0, initParams->MinHeight);
-    _sizeLimits.maxWidth = (std::max)(0, initParams->MaxWidth);
-    _sizeLimits.maxHeight = (std::max)(0, initParams->MaxHeight);
+    platform_->sizeLimits.minWidth = (std::max)(0, initParams->MinWidth);
+    platform_->sizeLimits.minHeight = (std::max)(0, initParams->MinHeight);
+    platform_->sizeLimits.maxWidth = (std::max)(0, initParams->MaxWidth);
+    platform_->sizeLimits.maxHeight = (std::max)(0, initParams->MaxHeight);
 
-    if (_sizeLimits.maxWidth > 0 && _sizeLimits.minWidth > _sizeLimits.maxWidth)    _sizeLimits.maxWidth = _sizeLimits.minWidth;
-    if (_sizeLimits.maxHeight > 0 && _sizeLimits.minHeight > _sizeLimits.maxHeight) _sizeLimits.maxHeight = _sizeLimits.minHeight;
+    if (platform_->sizeLimits.maxWidth > 0 && platform_->sizeLimits.minWidth > platform_->sizeLimits.maxWidth)    platform_->sizeLimits.maxWidth = platform_->sizeLimits.minWidth;
+    if (platform_->sizeLimits.maxHeight > 0 && platform_->sizeLimits.minHeight > platform_->sizeLimits.maxHeight) platform_->sizeLimits.maxHeight = platform_->sizeLimits.minHeight;
 
     _chromeless = initParams->Chromeless;
     _fullScreen = initParams->FullScreen;
@@ -189,7 +189,7 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Lin
 
     _dialog = new PhotinoDialog();
 
-    _notifyInitialized = _notificationsEnabled && AcquireNotifications(_windowTitle);
+    platform_->notifyInitialized = _notificationsEnabled && AcquireNotifications(_windowTitle);
 
     if (initParams->FullScreen)
     {
@@ -204,22 +204,22 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Lin
         else
         {
             // Ensure that the default size does not exceed any set min/max dimension
-            if (_sizeLimits.maxWidth > 0 && initParams->Width > _sizeLimits.maxWidth)
-                initParams->Width = _sizeLimits.maxWidth;
-            if (_sizeLimits.maxHeight > 0 && initParams->Height > _sizeLimits.maxHeight)
-                initParams->Height = _sizeLimits.maxHeight;
-            if (_sizeLimits.minWidth > 0 && initParams->Width < _sizeLimits.minWidth)
-                initParams->Width = _sizeLimits.minWidth;
-            if (_sizeLimits.minHeight > 0 && initParams->Height < _sizeLimits.minHeight)
-                initParams->Height = _sizeLimits.minHeight;
+            if (platform_->sizeLimits.maxWidth > 0 && initParams->Width > platform_->sizeLimits.maxWidth)
+                initParams->Width = platform_->sizeLimits.maxWidth;
+            if (platform_->sizeLimits.maxHeight > 0 && initParams->Height > platform_->sizeLimits.maxHeight)
+                initParams->Height = platform_->sizeLimits.maxHeight;
+            if (platform_->sizeLimits.minWidth > 0 && initParams->Width < platform_->sizeLimits.minWidth)
+                initParams->Width = platform_->sizeLimits.minWidth;
+            if (platform_->sizeLimits.minHeight > 0 && initParams->Height < platform_->sizeLimits.minHeight)
+                initParams->Height = platform_->sizeLimits.minHeight;
 
             if (initParams->Width < 0)  initParams->Width = -1;
             if (initParams->Height < 0) initParams->Height = -1;
             gtk_window_set_default_size(GTK_WINDOW(platform_->window), initParams->Width, initParams->Height);
         }
 
-        SetMinSize(_sizeLimits.minWidth, _sizeLimits.minHeight);
-        SetMaxSize(_sizeLimits.maxWidth, _sizeLimits.maxHeight);
+        SetMinSize(platform_->sizeLimits.minWidth, platform_->sizeLimits.minHeight);
+        SetMaxSize(platform_->sizeLimits.maxWidth, platform_->sizeLimits.maxHeight);
 
         if (initParams->UseOsDefaultLocation)
             gtk_window_set_position(GTK_WINDOW(platform_->window), GTK_WIN_POS_NONE);
@@ -296,8 +296,11 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Lin
 
 Photino::~Photino()
 {
-    if (_notifyInitialized)
+    if (platform_->notifyInitialized)
+    {
         ReleaseNotifications();
+        platform_->notifyInitialized = false;
+    }
 
     delete _dialog;
 }
@@ -307,13 +310,12 @@ void Photino::GetNotificationsEnabled(bool* enabled) const
     assert(enabled);
     if (!enabled) return;
 
-    *enabled = _notifyInitialized;
+    *enabled = platform_->notifyInitialized;
 }
 
 void Photino::ShowNotification(const PlatformString& title, const PlatformString& message) const
 {
-    if (!_notifyInitialized)
-        return;
+    if (!platform_->notifyInitialized) return;
 
     NotifyNotification* notification = notify_notification_new(title.c_str(), message.c_str(), nullptr);
     if (!notification)
@@ -502,18 +504,18 @@ void Photino::Show()
 
 void Photino::HandleConfigureEvent(int x, int y, int width, int height)
 {
-    if (_lastGeometry.left != x || _lastGeometry.top != y)
+    if (platform_->lastGeometry.left != x || platform_->lastGeometry.top != y)
     {
         InvokeMove(x, y);
-        _lastGeometry.left = x;
-        _lastGeometry.top = y;
+        platform_->lastGeometry.left = x;
+        platform_->lastGeometry.top = y;
     }
 
-    if (_lastGeometry.width != width || _lastGeometry.height != height)
+    if (platform_->lastGeometry.width != width || platform_->lastGeometry.height != height)
     {
         InvokeResize(width, height);
-        _lastGeometry.width = width;
-        _lastGeometry.height = height;
+        platform_->lastGeometry.width = width;
+        platform_->lastGeometry.height = height;
     }
 }
 

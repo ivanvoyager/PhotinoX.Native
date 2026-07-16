@@ -1,7 +1,7 @@
 #include "Photino.h"
-#include "Photino.Callbacks.h"
 #include "Photino.Memory.h"
 #include "Photino.Strings.h"
+#include "Photino.Windows.State.h"
 
 #include <WebView2.h>
 #include <Shlwapi.h>
@@ -27,10 +27,10 @@ void Photino::GetTransparentEnabled(bool* enabled) const
 
     *enabled = _transparentEnabled;
 
-    if (!_webviewController) return;
+    if (!platform_->webViewController) return;
 
     wil::com_ptr<ICoreWebView2Controller2> controller2;
-    if (FAILED(_webviewController->QueryInterface(&controller2)) || !controller2) return;
+    if (FAILED(platform_->webViewController->QueryInterface(&controller2)) || !controller2) return;
 
     COREWEBVIEW2_COLOR backgroundColor{};
     if (SUCCEEDED(controller2->get_DefaultBackgroundColor(&backgroundColor)))
@@ -41,11 +41,11 @@ void Photino::SetTransparentEnabled(const bool enabled)
 {
     _transparentEnabled = enabled;
 
-    assert(_webviewController && _webviewWindow);
-    if (!_webviewController || !_webviewWindow) return;
+    assert(platform_->webViewController && platform_->webViewWindow);
+    if (!platform_->webViewController || !platform_->webViewWindow) return;
 
     wil::com_ptr<ICoreWebView2Controller2> controller2;
-    if (FAILED(_webviewController->QueryInterface(&controller2)) || !controller2) return;
+    if (FAILED(platform_->webViewController->QueryInterface(&controller2)) || !controller2) return;
 
     COREWEBVIEW2_COLOR backgroundColor{};
     HRESULT hr = controller2->get_DefaultBackgroundColor(&backgroundColor);
@@ -56,16 +56,15 @@ void Photino::SetTransparentEnabled(const bool enabled)
         assert(SUCCEEDED(hr));
     }
 
-    hr = _webviewWindow->Reload();
+    hr = platform_->webViewWindow->Reload();
     assert(SUCCEEDED(hr));
 }
 
 void Photino::ClearBrowserAutoFill() const
 {
-    if (!_webviewWindow)
-        return;
+    if (!platform_->webViewWindow) return;
 
-    auto webview15 = _webviewWindow.try_query<ICoreWebView2_15>();
+    auto webview15 = platform_->webViewWindow.try_query<ICoreWebView2_15>();
     if (!webview15)
         return;
 
@@ -98,28 +97,28 @@ void Photino::ClearBrowserAutoFill() const
  */
 void Photino::NavigateToString(const PlatformString& content) const
 {
-    assert(_webviewWindow);
-    if (!_webviewWindow) return;
+    assert(platform_->webViewWindow);
+    if (!platform_->webViewWindow) return;
 
-    HRESULT hr = _webviewWindow->NavigateToString(content.c_str());
+    HRESULT hr = platform_->webViewWindow->NavigateToString(content.c_str());
     assert(SUCCEEDED(hr));
 }
 
 void Photino::NavigateToUrl(const PlatformString& url) const
 {
-    assert(_webviewWindow);
-    if (!_webviewWindow || url.empty()) return;
+    assert(platform_->webViewWindow);
+    if (!platform_->webViewWindow || url.empty()) return;
 
-    HRESULT hr = _webviewWindow->Navigate(url.c_str());
+    HRESULT hr = platform_->webViewWindow->Navigate(url.c_str());
     assert(SUCCEEDED(hr));
 }
 
 void Photino::SendWebMessage(const PlatformString& message) const
 {
-    assert(_webviewWindow);
-    if (!_webviewWindow) return;
+    assert(platform_->webViewWindow);
+    if (!platform_->webViewWindow) return;
 
-    HRESULT hr = _webviewWindow->PostWebMessageAsString(message.c_str());
+    HRESULT hr = platform_->webViewWindow->PostWebMessageAsString(message.c_str());
     assert(SUCCEEDED(hr));
 }
 
@@ -130,10 +129,10 @@ void Photino::GetContextMenuEnabled(bool* enabled) const
 
     *enabled = _contextMenuEnabled;
 
-    if (!_webviewWindow) return;
+    if (!platform_->webViewWindow) return;
 
     wil::com_ptr<ICoreWebView2Settings> settings;
-    if (FAILED(_webviewWindow->get_Settings(&settings)) || !settings) return;
+    if (FAILED(platform_->webViewWindow->get_Settings(&settings)) || !settings) return;
 
     BOOL value = FALSE;
     if (SUCCEEDED(settings->get_AreDefaultContextMenusEnabled(&value)))
@@ -143,29 +142,29 @@ void Photino::GetContextMenuEnabled(bool* enabled) const
 void Photino::SetContextMenuEnabled(const bool enabled)
 {
     _contextMenuEnabled = enabled;
-    if (!_webviewWindow) return;
+    if (!platform_->webViewWindow) return;
 
     wil::com_ptr<ICoreWebView2Settings> settings;
-    if (FAILED(_webviewWindow->get_Settings(&settings)) || !settings) return;
+    if (FAILED(platform_->webViewWindow->get_Settings(&settings)) || !settings) return;
 
     HRESULT hr = settings->put_AreDefaultContextMenusEnabled(enabled ? TRUE : FALSE);
     assert(SUCCEEDED(hr));
 
-    hr = _webviewWindow->Reload();
+    hr = platform_->webViewWindow->Reload();
     assert(SUCCEEDED(hr));
 }
 
 void Photino::GetZoomEnabled(bool* enabled) const
 {
-    assert(enabled && _webviewWindow);
+    assert(enabled && platform_->webViewWindow);
     if (!enabled) return;
 
     *enabled = _zoomEnabled;
 
-    if (!_webviewWindow) return;
+    if (!platform_->webViewWindow) return;
 
     wil::com_ptr<ICoreWebView2Settings> settings;
-    if (FAILED(_webviewWindow->get_Settings(&settings)) || !settings) return;
+    if (FAILED(platform_->webViewWindow->get_Settings(&settings)) || !settings) return;
 
     BOOL value = FALSE;
     if (SUCCEEDED(settings->get_IsZoomControlEnabled(&value)))
@@ -175,16 +174,17 @@ void Photino::GetZoomEnabled(bool* enabled) const
 void Photino::SetZoomEnabled(const bool enabled)
 {
     _zoomEnabled = enabled;
-    assert(_webviewWindow);
-    if (!_webviewWindow) return;
+
+    assert(platform_->webViewWindow);
+    if (!platform_->webViewWindow) return;
 
     wil::com_ptr<ICoreWebView2Settings> settings;
-    if (FAILED(_webviewWindow->get_Settings(&settings)) || !settings) return;
+    if (FAILED(platform_->webViewWindow->get_Settings(&settings)) || !settings) return;
 
     HRESULT hr = settings->put_IsZoomControlEnabled(enabled ? TRUE : FALSE);
     assert(SUCCEEDED(hr));
 
-    hr = _webviewWindow->Reload();
+    hr = platform_->webViewWindow->Reload();
     assert(SUCCEEDED(hr));
 }
 
@@ -195,10 +195,10 @@ void Photino::GetZoom(int* zoom) const
 
     *zoom = _zoom;
 
-    if (!_webviewController) return;
+    if (!platform_->webViewController) return;
 
     double rawValue = 0.0;
-    if (FAILED(_webviewController->get_ZoomFactor(&rawValue))) return;
+    if (FAILED(platform_->webViewController->get_ZoomFactor(&rawValue))) return;
 
     rawValue = (rawValue * 100.0) + 0.5; // rounding
     *zoom = static_cast<int>(rawValue);
@@ -213,11 +213,11 @@ void Photino::SetZoom(int zoom)
 
     _zoom = zoom;
 
-    assert(_webviewController);
-    if (!_webviewController) return;
+    assert(platform_->webViewController);
+    if (!platform_->webViewController) return;
 
     double newZoom = static_cast<double>(zoom) / 100.0;
-    HRESULT hr = _webviewController->put_ZoomFactor(newZoom);
+    HRESULT hr = platform_->webViewController->put_ZoomFactor(newZoom);
     assert(SUCCEEDED(hr));
 }
 
@@ -228,10 +228,10 @@ void Photino::GetDevToolsEnabled(bool* enabled) const
 
     *enabled = _devToolsEnabled;
 
-    if (!_webviewWindow) return;
+    if (!platform_->webViewWindow) return;
 
     wil::com_ptr<ICoreWebView2Settings> settings;
-    if (FAILED(_webviewWindow->get_Settings(&settings)) || !settings) return;
+    if (FAILED(platform_->webViewWindow->get_Settings(&settings)) || !settings) return;
 
     BOOL value = FALSE;
     if (SUCCEEDED(settings->get_AreDevToolsEnabled(&value)))
@@ -242,15 +242,15 @@ void Photino::SetDevToolsEnabled(const bool enabled)
 {
     _devToolsEnabled = enabled;
 
-    if (!_webviewWindow) return;
+    if (!platform_->webViewWindow) return;
 
     wil::com_ptr<ICoreWebView2Settings> settings;
-    if (FAILED(_webviewWindow->get_Settings(&settings)) || !settings) return;
+    if (FAILED(platform_->webViewWindow->get_Settings(&settings)) || !settings) return;
 
     HRESULT hr = settings->put_AreDevToolsEnabled(enabled ? TRUE : FALSE);
     if (FAILED(hr)) return;
 
-    hr = _webviewWindow->Reload();
+    hr = platform_->webViewWindow->Reload();
     assert(SUCCEEDED(hr));
 }
 
@@ -368,11 +368,11 @@ PlatformString Photino::BuildStartupString() const
 
 HRESULT Photino::CompleteWebViewInitialization()
 {
-    assert(!_webViewInitialized);
-    if (_webViewInitialized)
+    assert(!platform_->webViewInitialized);
+    if (platform_->webViewInitialized)
         return S_OK;
 
-    _webViewInitialized = true;
+    platform_->webViewInitialized = true;
 
     if (!_startUrl.empty())
     {
@@ -413,7 +413,7 @@ HRESULT Photino::HandleScriptAddedOnDocumentCreated(HRESULT result, LPCWSTR id)
 {
     if (FAILED(result)) return result;
 
-    _scriptId = id ? id : L"";
+    platform_->scriptId = id ? id : L"";
 
     return CompleteWebViewInitialization();
 }
@@ -461,7 +461,7 @@ HRESULT Photino::HandleWebResourceRequested(ICoreWebView2* webview, ICoreWebView
 
     PlatformString scheme = uriString.substr(0, colonPos);
 
-    if (!_customSchemeCallback || !IsCustomScheme(scheme))
+    if (!_customSchemeCallback || !IsCustomSchemeRegistered(scheme))
         return S_OK;
 
     std::string uriUtf8 = ToUtf8String(uriString);
@@ -470,7 +470,7 @@ HRESULT Photino::HandleWebResourceRequested(ICoreWebView2* webview, ICoreWebView
     Utf8String contentType = nullptr;
     void* responseData = _customSchemeCallback(uriUtf8.c_str(), &numBytes, &contentType);
 
-    if (!_webviewEnvironment)
+    if (!platform_->webViewEnvironment)
     {
         FreeMemory(responseData);
         FreeString(const_cast<char*>(contentType));
@@ -491,7 +491,7 @@ HRESULT Photino::HandleWebResourceRequested(ICoreWebView2* webview, ICoreWebView
         }
 
         wil::com_ptr<ICoreWebView2WebResourceResponse> response;
-        responseResult = _webviewEnvironment->CreateWebResourceResponse(
+        responseResult = platform_->webViewEnvironment->CreateWebResourceResponse(
             emptyStream.get(),
             404,
             L"Not Found",
@@ -514,7 +514,7 @@ HRESULT Photino::HandleWebResourceRequested(ICoreWebView2* webview, ICoreWebView
         if (dataStream)
         {
             wil::com_ptr<ICoreWebView2WebResourceResponse> response;
-            responseResult = _webviewEnvironment->CreateWebResourceResponse(
+            responseResult = platform_->webViewEnvironment->CreateWebResourceResponse(
                 dataStream.get(),
                 200,
                 L"OK",
@@ -551,15 +551,15 @@ HRESULT Photino::HandleWebViewControllerCreated(HRESULT result, ICoreWebView2Con
     if (FAILED(result)) return result;
     if (!controller) return E_POINTER;
 
-    HRESULT hr = controller->QueryInterface(&_webviewController);
+    HRESULT hr = controller->QueryInterface(&platform_->webViewController);
     if (FAILED(hr)) return hr;
 
-    hr = _webviewController->get_CoreWebView2(&_webviewWindow);
+    hr = platform_->webViewController->get_CoreWebView2(&platform_->webViewWindow);
     if (FAILED(hr)) return hr;
-    if (!_webviewWindow) return E_POINTER;
+    if (!platform_->webViewWindow) return E_POINTER;
 
     wil::com_ptr<ICoreWebView2Settings> settings;
-    hr = _webviewWindow->get_Settings(&settings);
+    hr = platform_->webViewWindow->get_Settings(&settings);
     if (FAILED(hr)) return hr;
     if (!settings) return E_POINTER;
 
@@ -573,30 +573,30 @@ HRESULT Photino::HandleWebViewControllerCreated(HRESULT result, ICoreWebView2Con
     if (FAILED(hr)) return hr;
 
     EventRegistrationToken webMessageToken;
-    hr = _webviewWindow->add_WebMessageReceived(
+    hr = platform_->webViewWindow->add_WebMessageReceived(
         Callback<ICoreWebView2WebMessageReceivedEventHandler>(this, &Photino::HandleWebMessageReceived)
             .Get(),
         &webMessageToken);
     if (FAILED(hr)) return hr;
 
-    hr = _webviewWindow->AddWebResourceRequestedFilter(L"*", COREWEBVIEW2_WEB_RESOURCE_CONTEXT_ALL);
+    hr = platform_->webViewWindow->AddWebResourceRequestedFilter(L"*", COREWEBVIEW2_WEB_RESOURCE_CONTEXT_ALL);
     if (FAILED(hr)) return hr;
 
     EventRegistrationToken webResourceRequestedToken;
-    hr = _webviewWindow->add_WebResourceRequested(
+    hr = platform_->webViewWindow->add_WebResourceRequested(
         Callback<ICoreWebView2WebResourceRequestedEventHandler>(this, &Photino::HandleWebResourceRequested)
             .Get(),
         &webResourceRequestedToken);
     if (FAILED(hr)) return hr;
 
     EventRegistrationToken permissionRequestedToken;
-    hr = _webviewWindow->add_PermissionRequested(
+    hr = platform_->webViewWindow->add_PermissionRequested(
         Callback<ICoreWebView2PermissionRequestedEventHandler>(this, &Photino::HandlePermissionRequested)
             .Get(),
         &permissionRequestedToken);
     if (FAILED(hr)) return hr;
 
-    hr = _webviewWindow->AddScriptToExecuteOnDocumentCreated(
+    hr = platform_->webViewWindow->AddScriptToExecuteOnDocumentCreated(
         L"window.external = { sendMessage: function(message) { window.chrome.webview.postMessage(message); }, receiveMessage: function(callback) { window.chrome.webview.addEventListener('message', function(e) { callback(e.data); }); } };",
         Callback<ICoreWebView2AddScriptToExecuteOnDocumentCreatedCompletedHandler>(this, &Photino::HandleScriptAddedOnDocumentCreated)
             .Get());
@@ -610,10 +610,10 @@ HRESULT Photino::HandleWebViewEnvironmentCreated(HRESULT result, ICoreWebView2En
     if (FAILED(result)) return result;
     if (!environment) return E_POINTER;
 
-    HRESULT hr = environment->QueryInterface(&_webviewEnvironment);
+    HRESULT hr = environment->QueryInterface(&platform_->webViewEnvironment);
     if (FAILED(hr)) return hr;
 
-    return environment->CreateCoreWebView2Controller(_hWnd,
+    return environment->CreateCoreWebView2Controller(platform_->hWnd,
                                                      Callback<ICoreWebView2CreateCoreWebView2ControllerCompletedHandler>(this, &Photino::HandleWebViewControllerCreated)
                                                          .Get());
 }
@@ -623,7 +623,7 @@ void Photino::AttachWebView()
     auto options = Microsoft::WRL::Make<CoreWebView2EnvironmentOptions>();
     if (!options)
     {
-        MessageBoxW(_hWnd, L"Failed to allocate WebView2 environment options.", L"Error configuring webview", MB_OK);
+        MessageBoxW(platform_->hWnd, L"Failed to allocate WebView2 environment options.", L"Error configuring webview", MB_OK);
         return;
     }
 
@@ -634,7 +634,7 @@ void Photino::AttachWebView()
         if (FAILED(hr))
         {
             _com_error err(hr);
-            MessageBoxW(_hWnd, err.ErrorMessage(), L"Error configuring webview", MB_OK);
+            MessageBoxW(platform_->hWnd, err.ErrorMessage(), L"Error configuring webview", MB_OK);
             return;
         }
     }
@@ -650,61 +650,61 @@ void Photino::AttachWebView()
     {
         _com_error err(envResult);
         LPCTSTR errMsg = err.ErrorMessage();
-        MessageBoxW(_hWnd, errMsg, L"Error instantiating webview", MB_OK);
+        MessageBoxW(platform_->hWnd, errMsg, L"Error instantiating webview", MB_OK);
     }
 }
 
 void Photino::RefitContent() const
 {
-    if (!_webviewController || !_hWnd)
+    if (!platform_->webViewController || !platform_->hWnd)
         return;
 
     RECT bounds{};
-    if (!GetClientRect(_hWnd, &bounds))
+    if (!GetClientRect(platform_->hWnd, &bounds))
         return;
 
-    HRESULT hr = _webviewController->put_Bounds(bounds);
+    HRESULT hr = platform_->webViewController->put_Bounds(bounds);
     assert(SUCCEEDED(hr));
 }
 
 void Photino::FocusWebView2() const
 {
-    if (_webviewController)
+    if (platform_->webViewController)
     {
-        _webviewController->MoveFocus(COREWEBVIEW2_MOVE_FOCUS_REASON_PROGRAMMATIC);
+        platform_->webViewController->MoveFocus(COREWEBVIEW2_MOVE_FOCUS_REASON_PROGRAMMATIC);
     }
 }
 
 void Photino::NotifyWebView2WindowMove() const
 {
-    if (_webviewController)
+    if (platform_->webViewController)
     {
         // MessageBox(nullptr, L"NotifyWebView2WindowMove() was called!", L"", MB_OK);
-        _webviewController->NotifyParentWindowPositionChanged();
+        platform_->webViewController->NotifyParentWindowPositionChanged();
     }
 }
 
 void Photino::CloseWebView()
 {
-    if (_webviewWindow != nullptr)
+    if (platform_->webViewWindow != nullptr)
     {
-        _webviewWindow->Stop();
-        _webviewWindow = nullptr;
+        platform_->webViewWindow->Stop();
+        platform_->webViewWindow = nullptr;
     }
 
-    if (_webviewController != nullptr)
+    if (platform_->webViewController != nullptr)
     {
-        _webviewController->Close();
-        _webviewController = nullptr;
+        platform_->webViewController->Close();
+        platform_->webViewController = nullptr;
     }
 
-    if (_webviewEnvironment != nullptr)
+    if (platform_->webViewEnvironment != nullptr)
     {
-        _webviewEnvironment = nullptr;
+        platform_->webViewEnvironment = nullptr;
     }
 
-    _webViewInitialized = false;
-    _scriptId.clear();
+    platform_->webViewInitialized = false;
+    platform_->scriptId.clear();
 }
 
 bool Photino::RegisterCustomSchemeName(const PlatformString& scheme)
