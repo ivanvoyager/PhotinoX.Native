@@ -9,6 +9,9 @@
 #include <vector>
 
 #ifdef _WIN32
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
 #include <Windows.h>
 
 struct ICoreWebView2;
@@ -17,11 +20,6 @@ struct ICoreWebView2Controller;
 struct ICoreWebView2WebMessageReceivedEventArgs;
 struct ICoreWebView2WebResourceRequestedEventArgs;
 struct ICoreWebView2PermissionRequestedEventArgs;
-#endif
-
-#if defined(__APPLE__) && defined(__OBJC__)
-@class NSString;
-@class NSNumber;
 #endif
 
 namespace PhotinoX::Native 
@@ -63,28 +61,28 @@ namespace PhotinoX::Native
         PlatformString _browserControlInitParameters;
         PlatformString _notificationRegistrationId;
 
-        bool _transparentEnabled;
-        bool _devToolsEnabled;
-        bool _grantBrowserPermissions;
+        bool _transparentEnabled = false;
+        bool _devToolsEnabled = true;
+        bool _grantBrowserPermissions = true;
 #if defined(_WIN32) || defined(__linux__)
-        bool _mediaAutoplayEnabled;
+        bool _mediaAutoplayEnabled = true;
 #endif
-        bool _fileSystemAccessEnabled;
-        bool _webSecurityEnabled;
-        bool _javascriptClipboardAccessEnabled;
-        bool _mediaStreamEnabled;
+        bool _fileSystemAccessEnabled = true;
+        bool _webSecurityEnabled = true;
+        bool _javascriptClipboardAccessEnabled = true;
+        bool _mediaStreamEnabled = true;
 #if defined(_WIN32) || defined(__linux__)
-        bool _smoothScrollingEnabled;
+        bool _smoothScrollingEnabled = true;
 #endif
-        bool _ignoreCertificateErrorsEnabled;
-        bool _notificationsEnabled;
-        bool _contextMenuEnabled;
-        bool _zoomEnabled;
+        bool _ignoreCertificateErrorsEnabled = false;
+        bool _notificationsEnabled = true;
+        bool _contextMenuEnabled = true;
+        bool _zoomEnabled = true;
         mutable bool _isClosing = false;
 
-        int _zoom;
-        bool _chromeless;
-        bool _fullScreen;
+        int _zoom = 100;
+        bool _chromeless = false;
+        bool _fullScreen = false;
 
         Photino* _parent = nullptr;
         PhotinoDialog* _dialog = nullptr;
@@ -104,7 +102,6 @@ namespace PhotinoX::Native
         bool RegisterCustomSchemeName(const PlatformString& scheme);
 
 #ifdef _WIN32
-
         PlatformString BuildStartupString() const;
         HRESULT CompleteWebViewInitialization();
         HRESULT HandleScriptAddedOnDocumentCreated(HRESULT result, LPCWSTR id);
@@ -120,12 +117,10 @@ namespace PhotinoX::Native
         void NotifyWebView2WindowMove() const;
 
 #elif defined(__linux__)
-
         void ApplyGeometryHints();
 
         void AddCustomSchemeHandlers();
         void SetWebKitSettings();
-
 #elif defined(__APPLE__)
         std::vector<Monitor> GetMonitors() const;
 
@@ -133,28 +128,19 @@ namespace PhotinoX::Native
         void AddCustomSchemeHandlers();
 
         void SetUserAgent(const PlatformString& userAgent);
-#if defined(__OBJC__)
-        bool SetPreference(NSString* key, NSNumber* value);
-        bool SetPreference(NSString* key, NSString* value);
-#endif
+        void ConfigureWebViewPreferences(const PhotinoInitParams* initParams);
 #endif
     public:
 #ifdef _WIN32
-
         void ApplySizeLimits(MINMAXINFO& info) const noexcept;
         void RefitContent() const;
         void FocusWebView2() const;
         void CloseWebView();
-
 #elif defined(__linux__)
-
         void HandleConfigureEvent(int x, int y, int width, int height);
-
 #endif
-
         Photino(PhotinoInitParams* initParams);
         ~Photino();
-
 #ifdef _WIN32
         static void Register(HINSTANCE hInstance);
         static void SetWebView2RuntimePath(const PlatformString& pathToWebView2);
@@ -163,7 +149,6 @@ namespace PhotinoX::Native
 #elif defined(__APPLE__)
         static void Register();
 #endif
-
         // Platform handles
 #ifdef _WIN32
         HWND GetHwnd() const noexcept;
@@ -172,7 +157,6 @@ namespace PhotinoX::Native
 #elif defined(__APPLE__)
         void* GetNSWindow() const noexcept;
 #endif
-
         void Close() const;
 
         // Window metadata

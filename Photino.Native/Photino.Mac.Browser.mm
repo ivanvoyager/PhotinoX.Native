@@ -11,10 +11,109 @@
 #include "Photino.Callbacks.h"
 #include "Photino.Strings.h"
 
+#include <cassert>
+
 #include "Dependencies/json.hpp"
 
 using json = nlohmann::json;
 using namespace PhotinoX::Native;
+
+namespace
+{
+    bool Photino::SetPreference(WKWebViewConfiguration* configuration, NSString* key, NSNumber* value)
+    {
+        assert(configuration && key && value);
+        if (!configuration || !key || !value) return false;
+
+        @try
+        {
+            [configuration.preferences setValue:value forKey:key];
+            return true;
+        }
+        @catch (NSException* exception)
+        {
+            return false;
+        }
+    }
+
+    bool Photino::SetPreference(WKWebViewConfiguration* configuration, NSString* key, NSString* value)
+    {
+        assert(configuration && key && value);
+        if (!configuration || !key || !value) return false;
+
+        @try
+        {
+            [configuration.preferences setValue:value forKey:key];
+            return true;
+        }
+        @catch (NSException* exception)
+        {
+            return false;
+        }
+    }
+}
+
+void Photino::ConfigureWebViewPreferences(const PhotinoInitParams* initParams)
+{
+    assert(initParams);
+    if (!initParams) return;
+
+    SetPreference(platform_->webViewConfiguration, @"developerExtrasEnabled", initParams->DevToolsEnabled ? @YES : @NO);
+    SetPreference(platform_->webViewConfiguration, @"allowFileAccessFromFileURLs", initParams->FileSystemAccessEnabled ? @YES : @NO);
+    SetPreference(platform_->webViewConfiguration, @"webSecurityEnabled", initParams->WebSecurityEnabled ? @YES : @NO);
+    SetPreference(platform_->webViewConfiguration, @"javaScriptCanAccessClipboard", initParams->JavascriptClipboardAccessEnabled ? @YES : @NO);
+    SetPreference(platform_->webViewConfiguration, @"mediaStreamEnabled", initParams->MediaStreamEnabled ? @YES : @NO);
+
+    SetPreference(platform_->webViewConfiguration, @"mediaDevicesEnabled", @YES);
+    SetPreference(platform_->webViewConfiguration, @"mediaCaptureRequiresSecureConnection", @NO);
+
+    if ([NSProcessInfo.processInfo isOperatingSystemAtLeastVersion:NSOperatingSystemVersion({13, 3, 0})])
+    {
+        SetPreference(platform_->webViewConfiguration, @"notificationEventEnabled", @YES);
+    }
+
+    SetPreference(platform_->webViewConfiguration, @"notificationsEnabled", @YES);
+    SetPreference(platform_->webViewConfiguration, @"screenCaptureEnabled", @YES);
+
+    if (_browserControlInitParameters.empty())
+        return;
+
+    json wkPreferences = json::parse(_browserControlInitParameters, nullptr, false);
+    if (wkPreferences.is_discarded() || !wkPreferences.is_object())
+        std::abort();
+
+    for (json::iterator it = wkPreferences.begin(); it != wkPreferences.end(); ++it)
+    {
+        std::string key = it.key();
+        json value = it.value();
+
+        NSString* preferenceKey = [NSString stringWithUTF8String:key.c_str()];
+        if (!preferenceKey) continue;
+
+        if (value.is_number_integer())
+        {
+            SetPreference(platform_->webViewConfiguration, preferenceKey, [NSNumber numberWithInt:value.get<int>()]);
+        }
+        else if (value.is_number_float())
+        {
+            SetPreference(platform_->webViewConfiguration, preferenceKey, [NSNumber numberWithDouble:value.get<double>()]);
+        }
+        else if (value.is_boolean())
+        {
+            SetPreference(platform_->webViewConfiguration, preferenceKey, [NSNumber numberWithBool:value.get<bool>()]);
+        }
+        else if (value.is_string())
+        {
+            std::string stringValue = value.get<std::string>();
+            NSString* preferenceValue = [[NSString alloc] initWithUTF8String:stringValue.c_str()];
+            if (preferenceValue)
+            {
+                SetPreference(platform_->webViewConfiguration, preferenceKey, preferenceValue);
+                [preferenceValue release];
+            }
+        }
+    }
+}
 
 void Photino::GetTransparentEnabled(bool* enabled) const
 {
@@ -151,7 +250,7 @@ void Photino::SetDevToolsEnabled(bool enabled)
 {
     _devToolsEnabled = enabled;
 
-    SetPreference(@"developerExtrasEnabled", enabled ? @YES : @NO);
+    SetPreference(platform_->webViewConfiguration, @"developerExtrasEnabled", enabled ? @YES : @NO);
 }
 
 void Photino::GetGrantBrowserPermissions(bool* enabled) const
@@ -230,39 +329,6 @@ void Photino::SetUserAgent(const PlatformString& userAgent)
     if (!nsUserAgent) return;
 
     [platform_->webView setCustomUserAgent:nsUserAgent];
-}
-
-// Set preferences with a string key and a value of any type
-bool Photino::SetPreference(NSString* key, NSNumber* value)
-{
-    assert(platform_->webViewConfiguration && key && value);
-    if (!platform_->webViewConfiguration || !key || !value) return false;
-
-    @try
-    {
-        [platform_->webViewConfiguration.preferences setValue:value forKey:key];
-        return true;
-    }
-    @catch (NSException* exception)
-    {
-        return false;
-    }
-}
-
-bool Photino::SetPreference(NSString* key, NSString* value)
-{
-    assert(platform_->webViewConfiguration && key && value);
-    if (!platform_->webViewConfiguration || !key || !value) return false;
-
-    @try
-    {
-        [platform_->webViewConfiguration.preferences setValue:value forKey:key];
-        return true;
-    }
-    @catch (NSException* exception)
-    {
-        return false;
-    }
 }
 
 void Photino::AddCustomSchemeHandlers()

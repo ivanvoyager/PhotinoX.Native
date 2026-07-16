@@ -23,9 +23,6 @@
 #include <mutex>
 #include <vector>
 
-#include "Dependencies/json.hpp"
-
-using json = nlohmann::json;
 using namespace PhotinoX::Native;
 
 namespace
@@ -307,63 +304,7 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Mac
         AddCustomSchemeHandlers();
 
         // Set initialized WebKit (Configuration) options
-        SetPreference(@"developerExtrasEnabled", initParams->DevToolsEnabled ? @YES : @NO);
-        SetPreference(@"allowFileAccessFromFileURLs", initParams->FileSystemAccessEnabled ? @YES : @NO);
-        SetPreference(@"webSecurityEnabled", initParams->WebSecurityEnabled ? @YES : @NO);
-        SetPreference(@"javaScriptCanAccessClipboard", initParams->JavascriptClipboardAccessEnabled ? @YES : @NO);
-        SetPreference(@"mediaStreamEnabled", initParams->MediaStreamEnabled ? @YES : @NO);
-
-        SetPreference(@"mediaDevicesEnabled", @YES);
-        SetPreference(@"mediaCaptureRequiresSecureConnection", @NO);
-
-        if ([NSProcessInfo.processInfo isOperatingSystemAtLeastVersion: NSOperatingSystemVersion({13, 3, 0})])
-        {
-            SetPreference(@"notificationEventEnabled", @YES);
-        }
-
-        SetPreference(@"notificationsEnabled", @YES);
-        SetPreference(@"screenCaptureEnabled", @YES);
-
-        if (!_browserControlInitParameters.empty())
-        {
-            // Set initialized WebKit (Configuration) options
-            json wkPreferences = json::parse(_browserControlInitParameters, nullptr, false);
-            if (wkPreferences.is_discarded() || !wkPreferences.is_object())
-                std::abort();
-
-            // Iterate over wkPreferences json object and set preferences
-            for (json::iterator it = wkPreferences.begin(); it != wkPreferences.end(); ++it)
-            {
-                std::string key = it.key();
-                json value = it.value();
-            
-                NSString* preferenceKey = [NSString stringWithUTF8String:key.c_str()];
-                if (!preferenceKey) continue;
-
-                if (value.is_number_integer())
-                {
-                    SetPreference(preferenceKey, [NSNumber numberWithInt:value.get<int>()]);
-                }
-                else if (value.is_number_float())
-                {
-                    SetPreference(preferenceKey, [NSNumber numberWithDouble:value.get<double>()]);
-                }
-                else if (value.is_boolean())
-                {
-                    SetPreference(preferenceKey, [NSNumber numberWithBool:value.get<bool>()]);
-                }
-                else if (value.is_string())
-                {
-                    std::string stringValue = value.get<std::string>();
-                    NSString* preferenceValue = [[NSString alloc] initWithUTF8String:stringValue.c_str()];
-                    if (preferenceValue)
-                    {
-                        SetPreference(preferenceKey, preferenceValue);
-                        [preferenceValue release];
-                    }
-                }
-            }
-        }
+        ConfigureWebViewPreferences(initParams);
 
         // Create WebView
         AttachWebView();
