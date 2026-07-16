@@ -617,6 +617,55 @@ HRESULT Photino::HandleWebViewEnvironmentCreated(HRESULT result, ICoreWebView2En
                                                      Callback<ICoreWebView2CreateCoreWebView2ControllerCompletedHandler>(this, &Photino::HandleWebViewControllerCreated)
                                                          .Get());
 }
+//https://learn.microsoft.com/en-us/microsoft-edge/webview2/reference/winrt/microsoft_web_webview2_core/corewebview2customschemeregistration?view=webview2-winrt-1.0.4022.49
+//https://learn.microsoft.com/ru-ru/microsoft-edge/webview2/reference/win32/icorewebview2environmentoptions4?view=webview2-1.0.4078.44
+HRESULT Photino::ConfigureCustomSchemeRegistrations(ICoreWebView2EnvironmentOptions* options) const
+{
+    if (!options)
+        return E_POINTER;
+
+    if (customSchemeNames_.empty())
+        return S_OK;
+
+    ComPtr<ICoreWebView2EnvironmentOptions4> options4;
+    HRESULT hr = options->QueryInterface(IID_PPV_ARGS(&options4));
+    if (FAILED(hr))
+        return hr;
+
+    std::vector<ComPtr<CoreWebView2CustomSchemeRegistration>> registrations;
+    std::vector<ICoreWebView2CustomSchemeRegistration*> rawRegistrations;
+
+    registrations.reserve(customSchemeNames_.size());
+    rawRegistrations.reserve(customSchemeNames_.size());
+
+    for (const auto& scheme : customSchemeNames_)
+    {
+        if (scheme.empty())
+            continue;
+
+        auto registration = Make<CoreWebView2CustomSchemeRegistration>(scheme.c_str());
+        if (!registration)
+            return E_OUTOFMEMORY;
+
+        hr = registration->put_HasAuthorityComponent(TRUE);
+        if (FAILED(hr))
+            return hr;
+
+        hr = registration->put_TreatAsSecure(TRUE);
+        if (FAILED(hr))
+            return hr;
+
+        rawRegistrations.push_back(registration.Get());
+        registrations.push_back(std::move(registration));
+    }
+
+    if (rawRegistrations.empty())
+        return S_OK;
+
+    return options4->SetCustomSchemeRegistrations(
+        static_cast<UINT32>(rawRegistrations.size()),
+        rawRegistrations.data());
+}
 
 void Photino::AttachWebView()
 {
@@ -637,6 +686,14 @@ void Photino::AttachWebView()
             MessageBoxW(platform_->hWnd, err.ErrorMessage(), L"Error configuring webview", MB_OK);
             return;
         }
+    }
+
+    HRESULT hr = ConfigureCustomSchemeRegistrations(options.Get());
+    if (FAILED(hr))
+    {
+        _com_error err(hr);
+        MessageBoxW(platform_->hWnd, err.ErrorMessage(), L"Error configuring custom schemes", MB_OK);
+        return;
     }
 
     PCWSTR runtimePath = g_webview2RuntimePath.empty() ? nullptr : g_webview2RuntimePath.c_str();
@@ -709,7 +766,10 @@ void Photino::CloseWebView()
 
 bool Photino::RegisterCustomSchemeName(const PlatformString& scheme)
 {
-    return true;
+    return !platform_->webViewEnvironment &&
+           !platform_->webViewController &&
+           !platform_->webViewWindow &&
+           !platform_->webViewInitialized;
 }
 
 void Photino::SetWebView2RuntimePath(const PlatformString& pathToWebView2)

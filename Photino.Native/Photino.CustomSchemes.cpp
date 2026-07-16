@@ -45,5 +45,10 @@ bool Photino::AddCustomSchemeName(Utf8String scheme)
 
     customSchemeNames_.emplace_back(std::move(nativeScheme));
 
-    return RegisterCustomSchemeName(customSchemeNames_.back());
+    if (!RegisterCustomSchemeName(customSchemeNames_.back()))
+    {
+        customSchemeNames_.pop_back();
+        return false;
+    }
+    return true;
 }

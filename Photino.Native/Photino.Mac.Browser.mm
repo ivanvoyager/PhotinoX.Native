@@ -362,11 +362,13 @@ void Photino::AddCustomSchemeHandlers()
 
 bool Photino::RegisterCustomSchemeName(const PlatformString& scheme)
 {
-    if (!platform_->webViewConfiguration) return true;
+    if (scheme.empty())
+        return false;
 
-    if (platform_->webView) return false;
+    if (!platform_->webViewConfiguration)
+        return true;
 
-    return true;
+    return platform_->webView == nil;
 }
 
 void Photino::AttachWebView()
