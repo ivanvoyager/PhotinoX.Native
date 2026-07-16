@@ -19,7 +19,7 @@ struct ICoreWebView2WebResourceRequestedEventArgs;
 struct ICoreWebView2PermissionRequestedEventArgs;
 #endif
 
-#ifdef __OBJC__
+#if defined(__APPLE__) && defined(__OBJC__)
 @class NSString;
 @class NSNumber;
 #endif
@@ -252,7 +252,7 @@ namespace PhotinoX::Native
         void GetSmoothScrollingEnabled(bool* enabled) const;
         void GetIgnoreCertificateErrorsEnabled(bool* enabled) const;
 
-        //App
+        // App
         void GetNotificationsEnabled(bool* enabled) const;
         void ShowNotification(const PlatformString& title, const PlatformString& message) const;
         void WaitForExit() const;
@@ -270,50 +270,15 @@ namespace PhotinoX::Native
 
         void Invoke(InvokeCallback callback) const;
 
-        bool InvokeClosing() const noexcept
-        {
-            if (!_closingCallback || _isClosing)
-                return false;
-
-            _isClosing = true;
-            bool result = _closingCallback();
-            _isClosing = false;
-
-            return result;
-        }
-
-        void InvokeClose() const noexcept
-        {
-            if (_closedCallback) _closedCallback();
-        }
-        void InvokeFocusIn() const noexcept
-        {
-            if (_focusInCallback) _focusInCallback();
-        }
-        void InvokeFocusOut() const noexcept
-        {
-            if (_focusOutCallback) _focusOutCallback();
-        }
-        void InvokeMove(int x, int y) const noexcept
-        {
-            if (_movedCallback) _movedCallback(x, y);
-        }
-        void InvokeResize(int width, int height) const noexcept
-        {
-            if (_resizedCallback) _resizedCallback(width, height);
-        }
-        void InvokeMaximized() const noexcept
-        {
-            if (_maximizedCallback) _maximizedCallback();
-        }
-        void InvokeRestored() const noexcept
-        {
-            if (_restoredCallback) _restoredCallback();
-        }
-        void InvokeMinimized() const noexcept
-        {
-            if (_minimizedCallback) _minimizedCallback();
-        }
+        bool InvokeClosing() const noexcept;
+        void InvokeClose() const noexcept;
+        void InvokeFocusIn() const noexcept;
+        void InvokeFocusOut() const noexcept;
+        void InvokeMove(int x, int y) const noexcept;
+        void InvokeResize(int width, int height) const noexcept;
+        void InvokeMaximized() const noexcept;
+        void InvokeRestored() const noexcept;
+        void InvokeMinimized() const noexcept;
     };
 
 } // namespace PhotinoX::Native

@@ -283,6 +283,7 @@
     <ClCompile Include="Dependencies\wintoastlib.cpp" />
     <None Include="Photino.Linux.Window.cpp" />
     <None Include="Photino.Linux.Browser.cpp" />
+    <ClCompile Include="Photino.Callbacks.cpp" />
     <ClCompile Include="Photino.CustomSchemes.cpp" />
     <ClCompile Include="Photino.Windows.Browser.cpp" />
     <ClCompile Include="Photino.Windows.Window.cpp" />
