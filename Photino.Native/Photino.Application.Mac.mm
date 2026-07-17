@@ -75,7 +75,7 @@ bool PhotinoApplication::Invoke(InvokeCallback callback) const
     return true;
 }
 
-bool PhotinoApplication::BeginInvoke(InvokeCallback callback) const
+bool PhotinoApplication::BeginInvoke(InvokeStateCallback callback, void* state) const
 {
     assert(callback);
 
@@ -83,8 +83,7 @@ bool PhotinoApplication::BeginInvoke(InvokeCallback callback) const
         return false;
 
     dispatch_async(dispatch_get_main_queue(), ^{
-        if (!PhotinoApplication::Instance().IsShuttingDown())
-            callback();
+        callback(state);
     });
 
     return true;

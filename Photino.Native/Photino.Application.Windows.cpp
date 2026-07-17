@@ -11,7 +11,8 @@ namespace
 {
     constexpr wchar_t ApplicationWindowClassName[] = L"PhotinoXApplicationWindow";
     constexpr UINT WM_PHOTINO_INVOKE = WM_APP + 1;
-    constexpr UINT WM_PHOTINO_SHUTDOWN = WM_APP + 2;
+    constexpr UINT WM_PHOTINO_INVOKE_STATE = WM_APP + 2;
+    constexpr UINT WM_PHOTINO_SHUTDOWN = WM_APP + 3;
 
     std::atomic<DWORD> g_uiThreadId{0};
     std::atomic<HWND> g_messageWindow{nullptr};
@@ -27,8 +28,22 @@ namespace
 
             if (!callback)
                 return FALSE;
-                
+
             callback();
+
+            return TRUE;
+        }
+
+        case WM_PHOTINO_INVOKE_STATE:
+        {
+            auto callback = reinterpret_cast<InvokeStateCallback>(wParam);
+            assert(callback);
+
+            if (!callback)
+                return FALSE;
+
+            auto state = reinterpret_cast<void*>(lParam);
+            callback(state);
 
             return TRUE;
         }
@@ -142,7 +157,7 @@ bool PhotinoApplication::Invoke(InvokeCallback callback) const
     if (currentThreadId == g_uiThreadId.load(std::memory_order_acquire))
     {
         callback();
-        return false;
+        return true;
     }
 
     if (!IsRunning())
@@ -155,7 +170,7 @@ bool PhotinoApplication::Invoke(InvokeCallback callback) const
     return SendMessageW(messageWindow, WM_PHOTINO_INVOKE, reinterpret_cast<WPARAM>(callback), 0) == TRUE;
 }
 
-bool PhotinoApplication::BeginInvoke(InvokeCallback callback) const
+bool PhotinoApplication::BeginInvoke(InvokeStateCallback callback, void* state) const
 {
     assert(callback);
 
@@ -166,5 +181,9 @@ bool PhotinoApplication::BeginInvoke(InvokeCallback callback) const
     if (!messageWindow || !IsWindow(messageWindow))
         return false;
 
-    return PostMessageW(messageWindow, WM_PHOTINO_INVOKE, reinterpret_cast<WPARAM>(callback), 0) != FALSE;
+    return PostMessageW(
+               messageWindow,
+               WM_PHOTINO_INVOKE_STATE,
+               reinterpret_cast<WPARAM>(callback),
+               reinterpret_cast<LPARAM>(state)) != FALSE;
 }
