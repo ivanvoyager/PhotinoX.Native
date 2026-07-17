@@ -1,27 +1,91 @@
-
 #include "Photino.Application.h"
+
+#import <Cocoa/Cocoa.h>
+
+#include <cassert>
 
 using namespace PhotinoX::Native;
 
+namespace
+{
+    void StopApplicationLoop()
+    {
+        [NSApp stop:nil];
+
+        NSEvent* event = [NSEvent otherEventWithType:NSEventTypeApplicationDefined
+                                            location:NSZeroPoint
+                                       modifierFlags:0
+                                           timestamp:0
+                                        windowNumber:0
+                                             context:nil
+                                             subtype:0
+                                               data1:0
+                                               data2:0];
+
+        [NSApp postEvent:event atStart:NO];
+    }
+}
+
 int PhotinoApplication::RunCore()
 {
-    // TODO: Run NSApplication loop.
-    return exitCode_.load(std::memory_order_acquire);
+    assert([NSThread isMainThread]);
+    if (![NSThread isMainThread])
+        return -1;
+
+    @autoreleasepool
+    {
+        [NSApp run];
+        return exitCode_.load(std::memory_order_acquire);
+    }
 }
 
 void PhotinoApplication::ShutdownCore(int exitCode) noexcept
 {
+    if ([NSThread isMainThread])
+    {
+        StopApplicationLoop();
+        return;
+    }
 
+    dispatch_async(dispatch_get_main_queue(), ^{
+        StopApplicationLoop();
+    });
 }
 
 bool PhotinoApplication::Invoke(InvokeCallback callback) const
 {
-    // TODO: Dispatch through main dispatch queue.
-    return false;
+    assert(callback);
+
+    if (!callback || IsShuttingDown())
+        return false;
+
+    if ([NSThread isMainThread])
+    {
+        callback();
+        return true;
+    }
+
+    if (!IsRunning())
+        return false;
+
+    dispatch_sync(dispatch_get_main_queue(), ^{
+        callback();
+    });
+
+    return true;
 }
 
 bool PhotinoApplication::BeginInvoke(InvokeCallback callback) const
 {
-    // TODO: Dispatch through main dispatch queue.
-    return false;
+    assert(callback);
+
+    if (!callback || IsShuttingDown() || !IsRunning())
+        return false;
+
+    dispatch_async(dispatch_get_main_queue(), ^{
+        if (!PhotinoApplication::Instance().IsShuttingDown())
+            callback();
+    });
+
+    return true;
 }

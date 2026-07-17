@@ -15,6 +15,7 @@
 #include "Photino.Callbacks.h"
 #include "Photino.Dialog.h"
 #include "Photino.Strings.h"
+#include "Photino.Application.h"
 
 #include <algorithm>
 #include <atomic>
@@ -24,45 +25,6 @@
 #include <vector>
 
 using namespace PhotinoX::Native;
-
-namespace
-{
-    std::atomic_bool g_messageLoopRunning{ false };
-    std::atomic_bool g_isShuttingDown{ false };
-    Photino* g_messageLoopOwner = nullptr;
-}
-
-bool PhotinoMacIsShuttingDown()
-{
-    return g_isShuttingDown.load(std::memory_order_acquire);
-}
-
-void PhotinoMacSetShuttingDown(bool value)
-{
-    g_isShuttingDown.store(value, std::memory_order_release);
-}
-
-void PhotinoMacStopMessageLoopIfOwner(PhotinoX::Native::Photino* owner)
-{
-    if (owner != g_messageLoopOwner) return;
-
-    g_isShuttingDown.store(true, std::memory_order_release);
-    g_messageLoopOwner = nullptr;
-
-    [NSApp stop:nil];
-
-    NSEvent* event = [NSEvent otherEventWithType:NSEventTypeApplicationDefined
-                                        location:NSZeroPoint
-                                   modifierFlags:0
-                                       timestamp:0
-                                    windowNumber:0
-                                         context:nil
-                                         subtype:0
-                                           data1:0
-                                           data2:0];
-
-    [NSApp postEvent:event atStart:NO];
-}
 
 //Creates an instance of the 'application' under which, all windows will run
 //Only called once!
@@ -374,39 +336,14 @@ void Photino::ShowNotification(const PlatformString& title, const PlatformString
 
 void Photino::WaitForExit() const
 {
-    bool expected = false;
-    if (!g_messageLoopRunning.compare_exchange_strong(expected, true, std::memory_order_acq_rel)) return;
-
-    g_isShuttingDown.store(false, std::memory_order_release);
-    g_messageLoopOwner = const_cast<Photino*>(this);
-
-    [NSApp run];
-
-    g_messageLoopOwner = nullptr;
-    g_isShuttingDown.store(true, std::memory_order_release);
-    g_messageLoopRunning.store(false, std::memory_order_release);
+    PhotinoApplication::Instance().Run();
 }
 
 //Callbacks
 
 void Photino::Invoke(InvokeCallback callback) const
 {
-    assert(callback);
-    if (!callback) return;
-
-    if (g_isShuttingDown.load(std::memory_order_acquire)) return;
-
-    if ([NSThread isMainThread])
-    {
-        callback();
-        return;
-    }
-
-    if (!g_messageLoopRunning.load(std::memory_order_acquire)) return;
-
-    dispatch_sync(dispatch_get_main_queue(), ^{
-        callback();
-    });
+    PhotinoApplication::Instance().Invoke(callback);
 }
 
 void Photino::Show()

@@ -145,6 +145,9 @@ bool PhotinoApplication::Invoke(InvokeCallback callback) const
         return false;
     }
 
+    if (!IsRunning())
+        return false;
+
     HWND messageWindow = g_messageWindow.load(std::memory_order_acquire);
     if (!messageWindow || !IsWindow(messageWindow))
         return false;
@@ -154,7 +157,9 @@ bool PhotinoApplication::Invoke(InvokeCallback callback) const
 
 bool PhotinoApplication::BeginInvoke(InvokeCallback callback) const
 {
-    if (!callback || IsShuttingDown())
+    assert(callback);
+
+    if (!callback || IsShuttingDown() || !IsRunning())
         return false;
 
     HWND messageWindow = g_messageWindow.load(std::memory_order_acquire);
