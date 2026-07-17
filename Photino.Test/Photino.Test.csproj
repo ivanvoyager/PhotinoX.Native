@@ -45,9 +45,11 @@
     <Compile Include="$(PhotinoNetSourceDir)\NativeMethods.Memory.cs" Link="NativeMethods.Memory.cs" />
     <Compile Include="$(PhotinoNetSourceDir)\NativeMethods.Window.cs" Link="NativeMethods.Window.cs" />
     <Compile Include="$(PhotinoNetSourceDir)\PhotinoMonitorStruct.cs" Link="PhotinoMonitorStruct.cs" />
-    <Compile Include="$(PhotinoNetSourceDir)\PhotinoNativeDelegates.cs" Link="PhotinoNativeDelegates.cs" />
+    <Compile Include="$(PhotinoNetSourceDir)\NativeDelegates.cs" Link="NativeDelegates.cs" />
     <Compile Include="$(PhotinoNetSourceDir)\PhotinoNativeParameters.cs" Link="PhotinoNativeParameters.cs" />
-    <Compile Include="$(PhotinoNetSourceDir)\PhotinoNetDelegates.cs" Link="PhotinoNetDelegates.cs" />
+    <Compile Include="$(PhotinoNetSourceDir)\PhotinoWindow.CustomSchemes.cs" Link="PhotinoWindow.CustomSchemes.cs" />
+    <Compile Include="$(PhotinoNetSourceDir)\PhotinoWindow.Dialogs.cs" Link="PhotinoWindow.Dialogs.cs" />
+    <Compile Include="$(PhotinoNetSourceDir)\PhotinoWindow.Events.cs" Link="PhotinoWindow.Events.cs" />
     <Compile Include="$(PhotinoNetSourceDir)\PhotinoWindow.cs" Link="PhotinoWindow.cs" />
   </ItemGroup>
 
