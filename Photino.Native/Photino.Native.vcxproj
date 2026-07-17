@@ -277,6 +277,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Exports.Application.cpp" />
     <ClCompile Include="Exports.Callbacks.cpp" />
     <ClCompile Include="Exports.Browser.cpp" />
     <ClCompile Include="Exports.cpp" />

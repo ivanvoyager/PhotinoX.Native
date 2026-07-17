@@ -4,18 +4,14 @@
 #include "Photino.Windows.DarkMode.h"
 #include "Photino.Windows.State.h"
 #include "Photino.Windows.ToastHandler.h"
+#include "Photino.Application.h"
 
 #include <algorithm>
-#include <atomic>
 #include <cassert>
-#include <comdef.h>
 #include <map>
 #include <memory>
-#include <mutex>
 
 #include <Windows.h>
-
-#define WM_USER_INVOKE (WM_USER + 0x0002)
 
 using namespace WinToastLib;
 using namespace PhotinoX::Native;
@@ -27,9 +23,6 @@ namespace
     constexpr LPCWSTR CLASS_NAME = L"PhotinoX";
 
     HINSTANCE g_hInstance = nullptr;
-    std::atomic g_messageLoopRunning{ false };
-    HWND g_uiThreadWindowHandle = nullptr;
-    std::atomic g_isShuttingDown{ false };
     std::map<HWND, Photino*> g_hwndToPhotino;
 }
 
@@ -42,7 +35,10 @@ void Photino::Register(const HINSTANCE hInstance)
 {
     InitDarkModeSupport();
 
+    //g_hInstance = GetModuleHandleW(nullptr);
     g_hInstance = hInstance;
+
+    assert(g_hInstance == GetModuleHandleW(nullptr));
 
     // Register the window class
     WNDCLASSEX wcx;
@@ -318,7 +314,7 @@ LRESULT CALLBACK WindowProc(const HWND hwnd, const UINT uMsg, const WPARAM wPara
         {
             const auto photino = it->second;
 
-            if (!g_isShuttingDown.load(std::memory_order_acquire))
+            if (!PhotinoApplication::Instance().IsShuttingDown())
             {
                 if (photino && photino->InvokeClosing())
                     return 0;
@@ -343,14 +339,6 @@ LRESULT CALLBACK WindowProc(const HWND hwnd, const UINT uMsg, const WPARAM wPara
             }
         }
 
-        if (hwnd == g_uiThreadWindowHandle)
-        {
-            g_isShuttingDown.store(true, std::memory_order_release);
-            g_uiThreadWindowHandle = nullptr;
-
-            PostQuitMessage(0);
-        }
-
         return 0;
     }
 
@@ -363,17 +351,6 @@ LRESULT CALLBACK WindowProc(const HWND hwnd, const UINT uMsg, const WPARAM wPara
 
             delete photino;
         }
-
-        return 0;
-    }
-
-    case WM_USER_INVOKE:
-    {
-        auto callback = reinterpret_cast<InvokeCallback>(wParam);
-        assert(callback);
-
-        if (callback)
-            callback();
 
         return 0;
     }
@@ -474,54 +451,15 @@ void Photino::ShowNotification(const PlatformString& title, const PlatformString
     assert(result >= 0);
 }
 
+[[deprecated("Use PhotinoApplication::Run instead.")]]
 void Photino::WaitForExit() const
 {
-    assert(platform_->hWnd);
-    if (!platform_->hWnd) return;
-
-    bool expected = false;
-    if (!g_messageLoopRunning.compare_exchange_strong(expected, true, std::memory_order_acq_rel)) return;
-
-    g_isShuttingDown.store(false, std::memory_order_release);
-    g_uiThreadWindowHandle = platform_->hWnd;
-
-    // Run the message loop
-    MSG msg{};
-    while (true)
-    {
-        int result = GetMessageW(&msg, nullptr, 0, 0);
-        if (result <= 0)        // 0 - WM_QUIT, -1 - error
-            break;
-
-        TranslateMessage(&msg);
-        DispatchMessageW(&msg);
-    }
-
-    g_uiThreadWindowHandle = nullptr;
-    g_isShuttingDown.store(true, std::memory_order_release);
-    g_messageLoopRunning.store(false, std::memory_order_release);
+    PhotinoApplication::Instance().Run();
 }
 
 void Photino::Invoke(InvokeCallback callback) const
 {
-    assert(platform_->hWnd && callback);
-    if (!platform_->hWnd || !callback) return;
-
-    if (g_isShuttingDown.load(std::memory_order_acquire)) return;
-
-    DWORD windowThreadId = GetWindowThreadProcessId(platform_->hWnd, nullptr);
-    DWORD currentThreadId = GetCurrentThreadId();
-    if (windowThreadId == currentThreadId)
-    {
-        callback();
-        return;
-    }
-
-    if (!IsWindow(platform_->hWnd))
-        return;
-
-    // Block until the callback is actually executed and completed
-    LRESULT result = SendMessageW(platform_->hWnd, WM_USER_INVOKE, reinterpret_cast<WPARAM>(callback), 0);
+    PhotinoApplication::Instance().Invoke(callback);
 }
 
 void Photino::Show()

@@ -31,7 +31,12 @@ int PhotinoApplication::Run()
 
     try
     {
-        return RunCore();
+        int exitCode = RunCore();
+
+        isShuttingDown_.store(true, std::memory_order_release);
+        isRunning_.store(false, std::memory_order_release);
+
+        return exitCode;
     }
     catch (...)
     {
@@ -45,4 +50,6 @@ void PhotinoApplication::Shutdown(int exitCode) noexcept
 {
     exitCode_.store(exitCode, std::memory_order_release);
     isShuttingDown_.store(true, std::memory_order_release);
+
+    ShutdownCore(exitCode);
 }

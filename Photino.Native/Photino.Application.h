@@ -15,6 +15,7 @@ class PhotinoApplication final
 
     PhotinoApplication() = default;
     int RunCore();
+    void ShutdownCore(int exitCode) noexcept;
   public:
     static PhotinoApplication& Instance();
 
@@ -27,7 +28,7 @@ class PhotinoApplication final
     int Run();
     void Shutdown(int exitCode = 0) noexcept;
 
-    void Invoke(InvokeCallback callback) const;
-    void BeginInvoke(InvokeCallback callback) const;
+    bool Invoke(InvokeCallback callback) const;
+    bool BeginInvoke(InvokeCallback callback) const;
 };
 } // namespace PhotinoX::Native

@@ -67,6 +67,7 @@ build-photino-mac-universal: | $(DEST_PATH_X64)
 		$(SRC)/Photino.Mac.Window.mm \
 		$(SRC)/Photino.Mac.mm \
 		$(SRC)/Exports.cpp \
+		$(SRC)/Exports.Application.cpp \
 		$(SRC)/Exports.Browser.cpp \
 		$(SRC)/Exports.Callbacks.cpp \
 		$(SRC)/Exports.Dialogs.mm \
@@ -95,6 +96,7 @@ build-photino-linux-x64: | $(DEST_PATH_X64)
 		$(SRC)/Photino.Memory.cpp \
 		$(SRC)/Photino.Strings.cpp \
 		$(SRC)/Exports.cpp \
+		$(SRC)/Exports.Application.cpp \
 		$(SRC)/Exports.Browser.cpp \
 		$(SRC)/Exports.Callbacks.cpp \
 		$(SRC)/Exports.Dialogs.cpp \
@@ -118,6 +120,7 @@ build-photino-linux-arm64: | $(DEST_PATH_ARM64)
 		$(SRC)/Photino.Memory.cpp \
 		$(SRC)/Photino.Strings.cpp \
 		$(SRC)/Exports.cpp \
+		$(SRC)/Exports.Application.cpp \
 		$(SRC)/Exports.Browser.cpp \
 		$(SRC)/Exports.Callbacks.cpp \
 		$(SRC)/Exports.Dialogs.cpp \
