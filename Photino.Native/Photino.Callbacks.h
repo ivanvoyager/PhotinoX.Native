@@ -6,6 +6,7 @@
 namespace PhotinoX::Native
 {
     using VoidCallback = void (*)();
+    using VoidStateCallback = void (*)(void* state);
     using BoolCallback = bool (*)();
     using IntIntCallback = void (*)(int, int);  // Resized, Moved
     using StringCallback = void (*)(Utf8String);
@@ -13,6 +14,7 @@ namespace PhotinoX::Native
     using MonitorCallback = int (*)(const Monitor*);
 
     using InvokeCallback = VoidCallback;
+    using InvokeStateCallback = VoidStateCallback;
 
     //no parameters, no return value
     using MaximizedCallback = VoidCallback;

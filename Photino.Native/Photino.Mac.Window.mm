@@ -1,5 +1,6 @@
 #import <AppKit/AppKit.h>
 
+#include "Photino.Application.h"
 #include "Photino.h"
 #include "Photino.Mac.Internal.h"
 #include "Photino.Mac.State.h"
@@ -20,7 +21,7 @@ void Photino::Close() const
 
     if (options_.chromeless)
     {
-        if (!PhotinoMacIsShuttingDown() && InvokeClosing())
+        if (!PhotinoApplication::Instance().IsShuttingDown() && InvokeClosing())
             return;
         // Can't use performClose because frame has no title area and close button
         [platform_->window close];

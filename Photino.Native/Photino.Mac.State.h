@@ -12,8 +12,6 @@
 
 namespace PhotinoX::Native
 {
-    class Photino;
-
     struct MacState
     {
         NSWindow* window = nil;
@@ -26,10 +24,5 @@ namespace PhotinoX::Native
         NavigationDelegate* navigationDelegate = nil;
     };
 }
-
-bool PhotinoMacIsShuttingDown();
-void PhotinoMacSetShuttingDown(bool value);
-
-void PhotinoMacStopMessageLoopIfOwner(PhotinoX::Native::Photino* owner);
 
 #endif

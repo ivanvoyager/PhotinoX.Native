@@ -1,6 +1,7 @@
 #ifdef __APPLE__
 #import "Photino.Mac.WindowDelegate.h"
 
+#include "Photino.Application.h"
 #include "Photino.h"
 #include "Photino.Mac.State.h"
 
@@ -62,7 +63,7 @@ using namespace PhotinoX::Native;
 - (BOOL)windowShouldClose:(NSWindow*)sender {
     if (!photino) return YES;
 
-    if (PhotinoMacIsShuttingDown()) return YES;
+    if (PhotinoApplication::Instance().IsShuttingDown()) return YES;
 
     bool doNotClose = photino->InvokeClosing();
     return doNotClose ? NO : YES;
@@ -78,8 +79,6 @@ using namespace PhotinoX::Native;
 
     NSWindow* window = (NSWindow*)notification.object;
     [window setDelegate:nil];
-
-    PhotinoMacStopMessageLoopIfOwner(instance);
 
     dispatch_async(dispatch_get_main_queue(), ^{
         delete instance;

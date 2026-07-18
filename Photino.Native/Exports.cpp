@@ -52,20 +52,4 @@ extern "C"
         instance->ShowNotification(ToPlatformString(title), ToPlatformString(body));
 
     }
-
-    PHOTINO_EXPORT void Photino_WaitForExit(const Photino* instance)
-    {
-        assert(instance);
-        if (!instance) return;
-
-        instance->WaitForExit();
-    }
-
-    PHOTINO_EXPORT void Photino_Invoke(const Photino* instance, const InvokeCallback callback)
-    {
-        assert(instance);
-        if (!instance || !callback) return;
-
-        instance->Invoke(callback);
-    }
 }

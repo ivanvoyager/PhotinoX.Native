@@ -60,6 +60,21 @@
     <ClCompile Include="Photino.CustomSchemes.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Photino.Callbacks.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Photino.Initialization.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Photino.Application.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Photino.Application.Windows.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Photino.Application.Linux.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="Photino.Mac.AppDelegate.mm">
@@ -106,6 +121,9 @@
       <Filter>Source Files</Filter>
     </None>
     <None Include="Photino.Mac.Browser.mm">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="Photino.Application.Mac.mm">
       <Filter>Source Files</Filter>
     </None>
   </ItemGroup>
@@ -186,6 +204,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Photino.Windows.State.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Photino.Options.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Photino.Application.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

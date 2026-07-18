@@ -277,12 +277,17 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Exports.Application.cpp" />
     <ClCompile Include="Exports.Callbacks.cpp" />
     <ClCompile Include="Exports.Browser.cpp" />
     <ClCompile Include="Exports.cpp" />
     <ClCompile Include="Dependencies\wintoastlib.cpp" />
+    <None Include="Photino.Application.Mac.mm" />
     <None Include="Photino.Linux.Window.cpp" />
     <None Include="Photino.Linux.Browser.cpp" />
+    <ClCompile Include="Photino.Application.cpp" />
+    <None Include="Photino.Application.Linux.cpp" />
+    <ClCompile Include="Photino.Application.Windows.cpp" />
     <ClCompile Include="Photino.Callbacks.cpp" />
     <ClCompile Include="Photino.CustomSchemes.cpp" />
     <ClCompile Include="Photino.Initialization.cpp" />
@@ -303,6 +308,7 @@
   <ItemGroup>
     <ClInclude Include="Dependencies\wintoastlib.h" />
     <ClInclude Include="Dependencies\json.hpp" />
+    <ClInclude Include="Photino.Application.h" />
     <ClInclude Include="Photino.Export.h" />
     <ClInclude Include="Photino.Callbacks.h" />
     <ClInclude Include="Photino.Geometry.h" />

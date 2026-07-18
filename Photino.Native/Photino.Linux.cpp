@@ -3,11 +3,10 @@
 #include "Photino.Linux.State.h"
 #include "Photino.Dialog.h"
 #include "Photino.Strings.h"
+#include "Photino.Application.h"
 
 #include <algorithm>
-#include <atomic>
 #include <cassert>
-#include <condition_variable>
 #include <csignal>
 #include <memory>
 #include <mutex>
@@ -22,10 +21,6 @@ using namespace PhotinoX::Native;
 
 namespace
 {
-    std::atomic_bool g_messageLoopRunning{ false };
-    std::atomic_bool g_isShuttingDown{ false };
-    Photino* g_messageLoopOwner = nullptr;
-
     std::mutex g_notifyMutex;
     int g_notifyRefCount = 0;
     bool g_notifyInitialized = false;
@@ -79,15 +74,6 @@ namespace
 //     return s;
 // }
 /* --- end macro --- */
-
-struct InvokeWaitInfo
-{
-    InvokeCallback callback = nullptr;
-    std::condition_variable completionNotifier;
-    std::mutex mutex;
-    bool isCompleted = false;
-};
-
 
 // window size or position changed
 gboolean on_configure_event(GtkWidget* widget, GdkEvent* event, gpointer self);
@@ -295,67 +281,6 @@ void Photino::ShowNotification(const PlatformString& title, const PlatformString
     g_object_unref(G_OBJECT(notification));
 }
 
-void Photino::WaitForExit() const
-{
-    bool expected = false;
-    if (!g_messageLoopRunning.compare_exchange_strong(expected, true, std::memory_order_acq_rel)) return;
-
-    g_isShuttingDown.store(false, std::memory_order_release);
-    g_messageLoopOwner = const_cast<Photino*>(this);
-
-    gtk_main();
-
-    g_messageLoopOwner = nullptr;
-    g_isShuttingDown.store(true, std::memory_order_release);
-    g_messageLoopRunning.store(false, std::memory_order_release);
-}
-
-// Callbacks
-
-static gboolean invokeCallback(gpointer data)
-{
-    auto waitInfo = static_cast<InvokeWaitInfo*>(data);
-    if (!waitInfo) return G_SOURCE_REMOVE;
-
-    if (waitInfo->callback)
-        waitInfo->callback();
-
-    {
-        std::lock_guard<std::mutex> guard(waitInfo->mutex);
-        waitInfo->isCompleted = true;
-    }
-
-    waitInfo->completionNotifier.notify_one();
-    return G_SOURCE_REMOVE;
-}
-
-void Photino::Invoke(InvokeCallback callback) const
-{
-    assert(callback);
-    if (!callback) return;
-
-    if (g_isShuttingDown.load(std::memory_order_acquire)) return;
-
-    auto context = g_main_context_default();
-    if (!g_messageLoopRunning.load(std::memory_order_acquire) && !g_main_context_is_owner(context)) return;
-
-    InvokeWaitInfo waitInfo{};
-    waitInfo.callback = callback;
-
-    g_main_context_invoke_full(
-        context,
-        G_PRIORITY_DEFAULT,
-        invokeCallback,
-        &waitInfo,
-        nullptr);
-
-    // Block until the callback is actually executed and completed
-    std::unique_lock<std::mutex> lock(waitInfo.mutex);
-    waitInfo.completionNotifier.wait(lock, [&waitInfo] {
-        return waitInfo.isCompleted;
-    });
-}
-
 // Private methods
 void HandleWebMessage(WebKitUserContentManager* contentManager, WebKitJavascriptResult* jsResult, gpointer arg)
 {
@@ -527,7 +452,7 @@ gboolean on_window_state_event(GtkWidget* widget, GdkEventWindowState* event, gp
 
 gboolean on_widget_deleted(GtkWidget* widget, GdkEvent* event, gpointer self)
 {
-    if (g_isShuttingDown.load(std::memory_order_acquire)) return FALSE;
+    if (PhotinoApplication::Instance().IsShuttingDown()) return FALSE;
 
     auto instance = static_cast<Photino*>(self);
     if (!instance) return FALSE;
@@ -542,13 +467,6 @@ void on_widget_destroyed(GtkWidget* widget, gpointer self)
     if (!instance) return;
 
     instance->InvokeClose();
-
-    if (instance == g_messageLoopOwner)
-    {
-        g_isShuttingDown.store(true, std::memory_order_release);
-        g_messageLoopOwner = nullptr;
-        gtk_main_quit();
-    }
 
     delete instance;
 }

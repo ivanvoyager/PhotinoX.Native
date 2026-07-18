@@ -232,7 +232,6 @@ namespace PhotinoX::Native
         // App
         void GetNotificationsEnabled(bool* enabled) const;
         void ShowNotification(const PlatformString& title, const PlatformString& message) const;
-        void WaitForExit() const;
 
         // Callbacks
         void SetClosingCallback(ClosingCallback callback) noexcept { closingCallback_ = callback; }
@@ -244,8 +243,6 @@ namespace PhotinoX::Native
         void SetMaximizedCallback(MaximizedCallback callback) noexcept { maximizedCallback_ = callback; }
         void SetRestoredCallback(RestoredCallback callback) noexcept { restoredCallback_ = callback; }
         void SetMinimizedCallback(MinimizedCallback callback) noexcept { minimizedCallback_ = callback; }
-
-        void Invoke(InvokeCallback callback) const;
 
         bool InvokeClosing() const noexcept;
         void InvokeClose() const noexcept;

@@ -1,7 +1,7 @@
 #ifdef __APPLE__
 #import "Photino.Mac.AppDelegate.h"
 
-#include "Photino.Mac.State.h"
+#include "Photino.Application.h"
 
 @implementation AppDelegate
 
@@ -19,7 +19,7 @@
 
 - (void)applicationWillTerminate:(NSNotification*)notification
 {
-    PhotinoMacSetShuttingDown(true);
+    PhotinoX::Native::PhotinoApplication::Instance().Shutdown();
 }
 
 @end
