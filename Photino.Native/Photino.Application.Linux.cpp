@@ -83,6 +83,11 @@ void PhotinoApplication::ShutdownCore(int exitCode) noexcept
         nullptr);
 }
 
+bool PhotinoApplication::CheckAccess() const noexcept
+{
+    return g_main_context_is_owner(g_main_context_default());
+}
+
 bool PhotinoApplication::Invoke(InvokeCallback callback) const
 {
     assert(callback);
@@ -90,9 +95,7 @@ bool PhotinoApplication::Invoke(InvokeCallback callback) const
     if (!callback || IsShuttingDown())
         return false;
 
-    auto context = g_main_context_default();
-
-    if (g_main_context_is_owner(context))
+    if (CheckAccess())
     {
         callback();
         return true;
@@ -105,7 +108,7 @@ bool PhotinoApplication::Invoke(InvokeCallback callback) const
     waitInfo.callback = callback;
 
     g_main_context_invoke_full(
-        context,
+        g_main_context_default(),
         G_PRIORITY_DEFAULT,
         InvokeCallbackSync,
         &waitInfo,

@@ -451,17 +451,6 @@ void Photino::ShowNotification(const PlatformString& title, const PlatformString
     assert(result >= 0);
 }
 
-[[deprecated("Use PhotinoApplication::Run instead.")]]
-void Photino::WaitForExit() const
-{
-    PhotinoApplication::Instance().Run();
-}
-
-void Photino::Invoke(InvokeCallback callback) const
-{
-    PhotinoApplication::Instance().Invoke(callback);
-}
-
 void Photino::Show()
 {
     if (!platform_->hWnd)

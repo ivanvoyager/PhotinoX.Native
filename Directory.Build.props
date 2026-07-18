@@ -1,0 +1,9 @@
+<Project>
+  <!-- Project properties -->
+  <PropertyGroup>
+    <LangVersion>14</LangVersion>
+  </PropertyGroup>
+
+  <!-- Imports -->
+  <Import Project="$(MSBuildThisFileDirectory)..\Directory.Build.props" Condition="Exists('$(MSBuildThisFileDirectory)..\Directory.Build.props')" />
+</Project>

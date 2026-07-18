@@ -334,18 +334,6 @@ void Photino::ShowNotification(const PlatformString& title, const PlatformString
     }];
 }
 
-void Photino::WaitForExit() const
-{
-    PhotinoApplication::Instance().Run();
-}
-
-//Callbacks
-
-void Photino::Invoke(InvokeCallback callback) const
-{
-    PhotinoApplication::Instance().Invoke(callback);
-}
-
 void Photino::Show()
 {
     if (platform_->webView == nil)

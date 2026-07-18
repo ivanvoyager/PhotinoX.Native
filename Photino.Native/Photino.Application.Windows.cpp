@@ -146,6 +146,13 @@ void PhotinoApplication::ShutdownCore(int exitCode) noexcept
         PostMessageW(messageWindow, WM_PHOTINO_SHUTDOWN, static_cast<WPARAM>(exitCode), 0);
 }
 
+bool PhotinoApplication::CheckAccess() const noexcept
+{
+    DWORD uiThreadId = g_uiThreadId.load(std::memory_order_acquire);
+    DWORD currentThreadId = GetCurrentThreadId();
+    return uiThreadId != 0 && currentThreadId == uiThreadId;
+}
+
 bool PhotinoApplication::Invoke(InvokeCallback callback) const
 {
     assert(callback);
@@ -153,8 +160,7 @@ bool PhotinoApplication::Invoke(InvokeCallback callback) const
     if (!callback || IsShuttingDown())
         return false;
 
-    DWORD currentThreadId = GetCurrentThreadId();
-    if (currentThreadId == g_uiThreadId.load(std::memory_order_acquire))
+    if (CheckAccess())
     {
         callback();
         return true;

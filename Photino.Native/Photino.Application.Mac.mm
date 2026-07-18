@@ -52,6 +52,11 @@ void PhotinoApplication::ShutdownCore(int exitCode) noexcept
     });
 }
 
+bool PhotinoApplication::CheckAccess() const noexcept
+{
+    return [NSThread isMainThread];
+}
+
 bool PhotinoApplication::Invoke(InvokeCallback callback) const
 {
     assert(callback);
@@ -59,7 +64,7 @@ bool PhotinoApplication::Invoke(InvokeCallback callback) const
     if (!callback || IsShuttingDown())
         return false;
 
-    if ([NSThread isMainThread])
+    if (CheckAccess())
     {
         callback();
         return true;

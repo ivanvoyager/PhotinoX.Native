@@ -32,6 +32,11 @@ extern "C"
         return PhotinoApplication::Instance().IsShuttingDown();
     }
 
+    PHOTINO_EXPORT bool PhotinoApplication_CheckAccess()
+    {
+        return PhotinoApplication::Instance().CheckAccess();
+    }
+
     PHOTINO_EXPORT bool PhotinoApplication_Invoke(const InvokeCallback callback)
     {
         return PhotinoApplication::Instance().Invoke(callback);

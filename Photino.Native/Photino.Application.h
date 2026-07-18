@@ -27,6 +27,7 @@ class PhotinoApplication final
 
     int Run();
     void Shutdown(int exitCode = 0) noexcept;
+    bool CheckAccess() const noexcept;
 
     bool Invoke(InvokeCallback callback) const;
     bool BeginInvoke(InvokeStateCallback callback, void* state) const;

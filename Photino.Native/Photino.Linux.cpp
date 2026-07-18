@@ -281,18 +281,6 @@ void Photino::ShowNotification(const PlatformString& title, const PlatformString
     g_object_unref(G_OBJECT(notification));
 }
 
-void Photino::WaitForExit() const
-{
-    PhotinoApplication::Instance().Run();
-}
-
-// Callbacks
-
-void Photino::Invoke(InvokeCallback callback) const
-{
-    PhotinoApplication::Instance().Invoke(callback);
-}
-
 // Private methods
 void HandleWebMessage(WebKitUserContentManager* contentManager, WebKitJavascriptResult* jsResult, gpointer arg)
 {
