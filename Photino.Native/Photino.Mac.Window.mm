@@ -232,6 +232,21 @@ void Photino::Restore() const
         [platform_->window toggleFullScreen:nil];
 }
 
+void Photino::BeginWindowDrag() const
+{
+    // Not yet implemented on macOS. NSWindow's -performWindowDragWithEvent: needs
+    // the current NSEvent (the mouse-down that began the drag), which this entry
+    // point does not receive. Left as a no-op until it can be built and tested
+    // against Cocoa. Windows is the currently supported platform.
+}
+
+void Photino::BeginWindowResize(WindowEdge) const
+{
+    // Not yet implemented on macOS. Cocoa has no direct analogue of the Windows
+    // non-client resize loop; an NSEvent-driven implementation is needed and must
+    // be tested on macOS first.
+}
+
 unsigned int Photino::GetScreenDpi() const
 {
     //not supported on macOS - _window's devices collection does have dpi

@@ -36,6 +36,20 @@ namespace PhotinoX::Native
 
     class PhotinoDialog;
 
+    // Which edge or corner a resize drag operates on. The ordering is the ABI
+    // contract with the managed PhotinoWindowEdge enum and must stay in sync.
+    enum class WindowEdge : int
+    {
+        Top,
+        Bottom,
+        Left,
+        Right,
+        TopLeft,
+        TopRight,
+        BottomLeft,
+        BottomRight,
+    };
+
     class Photino
     {
     private:
@@ -154,6 +168,9 @@ namespace PhotinoX::Native
 
         void Center() const;
         void Restore() const;
+
+        void BeginWindowDrag() const;
+        void BeginWindowResize(WindowEdge edge) const;
 
         unsigned int GetScreenDpi() const;
         void GetAllMonitors(GetAllMonitorsCallback callback) const noexcept;
