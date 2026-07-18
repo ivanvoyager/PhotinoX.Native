@@ -24,8 +24,8 @@ class Program
     {
         try
         {
-            FluentStyle();
             //ChromelessDragResizeDemo();   // borderless window with an HTML title bar and resize grips
+            FluentStyle();
             //PropertyInitStyle();
         }
         catch (Exception ex)
@@ -39,6 +39,8 @@ class Program
     // in HTML and driven by BeginWindowDrag / BeginWindowResize (wwwroot/chromeless.html).
     private static void ChromelessDragResizeDemo()
     {
+        var app = new PhotinoApplication();
+
         s_mainWindow = new PhotinoWindow()
             .SetTitle("Chromeless Demo")
             .SetChromeless(true)
@@ -54,7 +56,7 @@ class Program
             .RegisterSizeChangedHandler(WindowSizeChanged)
             .SetLogVerbosity(s_logEvents ? 2 : 0);
 
-        s_mainWindow.Show();
+        app.Run(s_mainWindow);
     }
 
     private static void FluentStyle()
@@ -162,9 +164,7 @@ class Program
 
             .SetLogVerbosity(s_logEvents ? 2 : 0);
 
-        s_mainWindow.Show();
-
-        app.Run();
+        app.Run(s_mainWindow);
 
         Console.WriteLine("Done!");
     }
@@ -254,9 +254,7 @@ class Program
         //Can this be done with a property? 
         s_mainWindow.RegisterCustomSchemeHandler("app", AppCustomSchemeUsed);
 
-        s_mainWindow.Show();
-
-        app.Run();
+        app.Run(s_mainWindow);
 
         Console.WriteLine("Done!");
     }
