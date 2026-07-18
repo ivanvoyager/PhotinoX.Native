@@ -25,6 +25,7 @@ class Program
         try
         {
             FluentStyle();
+            //ChromelessDragResizeDemo();   // borderless window with an HTML title bar and resize grips
             //PropertyInitStyle();
         }
         catch (Exception ex)
@@ -32,6 +33,28 @@ class Program
             Log(null, ex.Message);
             Console.ReadKey();
         }
+    }
+
+    // Standalone top-level chromeless window whose title bar and resize grips are drawn
+    // in HTML and driven by BeginWindowDrag / BeginWindowResize (wwwroot/chromeless.html).
+    private static void ChromelessDragResizeDemo()
+    {
+        s_mainWindow = new PhotinoWindow()
+            .SetTitle("Chromeless Demo")
+            .SetChromeless(true)
+            .SetResizable(false)   // no native sizing border; resizing is driven only by BeginWindowResize
+            .SetUseOsDefaultLocation(false)
+            .SetUseOsDefaultSize(false)
+            .SetSize(new Size(520, 360))
+            .SetMinSize(320, 200)
+            .Center()
+            .Load("wwwroot/chromeless.html")
+            .RegisterWebMessageReceivedHandler(MessageReceivedFromWindow)
+            .RegisterLocationChangedHandler(WindowLocationChanged)
+            .RegisterSizeChangedHandler(WindowSizeChanged)
+            .SetLogVerbosity(s_logEvents ? 2 : 0);
+
+        s_mainWindow.Show();
     }
 
     private static void FluentStyle()
@@ -485,6 +508,15 @@ class Program
         else if (string.Compare(message, "showMessage", true) == 0)
         {
             var result = currentWindow.ShowMessage("Title", "Testing... 🤖");
+        }
+        else if (string.Compare(message, "begindrag", true) == 0)
+        {
+            currentWindow.BeginWindowDrag();
+        }
+        else if (message.StartsWith("beginresize-", StringComparison.OrdinalIgnoreCase))
+        {
+            if (Enum.TryParse<PhotinoWindowEdge>(message["beginresize-".Length..], ignoreCase: true, out var edge))
+                currentWindow.BeginWindowResize(edge);
         }
         else
             throw new Exception($"Unknown message '{message}'");
