@@ -28,6 +28,11 @@ namespace PhotinoX::Native
 
         bool webViewInitialized = false;
         bool isAlreadyShown = false;
+
+        // Set once the first navigation has been issued. Until then there is no
+        // document to reload, so the Set*Enabled methods must not reload: doing so
+        // would discard a still-pending navigation.
+        bool initialNavigationIssued = false;
     };
 }
 

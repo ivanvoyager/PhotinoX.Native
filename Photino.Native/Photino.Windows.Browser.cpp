@@ -56,6 +56,8 @@ void Photino::SetTransparentEnabled(const bool enabled)
         assert(SUCCEEDED(hr));
     }
 
+    if (!platform_->initialNavigationIssued) return;
+
     hr = platform_->webViewWindow->Reload();
     assert(SUCCEEDED(hr));
 }
@@ -150,6 +152,8 @@ void Photino::SetContextMenuEnabled(const bool enabled)
     HRESULT hr = settings->put_AreDefaultContextMenusEnabled(enabled ? TRUE : FALSE);
     assert(SUCCEEDED(hr));
 
+    if (!platform_->initialNavigationIssued) return;
+
     hr = platform_->webViewWindow->Reload();
     assert(SUCCEEDED(hr));
 }
@@ -183,6 +187,8 @@ void Photino::SetZoomEnabled(const bool enabled)
 
     HRESULT hr = settings->put_IsZoomControlEnabled(enabled ? TRUE : FALSE);
     assert(SUCCEEDED(hr));
+
+    if (!platform_->initialNavigationIssued) return;
 
     hr = platform_->webViewWindow->Reload();
     assert(SUCCEEDED(hr));
@@ -249,6 +255,8 @@ void Photino::SetDevToolsEnabled(const bool enabled)
 
     HRESULT hr = settings->put_AreDevToolsEnabled(enabled ? TRUE : FALSE);
     if (FAILED(hr)) return;
+
+    if (!platform_->initialNavigationIssued) return;
 
     hr = platform_->webViewWindow->Reload();
     assert(SUCCEEDED(hr));
@@ -374,20 +382,10 @@ HRESULT Photino::CompleteWebViewInitialization()
 
     platform_->webViewInitialized = true;
 
-    if (!options_.startUrl.empty())
-    {
-        NavigateToUrl(options_.startUrl);
-    }
-    else if (!options_.startString.empty())
-    {
-        NavigateToString(options_.startString);
-    }
-    else
-    {
-        MessageBoxW(nullptr, L"Neither StartUrl nor StartString was specified", L"Native Initialization Failed", MB_OK);
-        std::abort();
-    }
-
+    // Settings must be applied before the first navigation. They take effect for
+    // it, and the setters skip their reload while initialNavigationIssued is
+    // false - reloading here would discard the navigation started below before it
+    // has committed.
     if (options_.contextMenuEnabled == false)
         SetContextMenuEnabled(false);
 
@@ -402,6 +400,22 @@ HRESULT Photino::CompleteWebViewInitialization()
 
     if (options_.zoom != 100)
         SetZoom(options_.zoom);
+
+    if (!options_.startUrl.empty())
+    {
+        NavigateToUrl(options_.startUrl);
+    }
+    else if (!options_.startString.empty())
+    {
+        NavigateToString(options_.startString);
+    }
+    else
+    {
+        MessageBoxW(nullptr, L"Neither StartUrl nor StartString was specified", L"Native Initialization Failed", MB_OK);
+        std::abort();
+    }
+
+    platform_->initialNavigationIssued = true;
 
     RefitContent();
     FocusWebView2();
