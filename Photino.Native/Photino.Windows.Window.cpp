@@ -222,6 +222,47 @@ void Photino::Restore() const
     ShowWindow(platform_->hWnd, SW_RESTORE);
 }
 
+void Photino::BeginWindowDrag() const
+{
+    assert(platform_->hWnd);
+    if (!platform_->hWnd) return;
+
+    // Hand the drag off to the OS's non-client move loop so the window tracks
+    // the cursor just like a native title bar would. Releasing capture first
+    // lets the top-level window take the mouse over from the WebView2 control.
+    POINT cursor{};
+    GetCursorPos(&cursor);
+    ReleaseCapture();
+    SendMessageW(platform_->hWnd, WM_NCLBUTTONDOWN, HTCAPTION, MAKELPARAM(cursor.x, cursor.y));
+}
+
+void Photino::BeginWindowResize(const WindowEdge edge) const
+{
+    assert(platform_->hWnd);
+    if (!platform_->hWnd) return;
+
+    WPARAM hitTest;
+    switch (edge)
+    {
+    case WindowEdge::Top:         hitTest = HTTOP;         break;
+    case WindowEdge::Bottom:      hitTest = HTBOTTOM;      break;
+    case WindowEdge::Left:        hitTest = HTLEFT;        break;
+    case WindowEdge::Right:       hitTest = HTRIGHT;       break;
+    case WindowEdge::TopLeft:     hitTest = HTTOPLEFT;     break;
+    case WindowEdge::TopRight:    hitTest = HTTOPRIGHT;    break;
+    case WindowEdge::BottomLeft:  hitTest = HTBOTTOMLEFT;  break;
+    case WindowEdge::BottomRight: hitTest = HTBOTTOMRIGHT; break;
+    default: return;
+    }
+
+    // Same non-client hand-off as the drag, but starting a resize loop on the
+    // grabbed edge or corner instead of a move.
+    POINT cursor{};
+    GetCursorPos(&cursor);
+    ReleaseCapture();
+    SendMessageW(platform_->hWnd, WM_NCLBUTTONDOWN, hitTest, MAKELPARAM(cursor.x, cursor.y));
+}
+
 unsigned int Photino::GetScreenDpi() const
 {
     assert(platform_->hWnd);

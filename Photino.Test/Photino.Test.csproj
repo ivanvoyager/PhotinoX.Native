@@ -39,6 +39,7 @@
     <Compile Include="$(PhotinoNetSourceDir)\Utils\Platform.cs" Link="Utils\Platform.cs" />
     <Compile Include="$(PhotinoNetSourceDir)\Utils\Platform.MacOS.cs" Link="Utils\Platform.MacOS.cs" />
     <Compile Include="$(PhotinoNetSourceDir)\PhotinoDialogEnums.cs" Link="PhotinoDialogEnums.cs" />
+    <Compile Include="$(PhotinoNetSourceDir)\PhotinoWindowEnums.cs" Link="PhotinoWindowEnums.cs" />
     <Compile Include="$(PhotinoNetSourceDir)\NativeMethods.cs" Link="NativeMethods.cs" />
     <Compile Include="$(PhotinoNetSourceDir)\NativeMethods.Browser.cs" Link="NativeMethods.Browser.cs" />
     <Compile Include="$(PhotinoNetSourceDir)\NativeMethods.Dialogs.cs" Link="NativeMethods.Dialogs.cs" />
@@ -53,6 +54,9 @@
 
   <ItemGroup>
     <None Update="wwwroot\main.html">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="wwwroot\chromeless.html">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Update="wwwroot\photino-logo.ico">

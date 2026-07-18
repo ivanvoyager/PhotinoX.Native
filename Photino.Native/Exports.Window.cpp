@@ -153,6 +153,23 @@ extern "C"
     }
 
 
+    PHOTINO_EXPORT void Photino_BeginWindowDrag(const Photino* instance)
+    {
+        assert(instance);
+        if (!instance) return;
+
+        instance->BeginWindowDrag();
+    }
+
+    PHOTINO_EXPORT void Photino_BeginWindowResize(const Photino* instance, const WindowEdge edge)
+    {
+        assert(instance);
+        if (!instance) return;
+
+        instance->BeginWindowResize(edge);
+    }
+
+
     PHOTINO_EXPORT unsigned int Photino_GetScreenDpi(const Photino* instance)
     {
         assert(instance);

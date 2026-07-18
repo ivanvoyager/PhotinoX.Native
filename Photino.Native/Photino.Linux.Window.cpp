@@ -220,6 +220,20 @@ void Photino::Restore() const
     gtk_window_present(GTK_WINDOW(platform_->window));
 }
 
+void Photino::BeginWindowDrag() const
+{
+    // Not yet implemented on Linux. GTK offers gtk_window_begin_move_drag, but it
+    // needs the button, root x/y and event time from the originating GDK event,
+    // which this entry point does not receive. Left as a no-op until it can be
+    // built and tested against GTK. Windows is the currently supported platform.
+}
+
+void Photino::BeginWindowResize(WindowEdge) const
+{
+    // Not yet implemented on Linux. As with BeginWindowDrag, the GTK equivalent
+    // (gtk_window_begin_resize_drag) needs the originating GDK event context.
+}
+
 unsigned int Photino::GetScreenDpi() const
 {
     if (!platform_->window) return 96;
