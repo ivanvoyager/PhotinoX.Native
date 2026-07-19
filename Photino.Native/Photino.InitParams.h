@@ -34,40 +34,41 @@ namespace PhotinoX::Native
         WebMessageReceivedCallback WebMessageReceivedHandler;   // #19
         WebResourceRequestedCallback CustomSchemeHandler;       // #20
         ClosedCallback ClosedHandler;                           // #21
+        FullScreenChangedCallback FullScreenChangedHandler;     // #22
 
-        int Left;                                               // #22
-        int Top;                                                // #23
-        int Width;                                              // #24
-        int Height;                                             // #25
-        int Zoom;                                               // #26
-        int MinWidth;                                           // #27
-        int MinHeight;                                          // #28
-        int MaxWidth;                                           // #29
-        int MaxHeight;                                          // #30
+        int Left;                                               // #23
+        int Top;                                                // #24
+        int Width;                                              // #25
+        int Height;                                             // #26
+        int Zoom;                                               // #27
+        int MinWidth;                                           // #28
+        int MinHeight;                                          // #29
+        int MaxWidth;                                           // #30
+        int MaxHeight;                                          // #31
 
-        bool CenterOnInitialize;                                // #31
-        bool Chromeless;                                        // #32
-        bool Transparent;                                       // #33
-        bool ContextMenuEnabled;                                // #34
-        bool ZoomEnabled;                                       // #35
-        bool DevToolsEnabled;                                   // #36
-        bool FullScreen;                                        // #37
-        bool Maximized;                                         // #38
-        bool Minimized;                                         // #39
-        bool Resizable;                                         // #40
-        bool Topmost;                                           // #41
-        bool UseOsDefaultLocation;                              // #42
-        bool UseOsDefaultSize;                                  // #43
-        bool GrantBrowserPermissions;                           // #44
-        bool MediaAutoplayEnabled;                              // #45
-        bool FileSystemAccessEnabled;                           // #46
-        bool WebSecurityEnabled;                                // #47
-        bool JavascriptClipboardAccessEnabled;                  // #48
-        bool MediaStreamEnabled;                                // #49
-        bool SmoothScrollingEnabled;                            // #50
-        bool IgnoreCertificateErrorsEnabled;                    // #51
-        bool NotificationsEnabled;                              // #52
+        bool CenterOnInitialize;                                // #32
+        bool Chromeless;                                        // #33
+        bool Transparent;                                       // #34
+        bool ContextMenuEnabled;                                // #35
+        bool ZoomEnabled;                                       // #36
+        bool DevToolsEnabled;                                   // #37
+        bool FullScreen;                                        // #38
+        bool Maximized;                                         // #39
+        bool Minimized;                                         // #40
+        bool Resizable;                                         // #41
+        bool Topmost;                                           // #42
+        bool UseOsDefaultLocation;                              // #43
+        bool UseOsDefaultSize;                                  // #44
+        bool GrantBrowserPermissions;                           // #45
+        bool MediaAutoplayEnabled;                              // #46
+        bool FileSystemAccessEnabled;                           // #47
+        bool WebSecurityEnabled;                                // #48
+        bool JavascriptClipboardAccessEnabled;                  // #49
+        bool MediaStreamEnabled;                                // #50
+        bool SmoothScrollingEnabled;                            // #51
+        bool IgnoreCertificateErrorsEnabled;                    // #52
+        bool NotificationsEnabled;                              // #53
 
-        int Size;                                               // #53
+        int Size;                                               // #54
     };
 }

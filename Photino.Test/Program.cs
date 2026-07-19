@@ -51,7 +51,7 @@ class Program
             .SetMinSize(320, 200)
             .Center()
             .Load("wwwroot/chromeless.html")
-            .RegisterWebMessageReceivedHandler(MessageReceivedFromWindow)
+            .RegisterWebMessageReceivedHandler(WindowWebMessageReceived)
             .RegisterLocationChangedHandler(WindowLocationChanged)
             .RegisterSizeChangedHandler(WindowSizeChanged)
             .SetLogVerbosity(s_logEvents ? 2 : 0);
@@ -159,11 +159,13 @@ class Program
             .RegisterMaximizedHandler(WindowMaximized)
             .RegisterRestoredHandler(WindowRestored)
             .RegisterMinimizedHandler(WindowMinimized)
-            .RegisterWebMessageReceivedHandler(MessageReceivedFromWindow)
+            .RegisterWebMessageReceivedHandler(WindowWebMessageReceived)
             .RegisterWindowClosingHandler(WindowClosing)
             .RegisterWindowClosedHandler(WindowClosed)
             .RegisterFocusInHandler(WindowFocusIn)
             .RegisterFocusOutHandler(WindowFocusOut)
+            .RegisterFullScreenEnteredHandler(WindowFullScreenEntered)
+            .RegisterFullScreenExitedHandler(WindowFullScreenExited)
 
             .SetLogVerbosity(s_logEvents ? 2 : 0);
 
@@ -249,11 +251,13 @@ class Program
         s_mainWindow.WindowMaximized += WindowMaximized;
         s_mainWindow.WindowRestored += WindowRestored;
         s_mainWindow.WindowMinimized += WindowMinimized;
-        s_mainWindow.WebMessageReceived += MessageReceivedFromWindow;
+        s_mainWindow.WebMessageReceived += WindowWebMessageReceived;
         s_mainWindow.WindowClosing += WindowClosing;
         s_mainWindow.WindowClosed += WindowClosed;
         s_mainWindow.WindowFocusIn += WindowFocusIn;
         s_mainWindow.WindowFocusOut += WindowFocusOut;
+        s_mainWindow.FullScreenEntered += WindowFullScreenEntered;
+        s_mainWindow.FullScreenExited += WindowFullScreenExited;
 
         //Can this be done with a property? 
         s_mainWindow.RegisterCustomSchemeHandler("app", AppCustomSchemeUsed);
@@ -300,7 +304,7 @@ class Program
         return new MemoryStream(Encoding.UTF8.GetBytes(js));
     }
 
-    private static async void MessageReceivedFromWindow(object? sender, string message)
+    private static async void WindowWebMessageReceived(object? sender, string message)
     {
         Log(sender, $"MessageReceivedFromWindow Callback Fired.");
 
@@ -326,7 +330,7 @@ class Program
                 .RegisterWindowCreatedHandler(WindowCreated)
                 .RegisterLocationChangedHandler(WindowLocationChanged)
                 .RegisterSizeChangedHandler(WindowSizeChanged)
-                .RegisterWebMessageReceivedHandler(MessageReceivedFromWindow)
+                .RegisterWebMessageReceivedHandler(WindowWebMessageReceived)
                 .RegisterWindowClosingHandler(WindowClosing)
                 .RegisterWindowClosedHandler(WindowClosed)
 
@@ -365,11 +369,11 @@ class Program
         }
         else if (string.Compare(message, "minimize", true) == 0)
         {
-            currentWindow.Minimize();
+            currentWindow.SetMinimized(!currentWindow.Minimized);
         }
         else if (string.Compare(message, "maximize", true) == 0)
         {
-            currentWindow.Maximize();
+            currentWindow.SetMaximized(!currentWindow.Maximized);
         }
         else if (string.Compare(message, "restore", true) == 0)
         {
@@ -591,7 +595,14 @@ class Program
         Log(sender, "WindowFocusOut Callback Fired.");
     }
 
-
+    private static void WindowFullScreenEntered(object? sender, EventArgs e)
+    {
+        Log(sender, "WindowFullScreenEntered Callback Fired.");
+    }
+    private static void WindowFullScreenExited(object? sender, EventArgs e)
+    {
+        Log(sender, "WindowFullScreenExited Callback Fired.");
+    }
 
 
     private static string GetPropertiesDisplay(PhotinoWindow currentWindow)

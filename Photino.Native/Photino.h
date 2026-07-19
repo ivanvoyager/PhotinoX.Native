@@ -63,6 +63,7 @@ namespace PhotinoX::Native
         ClosedCallback closedCallback_ = nullptr;
         FocusInCallback focusInCallback_ = nullptr;
         FocusOutCallback focusOutCallback_ = nullptr;
+        FullScreenChangedCallback fullScreenChangedCallback_ = nullptr;
         WebResourceRequestedCallback customSchemeCallback_ = nullptr;
         std::vector<PlatformString> customSchemeNames_;
 
@@ -85,8 +86,9 @@ namespace PhotinoX::Native
         void InitializeCustomSchemes(const PhotinoInitParams* initParams);
 
         bool IsCustomSchemeRegistered(const PlatformString& scheme) const;
-
         bool RegisterCustomSchemeName(const PlatformString& scheme);
+
+        void InvokeFullScreenChanged(bool fullScreen) const noexcept;
 
 #ifdef _WIN32
         PlatformString BuildStartupString() const;
@@ -259,7 +261,7 @@ namespace PhotinoX::Native
         void InvokeRestored() const noexcept;
         void InvokeMinimized() const noexcept;
 
-        void HandleFullScreenStateChanged(bool fullScreen) noexcept { options_.fullScreen = fullScreen; }
+        void HandleFullScreenStateChanged(bool fullScreen) noexcept;
     };
 
 } // namespace PhotinoX::Native
