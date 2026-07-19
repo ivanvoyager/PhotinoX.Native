@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Photino</title>
+    <title>PhotinoX</title>
 
     <!--
     <script src="app://dynamic.js"></script>
@@ -44,6 +44,10 @@
 
         function Maximize() {
             window.external.sendMessage('maximize');
+        }
+
+        function Restore() {
+            window.external.sendMessage('restore');
         }
 
         function SetContextMenuEnabled() {
@@ -286,6 +290,7 @@
     <b>Size</b><br>
     <button onclick="Minimize()">Minimize</button>
     <button onclick="Maximize()">Maximize</button>
+    <button onclick="Restore()">Restore</button>
     <button onclick="SetResizable()">Resizable</button>
     <button onclick="SetSizeUp()">Size Up</button>
     <button onclick="SetSizeDown()">Size Down</button>

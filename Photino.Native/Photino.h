@@ -84,8 +84,6 @@ namespace PhotinoX::Native
         void InitializeCallbacks(const PhotinoInitParams* initParams);
         void InitializeCustomSchemes(const PhotinoInitParams* initParams);
 
-        void Show();
-
         bool IsCustomSchemeRegistered(const PlatformString& scheme) const;
 
         bool RegisterCustomSchemeName(const PlatformString& scheme);
@@ -100,8 +98,9 @@ namespace PhotinoX::Native
         HRESULT HandleWebViewControllerCreated(HRESULT result, ICoreWebView2Controller* controller);
         HRESULT HandleWebViewEnvironmentCreated(HRESULT result, ICoreWebView2Environment* environment);
         HRESULT ConfigureCustomSchemeRegistrations(ICoreWebView2EnvironmentOptions* options) const;
-        void AttachWebView();
 
+        void AttachWebView();
+        bool EnsureWebViewAttached();
         static bool EnsureWebViewIsInstalled();
         static bool InstallWebView2();
         void NotifyWebView2WindowMove() const;
@@ -109,6 +108,7 @@ namespace PhotinoX::Native
 #elif defined(__linux__)
         void ApplyGeometryHints();
 
+        bool EnsureWebViewAttached();
         void AddCustomSchemeHandlers();
         void SetWebKitSettings();
 #elif defined(__APPLE__)
@@ -126,6 +126,8 @@ namespace PhotinoX::Native
         void RefitContent() const;
         void FocusWebView2() const;
         void CloseWebView();
+        bool IsFullScreen() const noexcept;
+        void UpdateFullScreenState() noexcept;
 #elif defined(__linux__)
         void HandleConfigureEvent(int x, int y, int width, int height);
 #endif
@@ -147,6 +149,12 @@ namespace PhotinoX::Native
 #elif defined(__APPLE__)
         void* GetNSWindow() const noexcept;
 #endif
+        bool Show() const;
+        bool Activate() const;
+        bool Center() const;
+        bool Maximize() const;
+        bool Minimize() const;
+        bool Restore();
         void Close() const;
 
         // Window metadata
@@ -165,9 +173,6 @@ namespace PhotinoX::Native
 
         void SetMinSize(int width, int height);
         void SetMaxSize(int width, int height);
-
-        void Center() const;
-        void Restore() const;
 
         void BeginWindowDrag() const;
         void BeginWindowResize(WindowEdge edge) const;
@@ -253,6 +258,8 @@ namespace PhotinoX::Native
         void InvokeMaximized() const noexcept;
         void InvokeRestored() const noexcept;
         void InvokeMinimized() const noexcept;
+
+        void HandleFullScreenStateChanged(bool fullScreen) noexcept { options_.fullScreen = fullScreen; }
     };
 
 } // namespace PhotinoX::Native

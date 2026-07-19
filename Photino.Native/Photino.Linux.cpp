@@ -1,5 +1,4 @@
 #include "Photino.h"
-#include "Photino.Linux.Internal.h"
 #include "Photino.Linux.State.h"
 #include "Photino.Dialog.h"
 #include "Photino.Strings.h"
@@ -7,15 +6,13 @@
 
 #include <algorithm>
 #include <cassert>
-#include <csignal>
+#include <cstdlib>
 #include <memory>
 #include <mutex>
 
-#include <JavaScriptCore/JavaScript.h>
 #include <X11/Xlib.h>
 #include <gtk/gtk.h>
 #include <libnotify/notify.h>
-#include <webkit2/webkit2.h>
 
 using namespace PhotinoX::Native;
 
@@ -60,34 +57,102 @@ namespace
             g_notifyInitialized = false;
         }
     }
-}
 
-/* --- PRINTF_BINARY_FORMAT macro's --- */
-// #define FMT_BUF_SIZE (CHAR_BIT*sizeof(uintmax_t)+1)
-//
-// char *binary_fmt(uintmax_t x, char buf[FMT_BUF_SIZE])
-//{
-//     char *s = buf + FMT_BUF_SIZE;
-//     *--s = 0;
-//     if (!x) *--s = '0';
-//     for (; x; x /= 2) *--s = '0' + x%2;
-//     return s;
-// }
-/* --- end macro --- */
+    gboolean on_configure_event(GtkWidget* widget, GdkEvent* event, gpointer self)
+    {
+        if (!event) return FALSE;
 
-// window size or position changed
-gboolean on_configure_event(GtkWidget* widget, GdkEvent* event, gpointer self);
-gboolean on_window_state_event(GtkWidget* widget, GdkEventWindowState* event, gpointer self);
-gboolean on_widget_deleted(GtkWidget* widget, GdkEvent* event, gpointer self);
-void on_widget_destroyed(GtkWidget* widget, gpointer self);
-gboolean on_focus_in_event(GtkWidget* widget, GdkEvent* event, gpointer self);
-gboolean on_focus_out_event(GtkWidget* widget, GdkEvent* event, gpointer self);
-gboolean on_webview_context_menu(WebKitWebView* web_view,
-                                 GtkWidget* default_menu,
-                                 WebKitHitTestResult* hit_test_result,
-                                 gboolean triggered_with_keyboard,
-                                 gpointer user_data);
-gboolean on_permission_request(WebKitWebView* web_view, WebKitPermissionRequest* request, gpointer user_data);
+        if (event->type == GDK_CONFIGURE)
+        {
+            auto instance = static_cast<Photino*>(self);
+            if (!instance) return FALSE;
+
+            instance->HandleConfigureEvent(
+                event->configure.x,
+                event->configure.y,
+                event->configure.width,
+                event->configure.height);
+        }
+
+        return FALSE;
+    }
+
+    gboolean on_window_state_event(GtkWidget* widget, GdkEventWindowState* event, gpointer self)
+    {
+        auto instance = static_cast<Photino*>(self);
+        if (!instance || !event) return FALSE;
+
+        if (event->changed_mask & GDK_WINDOW_STATE_FULLSCREEN)
+        {
+            instance->HandleFullScreenStateChanged(
+                (event->new_window_state & GDK_WINDOW_STATE_FULLSCREEN) != 0);
+        }
+
+        if ((event->changed_mask & GDK_WINDOW_STATE_MAXIMIZED) &&
+            (event->new_window_state & GDK_WINDOW_STATE_MAXIMIZED))
+        {
+            instance->InvokeMaximized();
+            return FALSE;
+        }
+
+        if ((event->changed_mask & GDK_WINDOW_STATE_ICONIFIED) &&
+            (event->new_window_state & GDK_WINDOW_STATE_ICONIFIED))
+        {
+            instance->InvokeMinimized();
+            return FALSE;
+        }
+
+        if ((event->changed_mask & (GDK_WINDOW_STATE_MAXIMIZED | GDK_WINDOW_STATE_ICONIFIED | GDK_WINDOW_STATE_FULLSCREEN)) &&
+            !(event->new_window_state & GDK_WINDOW_STATE_MAXIMIZED) &&
+            !(event->new_window_state & GDK_WINDOW_STATE_ICONIFIED) &&
+            !(event->new_window_state & GDK_WINDOW_STATE_FULLSCREEN))
+        {
+            instance->InvokeRestored();
+        }
+
+        return FALSE;
+    }
+
+    gboolean on_widget_deleted(GtkWidget* widget, GdkEvent* event, gpointer self)
+    {
+        if (PhotinoApplication::Instance().IsShuttingDown()) return FALSE;
+
+        auto instance = static_cast<Photino*>(self);
+        if (!instance) return FALSE;
+
+        bool doNotClose = instance->InvokeClosing();
+        return doNotClose ? TRUE : FALSE;
+    }
+
+    void on_widget_destroyed(GtkWidget* widget, gpointer self)
+    {
+        auto instance = static_cast<Photino*>(self);
+        if (!instance) return;
+
+        instance->InvokeClose();
+
+        delete instance;
+    }
+
+    gboolean on_focus_in_event(GtkWidget* widget, GdkEvent* event, gpointer self)
+    {
+        auto instance = static_cast<Photino*>(self);
+        if (!instance) return FALSE;
+
+        instance->InvokeFocusIn();
+        return FALSE;
+    }
+
+    gboolean on_focus_out_event(GtkWidget* widget, GdkEvent* event, gpointer self)
+    {
+        auto instance = static_cast<Photino*>(self);
+        if (!instance) return FALSE;
+
+        instance->InvokeFocusOut();
+        return FALSE;
+    }
+} //namespace
+
 
 void Photino::Register()
 {
@@ -134,43 +199,36 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Lin
 
     platform_->notifyInitialized = options_.notificationsEnabled && AcquireNotifications(options_.windowTitle);
 
-    if (options_.fullScreen)
+    if (initParams->UseOsDefaultSize)
     {
-        SetFullScreen(true);
+        gtk_window_set_default_size(GTK_WINDOW(platform_->window), -1, -1);
     }
     else
     {
-        if (initParams->UseOsDefaultSize)
-        {
-            gtk_window_set_default_size(GTK_WINDOW(platform_->window), -1, -1);
-        }
-        else
-        {
-            // Ensure that the default size does not exceed any set min/max dimension
-            if (platform_->sizeLimits.maxWidth > 0 && initParams->Width > platform_->sizeLimits.maxWidth)
-                initParams->Width = platform_->sizeLimits.maxWidth;
-            if (platform_->sizeLimits.maxHeight > 0 && initParams->Height > platform_->sizeLimits.maxHeight)
-                initParams->Height = platform_->sizeLimits.maxHeight;
-            if (platform_->sizeLimits.minWidth > 0 && initParams->Width < platform_->sizeLimits.minWidth)
-                initParams->Width = platform_->sizeLimits.minWidth;
-            if (platform_->sizeLimits.minHeight > 0 && initParams->Height < platform_->sizeLimits.minHeight)
-                initParams->Height = platform_->sizeLimits.minHeight;
+        // Ensure that the default size does not exceed any set min/max dimension
+        if (platform_->sizeLimits.maxWidth > 0 && initParams->Width > platform_->sizeLimits.maxWidth)
+            initParams->Width = platform_->sizeLimits.maxWidth;
+        if (platform_->sizeLimits.maxHeight > 0 && initParams->Height > platform_->sizeLimits.maxHeight)
+            initParams->Height = platform_->sizeLimits.maxHeight;
+        if (platform_->sizeLimits.minWidth > 0 && initParams->Width < platform_->sizeLimits.minWidth)
+            initParams->Width = platform_->sizeLimits.minWidth;
+        if (platform_->sizeLimits.minHeight > 0 && initParams->Height < platform_->sizeLimits.minHeight)
+            initParams->Height = platform_->sizeLimits.minHeight;
 
-            if (initParams->Width < 0)  initParams->Width = -1;
-            if (initParams->Height < 0) initParams->Height = -1;
-            gtk_window_set_default_size(GTK_WINDOW(platform_->window), initParams->Width, initParams->Height);
-        }
-
-        SetMinSize(platform_->sizeLimits.minWidth, platform_->sizeLimits.minHeight);
-        SetMaxSize(platform_->sizeLimits.maxWidth, platform_->sizeLimits.maxHeight);
-
-        if (initParams->UseOsDefaultLocation)
-            gtk_window_set_position(GTK_WINDOW(platform_->window), GTK_WIN_POS_NONE);
-        else if (initParams->CenterOnInitialize && !options_.fullScreen)
-            gtk_window_set_position(GTK_WINDOW(platform_->window), GTK_WIN_POS_CENTER);
-        else
-            gtk_window_move(GTK_WINDOW(platform_->window), initParams->Left, initParams->Top);
+        if (initParams->Width < 0) initParams->Width = -1;
+        if (initParams->Height < 0) initParams->Height = -1;
+        gtk_window_set_default_size(GTK_WINDOW(platform_->window), initParams->Width, initParams->Height);
     }
+
+    SetMinSize(platform_->sizeLimits.minWidth, platform_->sizeLimits.minHeight);
+    SetMaxSize(platform_->sizeLimits.maxWidth, platform_->sizeLimits.maxHeight);
+
+    if (initParams->UseOsDefaultLocation)
+        gtk_window_set_position(GTK_WINDOW(platform_->window), GTK_WIN_POS_NONE);
+    else if (initParams->CenterOnInitialize)
+        gtk_window_set_position(GTK_WINDOW(platform_->window), GTK_WIN_POS_CENTER);
+    else
+        gtk_window_move(GTK_WINDOW(platform_->window), initParams->Left, initParams->Top);
 
     SetTitle(options_.windowTitle);
 
@@ -178,12 +236,6 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Lin
         gtk_window_set_decorated(GTK_WINDOW(platform_->window), false);
 
     SetIconFile(options_.iconFileName);
-
-    if (initParams->Minimized)
-        SetMinimized(true);
-
-    if (initParams->Maximized)
-        SetMaximized(true);
 
     if (!initParams->Resizable)
         SetResizable(false);
@@ -214,13 +266,26 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Lin
     if (options_.transparentEnabled)
         SetTransparentEnabled(true);//visual/app-paintable
 
-    Show();
-
-    if (!platform_->webview)
+    if (!EnsureWebViewAttached())
         std::abort();
+
+    const bool startMinimized = initParams->Minimized;
+    const bool startMaximized = initParams->Maximized;
+    const bool startFullScreen = options_.fullScreen;
+
+    Show();
 
     if (options_.transparentEnabled)
         SetTransparentEnabled(true);//WebKit background alpha
+
+    if (startMaximized)
+        SetMaximized(true);
+
+    if (startFullScreen)
+        SetFullScreen(true);
+
+    if (startMinimized)
+        SetMinimized(true);
 
     g_signal_connect(G_OBJECT(platform_->window), "focus-in-event",
                      G_CALLBACK(on_focus_in_event),
@@ -281,110 +346,6 @@ void Photino::ShowNotification(const PlatformString& title, const PlatformString
     g_object_unref(G_OBJECT(notification));
 }
 
-// Private methods
-void HandleWebMessage(WebKitUserContentManager* contentManager, WebKitJavascriptResult* jsResult, gpointer arg)
-{
-    if (!jsResult) return;
-
-    JSCValue* jsValue = webkit_javascript_result_get_js_value(jsResult);
-    if (!jsValue || !jsc_value_is_string(jsValue)) return;
-
-    gchar* strValue = jsc_value_to_string(jsValue);
-    if (!strValue) return;
-
-    auto callback = reinterpret_cast<WebMessageReceivedCallback>(arg);
-    if (callback)
-        callback(strValue);
-
-    g_free(strValue);
-}
-
-void Photino::Show()
-{
-    if (!platform_->webview)
-    {
-        struct sigaction old_action{};
-        bool hasOldSigchldAction = sigaction(SIGCHLD, nullptr, &old_action) == 0;
-
-        GObjectPtr<WebKitUserContentManager> contentManager(webkit_user_content_manager_new());
-        if (!contentManager)
-            std::abort();
-
-        platform_->webview = webkit_web_view_new_with_user_content_manager(contentManager.get());
-        if (!platform_->webview)
-            std::abort();
-
-        SetWebKitSettings();
-
-        // this may or may not work
-        // g_object_set(G_OBJECT(settings), "enable-auto-fill-form", TRUE, NULL);
-
-        gtk_container_add(GTK_CONTAINER(platform_->window), platform_->webview);
-
-        WebKitUserScriptPtr script(webkit_user_script_new(
-            "window.__receiveMessageCallbacks = [];"
-            "window.__dispatchMessageCallback = function(message) {"
-            "	window.__receiveMessageCallbacks.forEach(function(callback) { callback(message); });"
-            "};"
-            "window.external = {"
-            "	sendMessage: function(message) {"
-            "		window.webkit.messageHandlers.Photinointerop.postMessage(message);"
-            "	},"
-            "	receiveMessage: function(callback) {"
-            "		window.__receiveMessageCallbacks.push(callback);"
-            "	}"
-            "};",
-            WEBKIT_USER_CONTENT_INJECT_ALL_FRAMES,
-            WEBKIT_USER_SCRIPT_INJECT_AT_DOCUMENT_START,
-            nullptr,
-            nullptr));
-
-        if (!script)
-            std::abort();
-
-        webkit_user_content_manager_add_script(contentManager.get(), script.get());
-
-        g_signal_connect(contentManager.get(), "script-message-received::Photinointerop",
-                         G_CALLBACK(HandleWebMessage), reinterpret_cast<void*>(webMessageReceivedCallback_));
-
-        if (!webkit_user_content_manager_register_script_message_handler(contentManager.get(), "Photinointerop"))
-            std::abort();
-
-        // These must be called after the webview control is initialized.
-        g_signal_connect(G_OBJECT(platform_->webview), "context-menu",
-                         G_CALLBACK(on_webview_context_menu),
-                         this);
-
-        g_signal_connect(G_OBJECT(platform_->webview), "permission-request",
-                         G_CALLBACK(on_permission_request),
-                         this);
-
-        AddCustomSchemeHandlers();
-
-        if (!options_.startUrl.empty())
-        {
-            NavigateToUrl(options_.startUrl);
-        }
-        else if (!options_.startString.empty())
-        {
-            NavigateToString(options_.startString);
-        }
-        else
-        {
-            GtkWidget *dialog = gtk_message_dialog_new(
-                nullptr, GTK_DIALOG_DESTROY_WITH_PARENT, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Neither StartUrl not StartString was specified");
-            gtk_dialog_run(GTK_DIALOG(dialog));
-            gtk_widget_destroy(dialog);
-            std::abort();
-        }
-
-        if (hasOldSigchldAction)
-            sigaction(SIGCHLD, &old_action, nullptr);
-    }
-
-    gtk_widget_show_all(platform_->window);
-}
-
 void Photino::HandleConfigureEvent(int x, int y, int width, int height)
 {
     if (platform_->lastGeometry.left != x || platform_->lastGeometry.top != y)
@@ -400,122 +361,4 @@ void Photino::HandleConfigureEvent(int x, int y, int width, int height)
         platform_->lastGeometry.width = width;
         platform_->lastGeometry.height = height;
     }
-}
-
-gboolean on_configure_event(GtkWidget* widget, GdkEvent* event, gpointer self)
-{
-    if (!event) return FALSE;
-
-    if (event->type == GDK_CONFIGURE)
-    {
-        auto instance = static_cast<Photino*>(self);
-        if (!instance) return FALSE;
-
-        instance->HandleConfigureEvent(
-            event->configure.x,
-            event->configure.y,
-            event->configure.width,
-            event->configure.height);
-    }
-
-    return FALSE;
-}
-
-gboolean on_window_state_event(GtkWidget* widget, GdkEventWindowState* event, gpointer self)
-{
-    auto instance = static_cast<Photino*>(self);
-    if (!instance || !event) return FALSE;
-
-    if ((event->changed_mask & GDK_WINDOW_STATE_MAXIMIZED) &&
-        (event->new_window_state & GDK_WINDOW_STATE_MAXIMIZED))
-    {
-        instance->InvokeMaximized();
-        return FALSE;
-    }
-
-    if ((event->changed_mask & GDK_WINDOW_STATE_ICONIFIED) &&
-        (event->new_window_state & GDK_WINDOW_STATE_ICONIFIED))
-    {
-        instance->InvokeMinimized();
-        return FALSE;
-    }
-
-    if ((event->changed_mask & (GDK_WINDOW_STATE_MAXIMIZED | GDK_WINDOW_STATE_ICONIFIED)) &&
-        !(event->new_window_state & GDK_WINDOW_STATE_MAXIMIZED) &&
-        !(event->new_window_state & GDK_WINDOW_STATE_ICONIFIED))
-    {
-        instance->InvokeRestored();
-    }
-
-    return FALSE;
-}
-
-gboolean on_widget_deleted(GtkWidget* widget, GdkEvent* event, gpointer self)
-{
-    if (PhotinoApplication::Instance().IsShuttingDown()) return FALSE;
-
-    auto instance = static_cast<Photino*>(self);
-    if (!instance) return FALSE;
-
-    bool doNotClose = instance->InvokeClosing();
-    return doNotClose ? TRUE : FALSE;
-}
-
-void on_widget_destroyed(GtkWidget* widget, gpointer self)
-{
-    auto instance = static_cast<Photino*>(self);
-    if (!instance) return;
-
-    instance->InvokeClose();
-
-    delete instance;
-}
-
-gboolean on_focus_in_event(GtkWidget* widget, GdkEvent* event, gpointer self)
-{
-    auto instance = static_cast<Photino*>(self);
-    if (!instance) return FALSE;
-
-    instance->InvokeFocusIn();
-    return FALSE;
-}
-
-gboolean on_focus_out_event(GtkWidget* widget, GdkEvent* event, gpointer self)
-{
-    auto instance = static_cast<Photino*>(self);
-    if (!instance) return FALSE;
-
-    instance->InvokeFocusOut();
-    return FALSE;
-}
-
-gboolean on_webview_context_menu(WebKitWebView* web_view, GtkWidget* default_menu, WebKitHitTestResult* hit_test_result,
-                                 gboolean triggered_with_keyboard, gpointer self)
-{
-    auto instance = static_cast<Photino*>(self);
-    if (!instance) return FALSE;
-
-    bool contextMenuEnabled = false;
-    instance->GetContextMenuEnabled(&contextMenuEnabled);
-    return !contextMenuEnabled ? TRUE : FALSE;
-}
-
-gboolean on_permission_request(WebKitWebView* web_view, WebKitPermissionRequest* request, gpointer self)
-{
-    auto instance = static_cast<Photino*>(self);
-    if (!instance || !request) return FALSE;
-
-    bool grantBrowserPermissions = false;
-    instance->GetGrantBrowserPermissions(&grantBrowserPermissions);
-
-    if (!grantBrowserPermissions)
-        return FALSE;
-
-    // GtkWidget *dialog = gtk_message_dialog_new(
-    //	nullptr, GTK_DIALOG_DESTROY_WITH_PARENT, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Permission Requested - Allowing!");
-    // gtk_dialog_run(GTK_DIALOG(dialog));
-    //  gtk_widget_destroy(dialog);
-
-    webkit_permission_request_allow(request);
-    return TRUE;
 }

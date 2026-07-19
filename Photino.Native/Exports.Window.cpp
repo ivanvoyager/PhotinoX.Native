@@ -40,6 +40,54 @@ extern "C"
 
 #endif
 
+    PHOTINO_EXPORT bool Photino_Show(const Photino* instance)
+    {
+        assert(instance);
+        if (!instance) return false;
+
+        return instance->Show();
+    }
+
+    PHOTINO_EXPORT bool Photino_Activate(const Photino* instance)
+    {
+        assert(instance);
+        if (!instance) return false;
+
+        return instance->Activate();
+    }
+
+    PHOTINO_EXPORT bool Photino_Center(const Photino* instance)
+    {
+        assert(instance);
+        if (!instance) return false;
+
+        return instance->Center();
+    }
+
+    PHOTINO_EXPORT bool Photino_Maximize(const Photino* instance)
+    {
+        assert(instance);
+        if (!instance) return false;
+
+        return instance->Maximize();
+    }
+
+    PHOTINO_EXPORT bool Photino_Minimize(const Photino* instance)
+    {
+        assert(instance);
+        if (!instance) return false;
+
+        return instance->Minimize();
+    }
+
+    PHOTINO_EXPORT bool Photino_Restore(Photino* instance)
+    {
+        assert(instance);
+        if (!instance) return false;
+
+        return instance->Restore();
+    }
+
     PHOTINO_EXPORT void Photino_Close(const Photino* instance)
     {
         assert(instance);
@@ -133,23 +181,6 @@ extern "C"
         if (!instance) return;
 
         instance->SetMaxSize(width, height);
-    }
-
-
-    PHOTINO_EXPORT void Photino_Center(const Photino* instance)
-    {
-        assert(instance);
-        if (!instance) return;
-
-        instance->Center();
-    }
-
-    PHOTINO_EXPORT void Photino_Restore(const Photino* instance)
-    {
-        assert(instance);
-        if (!instance) return;
-
-        instance->Restore();
     }
 
 

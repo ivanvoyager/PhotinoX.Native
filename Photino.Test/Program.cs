@@ -156,6 +156,9 @@ class Program
             .RegisterWindowCreatedHandler(WindowCreated)
             .RegisterLocationChangedHandler(WindowLocationChanged)
             .RegisterSizeChangedHandler(WindowSizeChanged)
+            .RegisterMaximizedHandler(WindowMaximized)
+            .RegisterRestoredHandler(WindowRestored)
+            .RegisterMinimizedHandler(WindowMinimized)
             .RegisterWebMessageReceivedHandler(MessageReceivedFromWindow)
             .RegisterWindowClosingHandler(WindowClosing)
             .RegisterWindowClosedHandler(WindowClosed)
@@ -208,7 +211,7 @@ class Program
             //TopMost = true,
             UseOsDefaultLocation = false,
             UseOsDefaultSize = false,
-            Centered = true,
+            CenterOnInitialize = true,
             Size = new Size(800, 600),
             Height = 600,
             Width = 800,
@@ -248,6 +251,7 @@ class Program
         s_mainWindow.WindowMinimized += WindowMinimized;
         s_mainWindow.WebMessageReceived += MessageReceivedFromWindow;
         s_mainWindow.WindowClosing += WindowClosing;
+        s_mainWindow.WindowClosed += WindowClosed;
         s_mainWindow.WindowFocusIn += WindowFocusIn;
         s_mainWindow.WindowFocusOut += WindowFocusOut;
 
@@ -361,11 +365,15 @@ class Program
         }
         else if (string.Compare(message, "minimize", true) == 0)
         {
-            currentWindow.SetMinimized(!currentWindow.Minimized);
+            currentWindow.Minimize();
         }
         else if (string.Compare(message, "maximize", true) == 0)
         {
-            currentWindow.SetMaximized(!currentWindow.Maximized);
+            currentWindow.Maximize();
+        }
+        else if (string.Compare(message, "restore", true) == 0)
+        {
+            currentWindow.Restore();
         }
         else if (string.Compare(message, "setcontextmenuenabled", true) == 0)
         {

@@ -89,6 +89,8 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Win
 
     InitializeFromInitParams(initParams);
 
+    const bool startFullScreen = options_.fullScreen;
+
     platform_->sizeLimits.minWidth = (std::max)(0, initParams->MinWidth);
     platform_->sizeLimits.minHeight = (std::max)(0, initParams->MinHeight);
     platform_->sizeLimits.maxWidth = (std::max)(0, initParams->MaxWidth);
@@ -118,14 +120,6 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Win
         initParams->Top = CW_USEDEFAULT;
     }
 
-    if (options_.fullScreen)
-    {
-        initParams->Left = 0;
-        initParams->Top = 0;
-        initParams->Width = GetSystemMetrics(SM_CXSCREEN);
-        initParams->Height = GetSystemMetrics(SM_CYSCREEN);
-    }
-
     if (options_.chromeless)
     {
         //CW_USEDEFAULT CAN NOT BE USED ON POPUP WINDOWS
@@ -145,10 +139,10 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Win
 
     //Create the window
     platform_->hWnd = CreateWindowExW(
-        options_.transparentEnabled ? WS_EX_LAYERED : 0,                            	// WS_EX_OVERLAPPEDWINDOW, //An optional extended window style.
-        CLASS_NAME,																		// Window class
-        options_.windowTitle.c_str(),                                               	// Window text
-        options_.chromeless || options_.fullScreen ? WS_POPUP : WS_OVERLAPPEDWINDOW,	// Window style
+        options_.transparentEnabled ? WS_EX_LAYERED : 0,        // WS_EX_OVERLAPPEDWINDOW, //An optional extended window style.
+        CLASS_NAME,                                             // Window class
+        options_.windowTitle.c_str(),                           // Window text
+        options_.chromeless ? WS_POPUP : WS_OVERLAPPEDWINDOW,   // Window style
 
         // Size and position
         initParams->Left, initParams->Top, initParams->Width, initParams->Height,
@@ -169,11 +163,12 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Win
     if (initParams->CenterOnInitialize)
         Center();
 
-    if (initParams->Minimized)
-        SetMinimized(true);
-
     if (initParams->Maximized)
-        SetMaximized(true);
+        platform_->initialShowCommand = SW_SHOWMAXIMIZED;
+    else if(initParams->Minimized)
+        platform_->initialShowCommand = SW_SHOWMINIMIZED;
+    else
+        platform_->initialShowCommand = SW_SHOWDEFAULT;
 
     SetResizable(initParams->Resizable);
 
@@ -194,8 +189,15 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Win
 
     dialog_ = new PhotinoDialog(this);
 
-    platform_->isAlreadyShown = initParams->Minimized || initParams->Maximized;
     Show();
+
+    if (startFullScreen)
+        SetFullScreen(true);
+
+    // Photino creates WebView2 after the native window is shown because creating it
+    // earlier has historically caused initialization/display issues.
+    if (!EnsureWebViewAttached())
+        std::abort();
 }
 
 Photino::~Photino()
@@ -293,6 +295,7 @@ LRESULT CALLBACK WindowProc(const HWND hwnd, const UINT uMsg, const WPARAM wPara
         if (const auto it = g_hwndToPhotino.find(hwnd); it != g_hwndToPhotino.end())
         {
             const auto photino = it->second;
+            if (!photino) return 0;
 
             if (LOWORD(wParam) == WA_INACTIVE)
             {
@@ -366,11 +369,24 @@ LRESULT CALLBACK WindowProc(const HWND hwnd, const UINT uMsg, const WPARAM wPara
         return 0;
     }
 
+    case WM_WINDOWPOSCHANGED:
+    {
+        if (const auto it = g_hwndToPhotino.find(hwnd); it != g_hwndToPhotino.end())
+        {
+            const auto photino = it->second;
+            if (photino)
+                photino->UpdateFullScreenState();
+        }
+
+        break;
+    }
+
     case WM_SIZE:
     {
         if (const auto it = g_hwndToPhotino.find(hwnd); it != g_hwndToPhotino.end())
         {
             const auto photino = it->second;
+            if (!photino) return 0;
 
             photino->RefitContent();
 
@@ -381,10 +397,12 @@ LRESULT CALLBACK WindowProc(const HWND hwnd, const UINT uMsg, const WPARAM wPara
             switch (wParam)
             {
             case SIZE_MAXIMIZED:
-                photino->InvokeMaximized();
+                if (!photino->IsFullScreen())
+                    photino->InvokeMaximized();
                 break;
             case SIZE_RESTORED:
-                photino->InvokeRestored();
+                if (!photino->IsFullScreen())
+                    photino->InvokeRestored();
                 break;
             case SIZE_MINIMIZED:
                 photino->InvokeMinimized();
@@ -399,6 +417,8 @@ LRESULT CALLBACK WindowProc(const HWND hwnd, const UINT uMsg, const WPARAM wPara
         if (const auto it = g_hwndToPhotino.find(hwnd); it != g_hwndToPhotino.end())
         {
             const auto photino = it->second;
+            if (!photino) return 0;
+
             // photino->NotifyWebView2WindowMove();
             // photino->RefitContent();
 
@@ -449,29 +469,4 @@ void Photino::ShowNotification(const PlatformString& title, const PlatformString
 
     INT64 result = WinToast::instance()->showToast(toast, platform_->toastHandler);
     assert(result >= 0);
-}
-
-void Photino::Show()
-{
-    if (!platform_->hWnd)
-        std::abort();
-
-    if (!platform_->isAlreadyShown)
-    {
-        ShowWindow(platform_->hWnd, SW_SHOWDEFAULT); // causes maximized and minimized to not work
-        platform_->isAlreadyShown = true;
-    }
-
-    UpdateWindow(platform_->hWnd);
-
-    // Strangely, it only works to create the webview2 *after* the window has been shown,
-    // so defer it until here. This unfortunately means you can't call the Navigate methods
-    // until the window is shown.
-    if (!platform_->webViewController)
-    {
-        if (!g_webview2RuntimePath.empty() || EnsureWebViewIsInstalled())
-            AttachWebView();
-        else
-            std::abort();
-    }
 }
