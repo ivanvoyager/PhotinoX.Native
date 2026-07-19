@@ -209,19 +209,52 @@ void Photino::SetMaxSize(int width, int height)
     [platform_->window setMaxSize:NSMakeSize(width, height)];
 }
 
-void Photino::Center() const
+bool Photino::Activate() const
 {
     assert(platform_->window);
-    if (!platform_->window) return;
+    if (!platform_->window) return false;
 
-    [platform_->window center];
-    //[platform_->window makeKeyAndOrderFront:platform_->window];
+    [platform_->window makeKeyAndOrderFront:nil];
+    [NSApp activateIgnoringOtherApps:YES];
+
+    return true;
 }
 
-void Photino::Restore() const
+bool Photino::Center() const
 {
     assert(platform_->window);
-    if (!platform_->window) return;
+    if (!platform_->window) return false;
+
+    [platform_->window center];
+    return true;
+}
+
+bool Photino::Maximize() const
+{
+    assert(platform_->window);
+    if (!platform_->window) return false;
+
+    if (![platform_->window isZoomed])
+        [platform_->window zoom:nil];
+
+    return true;
+}
+
+bool Photino::Minimize() const
+{
+    assert(platform_->window);
+    if (!platform_->window) return false;
+
+    if (![platform_->window isMiniaturized])
+        [platform_->window miniaturize:nil];
+
+    return true;
+}
+
+bool Photino::Restore()
+{
+    assert(platform_->window);
+    if (!platform_->window) return false;
 
     if ([platform_->window isMiniaturized])
         [platform_->window deminiaturize:nil];
@@ -231,6 +264,20 @@ void Photino::Restore() const
 
     if (([platform_->window styleMask] & NSWindowStyleMaskFullScreen) == NSWindowStyleMaskFullScreen)
         [platform_->window toggleFullScreen:nil];
+
+    return true;
+}
+
+bool Photino::Show() const
+{
+    assert(platform_->window);
+    if (!platform_->window) return false;
+
+    if ([platform_->window isMiniaturized])
+        [platform_->window deminiaturize:nil];
+
+    [platform_->window makeKeyAndOrderFront:nil];
+    return true;
 }
 
 void Photino::BeginWindowDrag() const
@@ -337,7 +384,6 @@ void Photino::SetFullScreen(bool fullScreen)
     bool isFullScreen = ([platform_->window styleMask] & NSWindowStyleMaskFullScreen) == NSWindowStyleMaskFullScreen;
     if (isFullScreen == fullScreen) return;
 
-    options_.fullScreen = fullScreen;
     [platform_->window toggleFullScreen:nil];
 }
 

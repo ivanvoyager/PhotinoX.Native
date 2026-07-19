@@ -60,6 +60,19 @@ using namespace PhotinoX::Native;
     photino->InvokeRestored();
 }
 
+- (void)windowDidEnterFullScreen:(NSNotification*)notification {
+    if (!photino) return;
+
+    photino->HandleFullScreenStateChanged(true);
+}
+
+- (void)windowDidExitFullScreen:(NSNotification*)notification {
+    if (!photino) return;
+
+    photino->HandleFullScreenStateChanged(false);
+    photino->InvokeRestored();
+}
+
 - (BOOL)windowShouldClose:(NSWindow*)sender {
     if (!photino) return YES;
 

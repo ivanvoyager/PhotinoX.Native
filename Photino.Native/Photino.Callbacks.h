@@ -7,6 +7,7 @@ namespace PhotinoX::Native
 {
     using VoidCallback = void (*)();
     using VoidStateCallback = void (*)(void* state);
+    using VoidBoolCallback = void (*)(bool);
     using BoolCallback = bool (*)();
     using IntIntCallback = void (*)(int, int);  // Resized, Moved
     using StringCallback = void (*)(Utf8String);
@@ -31,4 +32,5 @@ namespace PhotinoX::Native
     using WebMessageReceivedCallback = StringCallback;
     using WebResourceRequestedCallback = ResourceCallback;
     using GetAllMonitorsCallback = MonitorCallback;
+    using FullScreenChangedCallback = VoidBoolCallback;
 }

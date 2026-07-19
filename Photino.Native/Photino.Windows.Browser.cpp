@@ -786,6 +786,25 @@ bool Photino::RegisterCustomSchemeName(const PlatformString& scheme)
            !platform_->webViewInitialized;
 }
 
+bool Photino::EnsureWebViewAttached()
+{
+    if (platform_->webViewController)
+        return true;
+
+    if (g_webview2RuntimePath.empty() && !EnsureWebViewIsInstalled())
+        return false;
+
+    // Strangely, it only works to create the webview2 *after* the window has been shown,
+    // so defer it until here. This unfortunately means you can't call the Navigate methods
+    // until the window is shown.
+    assert(platform_->isAlreadyShown);
+    if (!platform_->isAlreadyShown)
+        return false;
+
+    AttachWebView();
+    return true;
+}
+
 void Photino::SetWebView2RuntimePath(const PlatformString& pathToWebView2)
 {
     g_webview2RuntimePath = pathToWebView2;

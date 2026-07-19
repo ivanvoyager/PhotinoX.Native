@@ -27,12 +27,18 @@ namespace PhotinoX::Native
         WindowSizeLimits sizeLimits;
 
         bool webViewInitialized = false;
+
+        int initialShowCommand = SW_SHOWDEFAULT;
         bool isAlreadyShown = false;
 
         // Set once the first navigation has been issued. Until then there is no
         // document to reload, so the Set*Enabled methods must not reload: doing so
         // would discard a still-pending navigation.
         bool initialNavigationIssued = false;
+
+        LONG_PTR fullScreenStyle = 0;
+        WINDOWPLACEMENT fullScreenPlacement{sizeof(WINDOWPLACEMENT)};
+        bool hasFullScreenRestoreState = false;
     };
 }
 

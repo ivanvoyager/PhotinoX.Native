@@ -56,7 +56,6 @@ void Photino::InitializeOptions(const PhotinoInitParams* initParams)
 
 void Photino::InitializeCallbacks(const PhotinoInitParams* initParams)
 {
-    // these handlers are ALWAYS hooked up
     closingCallback_ = initParams->ClosingHandler;
     focusInCallback_ = initParams->FocusInHandler;
     focusOutCallback_ = initParams->FocusOutHandler;
@@ -68,6 +67,7 @@ void Photino::InitializeCallbacks(const PhotinoInitParams* initParams)
     webMessageReceivedCallback_ = initParams->WebMessageReceivedHandler;
     customSchemeCallback_ = initParams->CustomSchemeHandler;
     closedCallback_ = initParams->ClosedHandler;
+    fullScreenChangedCallback_ = initParams->FullScreenChangedHandler;
 }
 
 void Photino::InitializeCustomSchemes(const PhotinoInitParams* initParams)

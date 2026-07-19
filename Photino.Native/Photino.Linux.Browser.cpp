@@ -11,12 +11,35 @@
 #include <webkit2/webkit2.h>
 
 #include <cassert>
+#include <csignal>
 
 using json = nlohmann::json;
 using namespace PhotinoX::Native;
 
 namespace
 {
+    class SigchldActionGuard
+    {
+      public:
+        SigchldActionGuard()
+        {
+            hasOldAction_ = sigaction(SIGCHLD, nullptr, &oldAction_) == 0;
+        }
+
+        ~SigchldActionGuard()
+        {
+            if (hasOldAction_)
+                sigaction(SIGCHLD, &oldAction_, nullptr);
+        }
+
+        SigchldActionGuard(const SigchldActionGuard&) = delete;
+        SigchldActionGuard& operator=(const SigchldActionGuard&) = delete;
+
+      private:
+        struct sigaction oldAction_{};
+        bool hasOldAction_ = false;
+    };
+
     void SetWebKitCustomSettings(WebKitSettings* settings, const PlatformString& browserControlInitParameters)
     {
         assert(settings);
@@ -76,7 +99,118 @@ namespace
             g_value_unset(&propertyValue);
         }
     }
-}
+
+    void FreeNativeMemory(gpointer data)
+    {
+        FreeMemory(data);
+    }
+
+    void FinishCustomSchemeRequestWithError(WebKitURISchemeRequest* request, const char* message)
+    {
+        GError* error = g_error_new_literal(G_IO_ERROR, G_IO_ERROR_FAILED, message);
+        webkit_uri_scheme_request_finish_error(request, error);
+        g_error_free(error);
+    }
+
+    void HandleCustomSchemeRequest(WebKitURISchemeRequest* request, gpointer userData)
+    {
+        assert(request);
+        if (!request) return;
+
+        auto callback = reinterpret_cast<WebResourceRequestedCallback>(userData);
+        if (!callback)
+        {
+            FinishCustomSchemeRequestWithError(request, "Custom scheme callback is not registered.");
+            return;
+        }
+
+        const gchar* uri = webkit_uri_scheme_request_get_uri(request);
+        if (!uri || *uri == '\0')
+        {
+            FinishCustomSchemeRequestWithError(request, "Custom scheme request URI is empty.");
+            return;
+        }
+
+        int numBytes = 0;
+        Utf8String contentType = nullptr;
+        void* responseData = callback(uri, &numBytes, &contentType);
+
+        if (!responseData || numBytes <= 0)
+        {
+            FreeMemory(responseData);
+            FreeString(const_cast<char*>(contentType));
+
+            FinishCustomSchemeRequestWithError(request, "Custom scheme response is empty.");
+            return;
+        }
+
+        GObjectPtr<GInputStream> stream(g_memory_input_stream_new_from_data(responseData, numBytes, FreeNativeMemory));
+        if (!stream)
+        {
+            FreeMemory(responseData);
+            FreeString(const_cast<char*>(contentType));
+
+            FinishCustomSchemeRequestWithError(request, "Failed to create custom scheme response stream.");
+            return;
+        }
+
+        webkit_uri_scheme_request_finish(
+            request,
+            stream.get(),
+            numBytes,
+            contentType);
+
+        FreeString(const_cast<char*>(contentType));
+    }
+
+    void HandleWebMessage(WebKitUserContentManager* contentManager, WebKitJavascriptResult* jsResult, gpointer arg)
+    {
+        if (!jsResult) return;
+
+        JSCValue* jsValue = webkit_javascript_result_get_js_value(jsResult);
+        if (!jsValue || !jsc_value_is_string(jsValue)) return;
+
+        gchar* strValue = jsc_value_to_string(jsValue);
+        if (!strValue) return;
+
+        auto callback = reinterpret_cast<WebMessageReceivedCallback>(arg);
+        if (callback)
+            callback(strValue);
+
+        g_free(strValue);
+    }
+
+    gboolean on_webview_context_menu(WebKitWebView* web_view, GtkWidget* default_menu, WebKitHitTestResult* hit_test_result,
+                                     gboolean triggered_with_keyboard, gpointer self)
+    {
+        auto instance = static_cast<Photino*>(self);
+        if (!instance) return FALSE;
+
+        bool contextMenuEnabled = false;
+        instance->GetContextMenuEnabled(&contextMenuEnabled);
+        return !contextMenuEnabled ? TRUE : FALSE;
+    }
+
+    gboolean on_permission_request(WebKitWebView* web_view, WebKitPermissionRequest* request, gpointer self)
+    {
+        auto instance = static_cast<Photino*>(self);
+        if (!instance || !request) return FALSE;
+
+        bool grantBrowserPermissions = false;
+        instance->GetGrantBrowserPermissions(&grantBrowserPermissions);
+
+        if (!grantBrowserPermissions)
+            return FALSE;
+
+        // GtkWidget *dialog = gtk_message_dialog_new(
+        //	nullptr, GTK_DIALOG_DESTROY_WITH_PARENT, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Permission Requested - Allowing!");
+        // gtk_dialog_run(GTK_DIALOG(dialog));
+        //  gtk_widget_destroy(dialog);
+
+        webkit_permission_request_allow(request);
+        return TRUE;
+    }
+    }
 
 struct InvokeJSWaitInfo
 {
@@ -425,69 +559,6 @@ void Photino::SetWebKitSettings()
     webkit_web_view_set_settings(WEBKIT_WEB_VIEW(platform_->webview), settings.get()); // apply the settings to the webview
 }
 
-static void FreeNativeMemory(gpointer data)
-{
-    FreeMemory(data);
-}
-
-static void FinishCustomSchemeRequestWithError(WebKitURISchemeRequest* request, const char* message)
-{
-    GError* error = g_error_new_literal(G_IO_ERROR, G_IO_ERROR_FAILED, message);
-    webkit_uri_scheme_request_finish_error(request, error);
-    g_error_free(error);
-}
-
-void HandleCustomSchemeRequest(WebKitURISchemeRequest* request, gpointer userData)
-{
-    assert(request);
-    if (!request) return;
-
-    auto callback = reinterpret_cast<WebResourceRequestedCallback>(userData);
-    if (!callback)
-    {
-        FinishCustomSchemeRequestWithError(request, "Custom scheme callback is not registered.");
-        return;
-    }
-
-    const gchar* uri = webkit_uri_scheme_request_get_uri(request);
-    if (!uri || *uri == '\0')
-    {
-        FinishCustomSchemeRequestWithError(request, "Custom scheme request URI is empty.");
-        return;
-    }
-
-    int numBytes = 0;
-    Utf8String contentType = nullptr;
-    void* responseData = callback(uri, &numBytes, &contentType);
-
-    if (!responseData || numBytes <= 0)
-    {
-        FreeMemory(responseData);
-        FreeString(const_cast<char*>(contentType));
-
-        FinishCustomSchemeRequestWithError(request, "Custom scheme response is empty.");
-        return;
-    }
-
-    GObjectPtr<GInputStream> stream(g_memory_input_stream_new_from_data(responseData, numBytes, FreeNativeMemory));
-    if (!stream)
-    {
-        FreeMemory(responseData);
-        FreeString(const_cast<char*>(contentType));
-
-        FinishCustomSchemeRequestWithError(request, "Failed to create custom scheme response stream.");
-        return;
-    }
-
-    webkit_uri_scheme_request_finish(
-        request,
-        stream.get(),
-        numBytes,
-        contentType);
-
-    FreeString(const_cast<char*>(contentType));
-}
-
 void Photino::AddCustomSchemeHandlers()
 {
     assert(platform_->webview);
@@ -528,6 +599,84 @@ bool Photino::RegisterCustomSchemeName(const PlatformString& scheme)
         HandleCustomSchemeRequest,
         reinterpret_cast<void*>(customSchemeCallback_),
         nullptr);
+
+    return true;
+}
+
+bool Photino::EnsureWebViewAttached()
+{
+    if (platform_->webview)
+        return true;
+
+    SigchldActionGuard sigchldGuard;
+
+    GObjectPtr<WebKitUserContentManager> contentManager(webkit_user_content_manager_new());
+    if (!contentManager)
+        return false;
+
+    platform_->webview = webkit_web_view_new_with_user_content_manager(contentManager.get());
+    if (!platform_->webview)
+        return false;
+
+    SetWebKitSettings();
+
+    gtk_container_add(GTK_CONTAINER(platform_->window), platform_->webview);
+
+    WebKitUserScriptPtr script(webkit_user_script_new(
+        "window.__receiveMessageCallbacks = [];"
+        "window.__dispatchMessageCallback = function(message) {"
+        "	window.__receiveMessageCallbacks.forEach(function(callback) { callback(message); });"
+        "};"
+        "window.external = {"
+        "	sendMessage: function(message) {"
+        "		window.webkit.messageHandlers.Photinointerop.postMessage(message);"
+        "	},"
+        "	receiveMessage: function(callback) {"
+        "		window.__receiveMessageCallbacks.push(callback);"
+        "	}"
+        "};",
+        WEBKIT_USER_CONTENT_INJECT_ALL_FRAMES,
+        WEBKIT_USER_SCRIPT_INJECT_AT_DOCUMENT_START,
+        nullptr,
+        nullptr));
+
+    if (!script)
+        return false;
+
+    webkit_user_content_manager_add_script(contentManager.get(), script.get());
+
+    g_signal_connect(contentManager.get(), "script-message-received::Photinointerop",
+                     G_CALLBACK(HandleWebMessage), reinterpret_cast<void*>(webMessageReceivedCallback_));
+
+    if (!webkit_user_content_manager_register_script_message_handler(contentManager.get(), "Photinointerop"))
+        return false;
+
+    g_signal_connect(G_OBJECT(platform_->webview), "context-menu",
+                     G_CALLBACK(on_webview_context_menu),
+                     this);
+
+    g_signal_connect(G_OBJECT(platform_->webview), "permission-request",
+                     G_CALLBACK(on_permission_request),
+                     this);
+
+    AddCustomSchemeHandlers();
+
+    if (!options_.startUrl.empty())
+    {
+        NavigateToUrl(options_.startUrl);
+    }
+    else if (!options_.startString.empty())
+    {
+        NavigateToString(options_.startString);
+    }
+    else
+    {
+        GtkWidget* dialog = gtk_message_dialog_new(
+            nullptr, GTK_DIALOG_DESTROY_WITH_PARENT, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Neither StartUrl nor StartString was specified");
+        gtk_dialog_run(GTK_DIALOG(dialog));
+        gtk_widget_destroy(dialog);
+        std::abort();
+    }
 
     return true;
 }
