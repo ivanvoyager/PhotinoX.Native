@@ -9,12 +9,12 @@
 **PhotinoX.Native** is an independent fork of [`tryphotino/photino.Native`](https://github.com/tryphotino/photino.Native) licensed under **Apache‑2.0**.  
 This project is **not affiliated** with the original Photino organization.
 
-The goal of this fork is to maintain and improve the native cross‑platform binaries for:
+The goal of this fork is to maintain and improve the native cross-platform layer for:
 - **Windows x64 / ARM64**
 - **Linux x64 / ARM64**
 - **macOS x64 / ARM64 (Universal)**
 
-PhotinoX.Native provides a lightweight native window host using the OS’s built‑in WebView stack:
+PhotinoX.Native provides a lightweight native window host using the OS’s built-in WebView stack, while improving native API structure, interop layout, application lifetime, message-loop ownership, and window state support.
 
 - **Windows:** WebView2 Runtime  
   Required component: **Microsoft.Web.WebView2** (Edge WebView2)  
@@ -57,13 +57,16 @@ This package is intended for developers building modern desktop apps with web‑
 
 | Aspect | Photino (upstream) | PhotinoX (fork) |
 |---|---|---|
-| **Concept / architecture** | Lightweight alternative to Electron: native window + system WebViews (Windows: WebView2, macOS: WKWebView, Linux: WebKitGTK). | Same architecture; fork focuses on keeping native binaries and packaging up‑to‑date. |
-| **Native layer** | `Photino.Native` is the C++/Obj‑C++ wrapper around the OS web view. | Same layer and API surface; maintained builds and fixes in the fork. |
+| **Concept / architecture** | Lightweight alternative to Electron: native window + system WebViews (Windows: WebView2, macOS: WKWebView, Linux: WebKitGTK). | Same lightweight architecture, with active work on native stability, packaging, interop, and long-running application scenarios. |
+| **Native layer structure** | Central `Photino` class mixes public API, callbacks, platform headers, platform state, and platform-specific implementation details. | Keeps the same native foundation but separates callbacks, init parameters, options, strings, monitors, exports, and platform state into focused components, reducing cross-platform coupling. |
+| **Platform isolation** | Platform-specific headers, fields, and methods are mixed directly into the main `Photino` declaration. | Uses platform state objects (`WindowsState`, `LinuxState`, `MacState`) and platform-specific implementation sections to keep Windows, Linux, and macOS concerns isolated. |
+| **Native memory ownership** | Uses pointer-based string conversion and implicit ownership across several native interop paths, including custom-scheme/resource responses. | Uses explicit native allocation/free helpers, owned `PlatformString` values, and non-owning `Utf8String` ABI inputs. String conversion and response buffers crossing the managed/native boundary now have predictable native ownership to reduce leak-prone paths in long-running applications. |
+| **Application / message loop model** | Uses global native wait/invoke helpers around the native window/message loop. | Introduces `PhotinoApplication` as the native application lifetime object, with explicit run/shutdown semantics and application-level invoke/check-access entry points. |
+| **Window lifecycle callbacks** | Provides the original window callback set. | Extends native lifecycle/state callbacks with closed and fullscreen state notifications for more complete native window state reporting. |
 | **Linux dependency (WebKitGTK)** | Migrated to WebKitGTK 4.1 in early 2025 (makefile updated before the 4.0.22 release). | Uses WebKitGTK 4.1 consistently across CI/scripts. |
 | **Docs vs. reality (Linux)** | Public Photino.Native docs still mention `libwebkit2gtk-4.0-dev` and Azure Pipelines; the page wasn’t updated after the switch in code. | README/notes match current toolchains and 4.1 (no Azure Pipelines references). |
 | **Release activity** | Latest public upstream release: 4.0.22 (Jan 23, 2025). | Fork publishes its own PhotinoX.Native package with current artifacts. |
 | **RID packaging** | Uses standard `runtimes/<rid>/native/` layout in NuGet packages. | Same standard RID layout; emphasis on keeping all target RIDs green in CI (win‑x64/arm64, linux‑x64/arm64, osx‑x64/arm64). |
-| **Positioning** | Uses system web engines instead of bundling Chromium; smaller footprint vs. Electron. | Same positioning; focus on maintainable builds and predictable packaging cadence. |
 
 ### History (concise, factual)
 
@@ -73,7 +76,7 @@ This package is intended for developers building modern desktop apps with web‑
 
 **Linux dependency update.** In January 2025 upstream switched Linux builds from WebKitGTK 4.0 to 4.1 and shortly released 4.0.22. The public documentation was not updated and still references `libwebkit2gtk-4.0-dev`.
 
-**Current state.** Upstream’s last public `Photino.Native` release is dated January 23, 2025 (v4.0.22). PhotinoX continues the idea with maintained native binaries and consistent RID packaging for Windows x64/ARM64, Linux x64/ARM64, and macOS x64/ARM64.
+**Current state.** Upstream’s last public `Photino.Native` release is dated January 23, 2025 (v4.0.22). PhotinoX continues the native-window model with maintained binaries, consistent RID packaging, improved native memory ownership, clearer platform isolation, WebView integration fixes, and an application-oriented native message-loop model.
 
 ---
 
