@@ -1,3 +1,5 @@
+[![PhotinoX Logo](https://raw.githubusercontent.com/ivanvoyager/PhotinoX/refs/heads/master/assets/photinox-logo.png)](https://github.com/ivanvoyager/PhotinoX)
+
 # PhotinoX.Native
 
 [![NuGet Version](https://img.shields.io/nuget/v/PhotinoX.Native.svg)](https://www.nuget.org/packages/PhotinoX.Native)
@@ -68,15 +70,11 @@ This package is intended for developers building modern desktop apps with web‑
 | **Release activity** | Latest public upstream release: 4.0.22 (Jan 23, 2025). | Fork publishes its own PhotinoX.Native package with current artifacts. |
 | **RID packaging** | Uses standard `runtimes/<rid>/native/` layout in NuGet packages. | Same standard RID layout; emphasis on keeping all target RIDs green in CI (win‑x64/arm64, linux‑x64/arm64, osx‑x64/arm64). |
 
-### History (concise, factual)
+### History
 
-**Photino (upstream).** Designed as a lightweight alternative to Electron: a native window hosts the OS’s built‑in web view (WebView2 on Windows, WKWebView on macOS, WebKitGTK on Linux), reducing both application size and memory footprint compared to Chromium‑bundled approaches.
+Photino succeeded Steve Sanderson’s experimental [WebWindow](https://github.com/SteveSandersonMS/WebWindow) project, which explored native OS windows hosting web UI for .NET applications on Windows, macOS, and Linux. Photino continued this idea as an Electron-inspired open-source .NET project backed by the CODE Magazine team and the open-source community, while using the OS-provided WebView stack instead of bundling Chromium.
 
-**Native core.** The cross‑platform native layer is `Photino.Native` (C++/Objective‑C++), which wraps the system web view and exposes a minimal interface for higher‑level runtimes.
-
-**Linux dependency update.** In January 2025 upstream switched Linux builds from WebKitGTK 4.0 to 4.1 and shortly released 4.0.22. The public documentation was not updated and still references `libwebkit2gtk-4.0-dev`.
-
-**Current state.** Upstream’s last public `Photino.Native` release is dated January 23, 2025 (v4.0.22). PhotinoX continues the native-window model with maintained binaries, consistent RID packaging, improved native memory ownership, clearer platform isolation, WebView integration fixes, and an application-oriented native message-loop model.
+Upstream’s last public `Photino.Native` release is dated January 23, 2025 (v4.0.22). PhotinoX.Native continues the native-window model with maintained binaries, consistent RID packaging, improved native memory ownership, clearer platform isolation, Windows WebView2 integration fixes, and an application-oriented native message-loop model.
 
 ---
 
