@@ -100,7 +100,7 @@ class Program
             //.Load("https://localhost:8080/")
             .Load("wwwroot/main.html")
             //.Load("wwwroot/index.html")
-            //.LoadRawString("<h1>Hello PhotinoX!</h1>")
+            //.LoadString("<h1>Hello PhotinoX!</h1>")
 
             //Window settings
             //.SetIconFile(iconFile)
@@ -152,18 +152,18 @@ class Program
 
             .RegisterCustomSchemeHandler("app", AppCustomSchemeUsed)
 
-            .RegisterWindowCreatingHandler(WindowCreating)
-            .RegisterWindowCreatedHandler(WindowCreated)
+            .RegisterCreatingHandler(WindowCreating)
+            .RegisterCreatedHandler(WindowCreated)
             .RegisterLocationChangedHandler(WindowLocationChanged)
             .RegisterSizeChangedHandler(WindowSizeChanged)
             .RegisterMaximizedHandler(WindowMaximized)
             .RegisterRestoredHandler(WindowRestored)
             .RegisterMinimizedHandler(WindowMinimized)
             .RegisterWebMessageReceivedHandler(WindowWebMessageReceived)
-            .RegisterWindowClosingHandler(WindowClosing)
-            .RegisterWindowClosedHandler(WindowClosed)
-            .RegisterFocusInHandler(WindowFocusIn)
-            .RegisterFocusOutHandler(WindowFocusOut)
+            .RegisterClosingHandler(WindowClosing)
+            .RegisterClosedHandler(WindowClosed)
+            .RegisterActivatedHandler(WindowFocusIn)
+            .RegisterDeactivatedHandler(WindowFocusOut)
             .RegisterFullScreenEnteredHandler(WindowFullScreenEntered)
             .RegisterFullScreenExitedHandler(WindowFullScreenExited)
 
@@ -244,18 +244,18 @@ class Program
             LogVerbosity = s_logEvents ? 2 : 0,
         };
 
-        s_mainWindow.WindowCreating += WindowCreating;
-        s_mainWindow.WindowCreated += WindowCreated;
-        s_mainWindow.WindowLocationChanged += WindowLocationChanged;
-        s_mainWindow.WindowSizeChanged += WindowSizeChanged;
-        s_mainWindow.WindowMaximized += WindowMaximized;
-        s_mainWindow.WindowRestored += WindowRestored;
-        s_mainWindow.WindowMinimized += WindowMinimized;
+        s_mainWindow.Creating += WindowCreating;
+        s_mainWindow.Created += WindowCreated;
+        s_mainWindow.LocationChanged += WindowLocationChanged;
+        s_mainWindow.SizeChanged += WindowSizeChanged;
+        s_mainWindow.Maximized += WindowMaximized;
+        s_mainWindow.Restored += WindowRestored;
+        s_mainWindow.Minimized += WindowMinimized;
         s_mainWindow.WebMessageReceived += WindowWebMessageReceived;
-        s_mainWindow.WindowClosing += WindowClosing;
-        s_mainWindow.WindowClosed += WindowClosed;
-        s_mainWindow.WindowFocusIn += WindowFocusIn;
-        s_mainWindow.WindowFocusOut += WindowFocusOut;
+        s_mainWindow.Closing += WindowClosing;
+        s_mainWindow.Closed += WindowClosed;
+        s_mainWindow.Activated += WindowFocusIn;
+        s_mainWindow.Deactivated += WindowFocusOut;
         s_mainWindow.FullScreenEntered += WindowFullScreenEntered;
         s_mainWindow.FullScreenExited += WindowFullScreenExited;
 
@@ -326,13 +326,13 @@ class Program
 
                 .SetGrantBrowserPermissions(false)
 
-                .RegisterWindowCreatingHandler(WindowCreating)
-                .RegisterWindowCreatedHandler(WindowCreated)
+                .RegisterCreatingHandler(WindowCreating)
+                .RegisterCreatedHandler(WindowCreated)
                 .RegisterLocationChangedHandler(WindowLocationChanged)
                 .RegisterSizeChangedHandler(WindowSizeChanged)
                 .RegisterWebMessageReceivedHandler(WindowWebMessageReceived)
-                .RegisterWindowClosingHandler(WindowClosing)
-                .RegisterWindowClosedHandler(WindowClosed)
+                .RegisterClosingHandler(WindowClosing)
+                .RegisterClosedHandler(WindowClosed)
 
                 .RegisterCustomSchemeHandler("app", AppCustomSchemeUsed)
 
@@ -369,11 +369,11 @@ class Program
         }
         else if (string.Compare(message, "minimize", true) == 0)
         {
-            currentWindow.SetMinimized(!currentWindow.Minimized);
+            currentWindow.Minimize();
         }
         else if (string.Compare(message, "maximize", true) == 0)
         {
-            currentWindow.SetMaximized(!currentWindow.Maximized);
+            currentWindow.Maximize();
         }
         else if (string.Compare(message, "restore", true) == 0)
         {
@@ -436,7 +436,7 @@ class Program
         }
         else if (string.Compare(message, "settopmost", true) == 0)
         {
-            currentWindow.SetTopMost(!currentWindow.Topmost);
+            currentWindow.SetTopmost(!currentWindow.Topmost);
         }
         else if (string.Compare(message, "setfullscreen", true) == 0)
         {
@@ -623,8 +623,8 @@ class Program
         sb.AppendLine($"Resizable: {currentWindow.Resizable}");
         sb.AppendLine($"Screen DPI: {currentWindow.ScreenDpi}");
         sb.AppendLine($"Topmost: {currentWindow.Topmost}");
-        sb.AppendLine($"Maximized: {currentWindow.Maximized}");
-        sb.AppendLine($"Minimized: {currentWindow.Minimized}");
+        //sb.AppendLine($"Maximized: {currentWindow.Maximized}");
+        //sb.AppendLine($"Minimized: {currentWindow.Minimized}");
 
         return sb.ToString();
     }

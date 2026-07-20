@@ -56,6 +56,10 @@
     <Compile Include="$(PhotinoNetSourceDir)\PhotinoWindow.CustomSchemes.cs" Link="PhotinoWindow.CustomSchemes.cs" />
     <Compile Include="$(PhotinoNetSourceDir)\PhotinoWindow.Dialogs.cs" Link="PhotinoWindow.Dialogs.cs" />
     <Compile Include="$(PhotinoNetSourceDir)\PhotinoWindow.Events.cs" Link="PhotinoWindow.Events.cs" />
+    <Compile Include="$(PhotinoNetSourceDir)\PhotinoWindow.Extensions.cs" Link="PhotinoWindow.Extensions.cs" />
+    <Compile Include="$(PhotinoNetSourceDir)\PhotinoWindow.Fluent.cs" Link="PhotinoWindow.Fluent.cs" />
+    <Compile Include="$(PhotinoNetSourceDir)\PhotinoWindow.Fluent.Handlers.cs" Link="PhotinoWindow.Fluent.Handlers.cs" />
+    <Compile Include="$(PhotinoNetSourceDir)\PhotinoWindow.Helpers.cs" Link="PhotinoWindow.Helpers.cs" />
     <Compile Include="$(PhotinoNetSourceDir)\PhotinoWindow.cs" Link="PhotinoWindow.cs" />
     <Compile Include="$(PhotinoNetSourceDir)\PhotinoWindowCollection.cs" Link="PhotinoWindowCollection.cs" />
   </ItemGroup>
