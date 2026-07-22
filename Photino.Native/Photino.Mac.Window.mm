@@ -232,14 +232,14 @@ bool Photino::Center() const
 void Photino::ApplyPendingStateAfterFullScreenExit()
 {
     const auto pendingState = platform_->pendingStateAfterFullScreenExit;
-    platform_->pendingStateAfterFullScreenExit = WindowState::Normal;
+    platform_->pendingStateAfterFullScreenExit = PhotinoWindowState::Normal;
 
     switch (pendingState)
     {
-    case WindowState::Maximized:
+    case PhotinoWindowState::Maximized:
         Maximize();
         break;
-    case WindowState::Minimized:
+    case PhotinoWindowState::Minimized:
         Minimize();
         break;
     default:
@@ -264,7 +264,7 @@ bool Photino::Maximize()
 
     if (IsFullScreen())
     {
-        platform_->pendingStateAfterFullScreenExit = WindowState::Maximized;
+        platform_->pendingStateAfterFullScreenExit = PhotinoWindowState::Maximized;
         suppressRestoredCallback_ = true;
         [platform_->window toggleFullScreen:nil];
         return true;
@@ -285,7 +285,7 @@ bool Photino::Minimize()
 
     if (IsFullScreen())
     {
-        platform_->pendingStateAfterFullScreenExit = WindowState::Minimized;
+        platform_->pendingStateAfterFullScreenExit = PhotinoWindowState::Minimized;
         suppressRestoredCallback_ = true;
         [platform_->window toggleFullScreen:nil];
         return true;
@@ -304,7 +304,7 @@ bool Photino::Restore()
     assert(platform_->window);
     if (!platform_->window) return false;
 
-    platform_->pendingStateAfterFullScreenExit = WindowState::Normal;
+    platform_->pendingStateAfterFullScreenExit = PhotinoWindowState::Normal;
 
     if ([platform_->window isMiniaturized])
         [platform_->window deminiaturize:nil];
@@ -340,7 +340,7 @@ void Photino::BeginWindowDrag() const
     // against Cocoa. Windows is the currently supported platform.
 }
 
-void Photino::BeginWindowResize(WindowEdge) const
+void Photino::BeginWindowResize(PhotinoWindowEdge) const
 {
     // Not yet implemented on macOS. Cocoa has no direct analogue of the Windows
     // non-client resize loop; an NSEvent-driven implementation is needed and must
@@ -439,21 +439,21 @@ bool Photino::IsMaximized() const noexcept
     return [platform_->window isZoomed];
 }
 
-WindowState Photino::GetPlatformWindowState() const noexcept
+PhotinoWindowState Photino::GetPlatformWindowState() const noexcept
 {
     if (!platform_->window)
         return options_.windowState;
 
     if (IsMinimized())
-        return WindowState::Minimized;
+        return PhotinoWindowState::Minimized;
 
     if (IsFullScreen())
-        return WindowState::FullScreen;
+        return PhotinoWindowState::FullScreen;
 
     if (IsMaximized())
-        return WindowState::Maximized;
+        return PhotinoWindowState::Maximized;
 
-    return WindowState::Normal;
+    return PhotinoWindowState::Normal;
 }
 
 void Photino::SetFullScreen(bool fullScreen)
@@ -461,7 +461,7 @@ void Photino::SetFullScreen(bool fullScreen)
     assert(platform_->window);
     if (!platform_->window) return;
 
-    platform_->pendingStateAfterFullScreenExit = WindowState::Normal;
+    platform_->pendingStateAfterFullScreenExit = PhotinoWindowState::Normal;
 
     const bool isFullScreen = IsFullScreen();
 

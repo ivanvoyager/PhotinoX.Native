@@ -158,7 +158,7 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Lin
     InitializeFromInitParams(initParams);
 
     const auto startupWindowState = options_.windowState;
-    options_.windowState = WindowState::Normal;
+    options_.windowState = PhotinoWindowState::Normal;
 
     platform_->sizeLimits.minWidth = (std::max)(0, initParams->MinWidth);
     platform_->sizeLimits.minHeight = (std::max)(0, initParams->MinHeight);
@@ -257,13 +257,13 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Lin
 
     switch (startupWindowState)
     {
-    case WindowState::Maximized:
+    case PhotinoWindowState::Maximized:
         SetMaximized(true);
         break;
-    case WindowState::Minimized:
+    case PhotinoWindowState::Minimized:
         SetMinimized(true);
         break;
-    case WindowState::FullScreen:
+    case PhotinoWindowState::FullScreen:
         SetFullScreen(true);
         break;
     default:

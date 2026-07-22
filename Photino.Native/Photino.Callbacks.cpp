@@ -55,7 +55,7 @@ void Photino::InvokeMinimized() const noexcept
     if (minimizedCallback_) minimizedCallback_();
 }
 
-void Photino::InvokeStateChanged(WindowState oldState, WindowState newState) const noexcept
+void Photino::InvokeStateChanged(PhotinoWindowState oldState, PhotinoWindowState newState) const noexcept
 {
     if (stateChangedCallback_) stateChangedCallback_(oldState, newState);
 }

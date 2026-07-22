@@ -271,7 +271,7 @@ void Photino::BeginWindowDrag() const
     // built and tested against GTK. Windows is the currently supported platform.
 }
 
-void Photino::BeginWindowResize(WindowEdge) const
+void Photino::BeginWindowResize(PhotinoWindowEdge) const
 {
     // Not yet implemented on Linux. As with BeginWindowDrag, the GTK equivalent
     // (gtk_window_begin_resize_drag) needs the originating GDK event context.
@@ -365,7 +365,7 @@ bool Photino::IsMaximized() const noexcept
     return (gdk_window_get_state(gdkWindow) & GDK_WINDOW_STATE_MAXIMIZED) != 0;
 }
 
-WindowState Photino::GetPlatformWindowState() const noexcept
+PhotinoWindowState Photino::GetPlatformWindowState() const noexcept
 {
     if (!platform_->window)
         return options_.windowState;
@@ -377,15 +377,15 @@ WindowState Photino::GetPlatformWindowState() const noexcept
     const GdkWindowState state = gdk_window_get_state(gdkWindow);
 
     if (state & GDK_WINDOW_STATE_ICONIFIED)
-        return WindowState::Minimized;
+        return PhotinoWindowState::Minimized;
 
     if (state & GDK_WINDOW_STATE_FULLSCREEN)
-        return WindowState::FullScreen;
+        return PhotinoWindowState::FullScreen;
 
     if (state & GDK_WINDOW_STATE_MAXIMIZED)
-        return WindowState::Maximized;
+        return PhotinoWindowState::Maximized;
 
-    return WindowState::Normal;
+    return PhotinoWindowState::Normal;
 }
 
 void Photino::SetFullScreen(bool fullScreen)

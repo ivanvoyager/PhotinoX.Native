@@ -354,7 +354,7 @@ void Photino::BeginWindowDrag() const
     SendMessageW(platform_->hWnd, WM_NCLBUTTONDOWN, HTCAPTION, MAKELPARAM(cursor.x, cursor.y));
 }
 
-void Photino::BeginWindowResize(const WindowEdge edge) const
+void Photino::BeginWindowResize(const PhotinoWindowEdge edge) const
 {
     assert(platform_->hWnd);
     if (!platform_->hWnd) return;
@@ -362,14 +362,14 @@ void Photino::BeginWindowResize(const WindowEdge edge) const
     WPARAM hitTest;
     switch (edge)
     {
-    case WindowEdge::Top:         hitTest = HTTOP;         break;
-    case WindowEdge::Bottom:      hitTest = HTBOTTOM;      break;
-    case WindowEdge::Left:        hitTest = HTLEFT;        break;
-    case WindowEdge::Right:       hitTest = HTRIGHT;       break;
-    case WindowEdge::TopLeft:     hitTest = HTTOPLEFT;     break;
-    case WindowEdge::TopRight:    hitTest = HTTOPRIGHT;    break;
-    case WindowEdge::BottomLeft:  hitTest = HTBOTTOMLEFT;  break;
-    case WindowEdge::BottomRight: hitTest = HTBOTTOMRIGHT; break;
+    case PhotinoWindowEdge::Top:         hitTest = HTTOP;         break;
+    case PhotinoWindowEdge::Bottom:      hitTest = HTBOTTOM;      break;
+    case PhotinoWindowEdge::Left:        hitTest = HTLEFT;        break;
+    case PhotinoWindowEdge::Right:       hitTest = HTRIGHT;       break;
+    case PhotinoWindowEdge::TopLeft:     hitTest = HTTOPLEFT;     break;
+    case PhotinoWindowEdge::TopRight:    hitTest = HTTOPRIGHT;    break;
+    case PhotinoWindowEdge::BottomLeft:  hitTest = HTBOTTOMLEFT;  break;
+    case PhotinoWindowEdge::BottomRight: hitTest = HTBOTTOMRIGHT; break;
     default: return;
     }
 
@@ -526,14 +526,14 @@ bool Photino::ExitFullScreen()
 
 bool Photino::TryExitFullScreen(const bool suppressRestoredCallback)
 {
-    if (GetPlatformWindowState() != WindowState::FullScreen && !platform_->hasFullScreenRestoreState)
+    if (GetPlatformWindowState() != PhotinoWindowState::FullScreen && !platform_->hasFullScreenRestoreState)
         return true;
 
     suppressRestoredCallback_ = suppressRestoredCallback;
     SetFullScreen(false);
     suppressRestoredCallback_ = false;
 
-    return GetPlatformWindowState() != WindowState::FullScreen && !platform_->hasFullScreenRestoreState;
+    return GetPlatformWindowState() != PhotinoWindowState::FullScreen && !platform_->hasFullScreenRestoreState;
 }
 
 bool Photino::IsFullScreen() const noexcept
@@ -572,21 +572,21 @@ bool Photino::IsMaximized() const noexcept
     return IsZoomed(platform_->hWnd); // Determines whether a window is maximized.
 }
 
-WindowState Photino::GetPlatformWindowState() const noexcept
+PhotinoWindowState Photino::GetPlatformWindowState() const noexcept
 {
     if (!platform_->hWnd)
         return options_.windowState;
 
     if (IsFullScreen())
-        return WindowState::FullScreen;
+        return PhotinoWindowState::FullScreen;
 
     if (IsMinimized())
-        return WindowState::Minimized;
+        return PhotinoWindowState::Minimized;
 
     if (IsMaximized())
-        return WindowState::Maximized;
+        return PhotinoWindowState::Maximized;
 
-    return WindowState::Normal;
+    return PhotinoWindowState::Normal;
 }
 
 bool Photino::SkipFullScreenChange(const bool fullScreen) const noexcept

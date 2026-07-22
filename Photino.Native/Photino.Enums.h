@@ -4,7 +4,7 @@ namespace PhotinoX::Native
 {
     // Which edge or corner a resize drag operates on. The ordering is the ABI
     // contract with the managed PhotinoWindowEdge enum and must stay in sync.
-    enum class WindowEdge : int
+    enum class PhotinoWindowEdge : int
     {
         Top,
         Bottom,
@@ -18,7 +18,7 @@ namespace PhotinoX::Native
 
     // Native window state. The ordering is the ABI contract with the managed
     // PhotinoWindowState enum and must stay in sync.
-    enum class WindowState : int
+    enum class PhotinoWindowState : int
     {
         Normal,
         Minimized,

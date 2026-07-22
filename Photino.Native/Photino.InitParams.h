@@ -50,7 +50,7 @@ namespace PhotinoX::Native
         int MaxWidth;                                           // #31
         int MaxHeight;                                          // #32
 
-        WindowState WindowState;                                // #33
+        PhotinoWindowState WindowState;                         // #33
 
         bool CenterOnInitialize;                                // #34
         bool Chromeless;                                        // #35
@@ -78,8 +78,8 @@ namespace PhotinoX::Native
     static_assert(std::is_standard_layout_v<PhotinoInitParams>,
         "PhotinoInitParams must remain standard-layout for managed/native interop.");
 
-    static_assert(sizeof(WindowState) == sizeof(int),
-        "WindowState must remain int-sized for managed/native interop.");
+    static_assert(sizeof(PhotinoWindowState) == sizeof(int),
+        "PhotinoWindowState must remain int-sized for managed/native interop.");
 
     static_assert(sizeof(PhotinoInitParams) == 368,
         "PhotinoInitParams size changed. Update the managed ABI layout and size validation.");

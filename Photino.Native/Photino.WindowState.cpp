@@ -10,7 +10,7 @@ void Photino::GetFullScreen(bool* fullScreen) const
     assert(fullScreen);
     if (!fullScreen) return;
 
-    *fullScreen = GetPlatformWindowState() == WindowState::FullScreen;
+    *fullScreen = GetPlatformWindowState() == PhotinoWindowState::FullScreen;
 }
 
 void Photino::GetMaximized(bool* isMaximized) const
@@ -18,7 +18,7 @@ void Photino::GetMaximized(bool* isMaximized) const
     assert(isMaximized);
     if (!isMaximized) return;
 
-    *isMaximized = GetPlatformWindowState() == WindowState::Maximized;
+    *isMaximized = GetPlatformWindowState() == PhotinoWindowState::Maximized;
 }
 
 void Photino::GetMinimized(bool* isMinimized) const
@@ -26,10 +26,10 @@ void Photino::GetMinimized(bool* isMinimized) const
     assert(isMinimized);
     if (!isMinimized) return;
 
-    *isMinimized = GetPlatformWindowState() == WindowState::Minimized;
+    *isMinimized = GetPlatformWindowState() == PhotinoWindowState::Minimized;
 }
 
-void Photino::GetWindowState(WindowState* state) const
+void Photino::GetWindowState(PhotinoWindowState* state) const
 {
     assert(state);
     if (!state) return;
@@ -37,20 +37,20 @@ void Photino::GetWindowState(WindowState* state) const
     *state = GetPlatformWindowState();
 }
 
-void Photino::SetWindowState(const WindowState state)
+void Photino::SetWindowState(const PhotinoWindowState state)
 {
     switch (state)
     {
-    case WindowState::Normal:
+    case PhotinoWindowState::Normal:
         Restore();
         break;
-    case WindowState::Minimized:
+    case PhotinoWindowState::Minimized:
         Minimize();
         break;
-    case WindowState::Maximized:
+    case PhotinoWindowState::Maximized:
         Maximize();
         break;
-    case WindowState::FullScreen:
+    case PhotinoWindowState::FullScreen:
         SetFullScreen(true);
         break;
     default:
@@ -59,7 +59,7 @@ void Photino::SetWindowState(const WindowState state)
     }
 }
 
-bool Photino::ChangeWindowState(WindowState state) noexcept
+bool Photino::ChangeWindowState(PhotinoWindowState state) noexcept
 {
     const auto oldState = options_.windowState;
 
@@ -89,21 +89,21 @@ bool Photino::UpdateWindowState() noexcept
     if (!ChangeWindowState(newState))
         return false;
 
-    const bool wasFullScreen = oldState == WindowState::FullScreen;
-    const bool isFullScreen = newState == WindowState::FullScreen;
+    const bool wasFullScreen = oldState == PhotinoWindowState::FullScreen;
+    const bool isFullScreen = newState == PhotinoWindowState::FullScreen;
 
     if (wasFullScreen != isFullScreen)
         InvokeFullScreenChanged(isFullScreen);
 
     switch (newState)
     {
-    case WindowState::Maximized:
+    case PhotinoWindowState::Maximized:
         InvokeMaximized();
         break;
-    case WindowState::Minimized:
+    case PhotinoWindowState::Minimized:
         InvokeMinimized();
         break;
-    case WindowState::Normal:
+    case PhotinoWindowState::Normal:
         if (!suppressRestoredCallback_)
             InvokeRestored();
         break;

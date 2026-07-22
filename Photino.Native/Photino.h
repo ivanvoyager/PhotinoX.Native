@@ -80,11 +80,11 @@ namespace PhotinoX::Native
         bool RegisterCustomSchemeName(const PlatformString& scheme);
 
         void InvokeFullScreenChanged(bool fullScreen) const noexcept;
-        void InvokeStateChanged(WindowState oldState, WindowState newState) const noexcept;
+        void InvokeStateChanged(PhotinoWindowState oldState, PhotinoWindowState newState) const noexcept;
 
         // Common state
-        WindowState GetPlatformWindowState() const noexcept;
-        bool ChangeWindowState(WindowState state) noexcept;
+        PhotinoWindowState GetPlatformWindowState() const noexcept;
+        bool ChangeWindowState(PhotinoWindowState state) noexcept;
 
         // Common platform state predicates
         bool IsFullScreen() const noexcept;
@@ -191,14 +191,14 @@ namespace PhotinoX::Native
         void SetMaxSize(int width, int height);
 
         void BeginWindowDrag() const;
-        void BeginWindowResize(WindowEdge edge) const;
+        void BeginWindowResize(PhotinoWindowEdge edge) const;
 
         unsigned int GetScreenDpi() const;
         void GetAllMonitors(GetAllMonitorsCallback callback) const noexcept;
 
         // Window state
-        void GetWindowState(WindowState* state) const;
-        void SetWindowState(const WindowState state);
+        void GetWindowState(PhotinoWindowState* state) const;
+        void SetWindowState(const PhotinoWindowState state);
 
         void GetFullScreen(bool* fullScreen) const;
         void SetFullScreen(bool fullScreen);

@@ -192,7 +192,7 @@ extern "C"
         instance->BeginWindowDrag();
     }
 
-    PHOTINO_EXPORT void Photino_BeginWindowResize(const Photino* instance, const WindowEdge edge)
+    PHOTINO_EXPORT void Photino_BeginWindowResize(const Photino* instance, const PhotinoWindowEdge edge)
     {
         assert(instance);
         if (!instance) return;
@@ -268,7 +268,7 @@ extern "C"
     }
 
 
-    PHOTINO_EXPORT void Photino_GetWindowState(const Photino* instance, WindowState* state)
+    PHOTINO_EXPORT void Photino_GetWindowState(const Photino* instance, PhotinoWindowState* state)
     {
         assert(instance);
         assert(state);
@@ -277,7 +277,7 @@ extern "C"
         instance->GetWindowState(state);
     }
 
-    PHOTINO_EXPORT void Photino_SetWindowState(Photino* instance, const WindowState state)
+    PHOTINO_EXPORT void Photino_SetWindowState(Photino* instance, const PhotinoWindowState state)
     {
         assert(instance);
         if (!instance) return;
