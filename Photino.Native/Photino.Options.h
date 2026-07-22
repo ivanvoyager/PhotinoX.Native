@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Photino.Strings.h"
+#include "Photino.Enums.h"
 
 namespace PhotinoX::Native
 {
@@ -38,6 +39,7 @@ struct PhotinoOptions
 
     int zoom = 100;
     bool chromeless = false;
-    bool fullScreen = false;
+
+   WindowState windowState = WindowState::Normal;
 };
 } // namespace PhotinoX::Native

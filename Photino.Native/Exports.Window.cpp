@@ -64,7 +64,7 @@ extern "C"
         return instance->Center();
     }
 
-    PHOTINO_EXPORT bool Photino_Maximize(const Photino* instance)
+    PHOTINO_EXPORT bool Photino_Maximize(Photino* instance)
     {
         assert(instance);
         if (!instance) return false;
@@ -72,7 +72,7 @@ extern "C"
         return instance->Maximize();
     }
 
-    PHOTINO_EXPORT bool Photino_Minimize(const Photino* instance)
+    PHOTINO_EXPORT bool Photino_Minimize(Photino* instance)
     {
         assert(instance);
         if (!instance) return false;
@@ -265,6 +265,24 @@ extern "C"
         if (!instance) return;
 
         instance->SetMinimized(minimized);
+    }
+
+
+    PHOTINO_EXPORT void Photino_GetWindowState(const Photino* instance, WindowState* state)
+    {
+        assert(instance);
+        assert(state);
+        if (!instance || !state) return;
+
+        instance->GetWindowState(state);
+    }
+
+    PHOTINO_EXPORT void Photino_SetWindowState(Photino* instance, const WindowState state)
+    {
+        assert(instance);
+        if (!instance) return;
+
+        instance->SetWindowState(state);
     }
 
 

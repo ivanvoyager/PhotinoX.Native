@@ -70,4 +70,18 @@ extern "C"
         if (!instance) return;
         instance->SetMinimizedCallback(callback);
     }
+
+    PHOTINO_EXPORT void Photino_SetFullScreenChangedCallback(Photino* instance, const FullScreenChangedCallback callback)
+    {
+        assert(instance);
+        if (!instance) return;
+        instance->SetFullScreenChangedCallback(callback);
+    }
+
+    PHOTINO_EXPORT void Photino_SetStateChangedCallback(Photino* instance, const StateChangedCallback callback)
+    {
+        assert(instance);
+        if (!instance) return;
+        instance->SetStateChangedCallback(callback);
+    }
 }

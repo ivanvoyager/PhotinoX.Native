@@ -23,6 +23,8 @@ using namespace PhotinoX::Native;
 - (void)windowDidResize:(NSNotification*)notification {
     if (!photino) return;
 
+    photino->UpdateWindowState();
+
     int width = 0, height = 0;
     photino->GetSize(&width, &height);
     photino->InvokeResize(width, height);
@@ -30,6 +32,8 @@ using namespace PhotinoX::Native;
 
 - (void)windowDidMove:(NSNotification*)notification {
     if (!photino) return;
+
+    photino->UpdateWindowState();
 
     int x = 0, y = 0;
     photino->GetPosition(&x, &y);
@@ -51,26 +55,25 @@ using namespace PhotinoX::Native;
 - (void)windowDidMiniaturize:(NSNotification*)notification {
     if (!photino) return;
 
-    photino->InvokeMinimized();
+    photino->UpdateWindowState();
 }
 
 - (void)windowDidDeminiaturize:(NSNotification*)notification {
     if (!photino) return;
 
-    photino->InvokeRestored();
+    photino->UpdateWindowState();
 }
 
 - (void)windowDidEnterFullScreen:(NSNotification*)notification {
     if (!photino) return;
 
-    photino->HandleFullScreenStateChanged(true);
+    photino->UpdateWindowState();
 }
 
 - (void)windowDidExitFullScreen:(NSNotification*)notification {
     if (!photino) return;
 
-    photino->HandleFullScreenStateChanged(false);
-    photino->InvokeRestored();
+    photino->HandleFullScreenExitCompleted();
 }
 
 - (BOOL)windowShouldClose:(NSWindow*)sender {

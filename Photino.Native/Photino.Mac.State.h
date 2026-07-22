@@ -2,6 +2,8 @@
 
 #ifdef __APPLE__
 
+#include "Photino.Enums.h"
+
 @class NSWindow;
 @class WKWebView;
 @class WKWebViewConfiguration;
@@ -22,6 +24,8 @@ namespace PhotinoX::Native
         WindowDelegate* windowDelegate = nil;
         UiDelegate* uiDelegate = nil;
         NavigationDelegate* navigationDelegate = nil;
+
+        WindowState pendingStateAfterFullScreenExit = WindowState::Normal;
     };
 }
 

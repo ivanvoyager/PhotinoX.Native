@@ -1,4 +1,5 @@
 #include "Photino.h"
+#include "Photino.Enums.h"
 #include "Photino.Callbacks.h"
 #include "Photino.Linux.State.h"
 #include "Photino.Strings.h"
@@ -90,19 +91,6 @@ void Photino::GetSize(int* width, int* height) const
 
     if (width) *width = windowWidth;
     if (height) *height = windowHeight;
-
-    // TODO: When calling set height, then set width...
-    // calling set size works fine.
-    // Uncomment this and it works properly. Commented, it only changes width.
-    // GtkWidget* dialog = gtk_message_dialog_new(
-    // 	nullptr
-    // 	, GTK_DIALOG_DESTROY_WITH_PARENT
-    // 	, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE
-    // 	, "width: %i bytes, height %i"
-    // 	, *width
-    // 	, *height);
-    // gtk_dialog_run(GTK_DIALOG(dialog));
-    // gtk_widget_destroy(dialog);
 }
 
 void Photino::SetSize(int width, int height)
@@ -213,21 +201,40 @@ bool Photino::Center() const
     return true;
 }
 
-bool Photino::Maximize() const
-{
-    assert(platform_->window);
-    if (!platform_->window)  return false;
-
-    gtk_window_maximize(GTK_WINDOW(platform_->window));
-    return true;
-}
-
-bool Photino::Minimize() const
+bool Photino::Maximize()
 {
     assert(platform_->window);
     if (!platform_->window) return false;
 
-    gtk_window_iconify(GTK_WINDOW(platform_->window));
+    GtkWindow* window = GTK_WINDOW(platform_->window);
+
+    if (IsMinimized())
+        gtk_window_deiconify(window);
+
+    gtk_window_maximize(window);
+
+    if (IsFullScreen())
+        gtk_window_unfullscreen(window);
+
+    UpdateWindowState();
+
+    return true;
+}
+
+bool Photino::Minimize()
+{
+    assert(platform_->window);
+    if (!platform_->window) return false;
+
+    GtkWindow* window = GTK_WINDOW(platform_->window);
+
+    gtk_window_iconify(window);
+
+    if (IsFullScreen())
+        gtk_window_unfullscreen(window);
+
+    UpdateWindowState();
+
     return true;
 }
 
@@ -238,9 +245,11 @@ bool Photino::Restore()
 
     GtkWindow* window = GTK_WINDOW(platform_->window);
 
-    gtk_window_deiconify(window);
-    gtk_window_unmaximize(window);
     gtk_window_unfullscreen(window);
+    gtk_window_unmaximize(window);
+    gtk_window_deiconify(window);
+
+    UpdateWindowState();
 
     return true;
 }
@@ -320,22 +329,63 @@ void Photino::GetAllMonitors(GetAllMonitorsCallback callback) const noexcept
     }
 }
 
-void Photino::GetFullScreen(bool* fullScreen) const
+bool Photino::IsFullScreen() const noexcept
 {
-    assert(fullScreen);
-    if (!fullScreen) return;
-
-    *fullScreen = false;
-
-    if (!platform_->window) return;
+    if (!platform_->window)
+        return false;
 
     GdkWindow* gdkWindow = gtk_widget_get_window(GTK_WIDGET(platform_->window));
     if (!gdkWindow)
-        return;
+        return false;
+
+    return (gdk_window_get_state(gdkWindow) & GDK_WINDOW_STATE_FULLSCREEN) != 0;
+}
+
+bool Photino::IsMinimized() const noexcept
+{
+    if (!platform_->window)
+        return false;
+
+    GdkWindow* gdkWindow = gtk_widget_get_window(GTK_WIDGET(platform_->window));
+    if (!gdkWindow)
+        return false;
+
+    return (gdk_window_get_state(gdkWindow) & GDK_WINDOW_STATE_ICONIFIED) != 0;
+}
+
+bool Photino::IsMaximized() const noexcept
+{
+    if (!platform_->window)
+        return false;
+
+    GdkWindow* gdkWindow = gtk_widget_get_window(GTK_WIDGET(platform_->window));
+    if (!gdkWindow)
+        return false;
+
+    return (gdk_window_get_state(gdkWindow) & GDK_WINDOW_STATE_MAXIMIZED) != 0;
+}
+
+WindowState Photino::GetPlatformWindowState() const noexcept
+{
+    if (!platform_->window)
+        return options_.windowState;
+
+    GdkWindow* gdkWindow = gtk_widget_get_window(GTK_WIDGET(platform_->window));
+    if (!gdkWindow)
+        return options_.windowState;
 
     const GdkWindowState state = gdk_window_get_state(gdkWindow);
 
-    *fullScreen = (state & GDK_WINDOW_STATE_FULLSCREEN) != 0;
+    if (state & GDK_WINDOW_STATE_ICONIFIED)
+        return WindowState::Minimized;
+
+    if (state & GDK_WINDOW_STATE_FULLSCREEN)
+        return WindowState::FullScreen;
+
+    if (state & GDK_WINDOW_STATE_MAXIMIZED)
+        return WindowState::Maximized;
+
+    return WindowState::Normal;
 }
 
 void Photino::SetFullScreen(bool fullScreen)
@@ -343,29 +393,21 @@ void Photino::SetFullScreen(bool fullScreen)
     assert(platform_->window);
     if (!platform_->window) return;
 
+    GtkWindow* window = GTK_WINDOW(platform_->window);
+
     if (fullScreen)
-        gtk_window_fullscreen(GTK_WINDOW(platform_->window));
+    {
+        if (IsMinimized())
+            gtk_window_deiconify(window);
+
+        gtk_window_fullscreen(window);
+    }
     else
-        gtk_window_unfullscreen(GTK_WINDOW(platform_->window));
-}
+    {
+        gtk_window_unfullscreen(window);
+    }
 
-void Photino::GetMaximized(bool* isMaximized) const
-{
-    assert(isMaximized);
-    if (!isMaximized) return;
-
-    *isMaximized = false;
-
-    if (!platform_->window) return;
-
-    // gboolean maximized = gtk_window_is_maximized(GTK_WINDOW(platform_->window));  //this method doesn't work
-    //*isMaximized = maximized;
-    GdkWindow* gdkWindow = gtk_widget_get_window(GTK_WIDGET(platform_->window));
-    if (!gdkWindow)
-        return;
-
-    GdkWindowState flags = gdk_window_get_state(gdkWindow);
-    *isMaximized = (flags & GDK_WINDOW_STATE_MAXIMIZED) != 0;
+    UpdateWindowState();
 }
 
 void Photino::SetMaximized(bool maximized)
@@ -374,26 +416,13 @@ void Photino::SetMaximized(bool maximized)
     if (!platform_->window) return;
 
     if (maximized)
-        gtk_window_maximize(GTK_WINDOW(platform_->window));
-    else
-        gtk_window_unmaximize(GTK_WINDOW(platform_->window));
-}
-
-void Photino::GetMinimized(bool* isMinimized) const
-{
-    assert(isMinimized);
-    if (!isMinimized) return;
-
-    *isMinimized = false;
-
-    if (!platform_->window) return;
-
-    GdkWindow* gdkWindow = gtk_widget_get_window(GTK_WIDGET(platform_->window));
-    if (gdkWindow == NULL)
+    {
+        Maximize();
         return;
+    }
 
-    GdkWindowState flags = gdk_window_get_state(gdkWindow);
-    *isMinimized = (flags & GDK_WINDOW_STATE_ICONIFIED) != 0;
+    gtk_window_unmaximize(GTK_WINDOW(platform_->window));
+    UpdateWindowState();
 }
 
 void Photino::SetMinimized(bool minimized)
@@ -402,9 +431,13 @@ void Photino::SetMinimized(bool minimized)
     if (!platform_->window) return;
 
     if (minimized)
-        gtk_window_iconify(GTK_WINDOW(platform_->window));
-    else
-        gtk_window_deiconify(GTK_WINDOW(platform_->window));
+    {
+        Minimize();
+        return;
+    }
+
+    gtk_window_deiconify(GTK_WINDOW(platform_->window));
+    UpdateWindowState();
 }
 
 void Photino::GetResizable(bool* resizable) const
@@ -442,22 +475,6 @@ void Photino::GetTopmost(bool* topmost) const
 
     GdkWindowState flags = gdk_window_get_state(gdkWindow);
     *topmost = (flags & GDK_WINDOW_STATE_ABOVE) != 0;
-
-    // char tmp1[FMT_BUF_SIZE];
-    // char tmp2[FMT_BUF_SIZE];
-    // char tmp3[FMT_BUF_SIZE];
-    // GtkWidget* dialog = gtk_message_dialog_new(
-    //	nullptr
-    //	, GTK_DIALOG_DESTROY_WITH_PARENT
-    //	, GTK_MESSAGE_ERROR
-    //	, GTK_BUTTONS_CLOSE
-    //	, "flags: %s \n above: %s \n and: %s \n topmost: %s"
-    //	, binary_fmt(flags, tmp1)
-    //	, binary_fmt(GDK_WINDOW_STATE_ABOVE, tmp2)
-    //	, binary_fmt(flags & GDK_WINDOW_STATE_ABOVE, tmp3)
-    //	, *topmost ? "T" : "F");
-    // gtk_dialog_run(GTK_DIALOG(dialog));
-    // gtk_widget_destroy(dialog);
 }
 
 void Photino::SetTopmost(bool topmost)

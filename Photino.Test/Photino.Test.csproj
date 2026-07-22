@@ -39,7 +39,6 @@
     <Compile Include="$(PhotinoNetSourceDir)\Utils\Platform.cs" Link="Utils\Platform.cs" />
     <Compile Include="$(PhotinoNetSourceDir)\Utils\Platform.MacOS.cs" Link="Utils\Platform.MacOS.cs" />
     <Compile Include="$(PhotinoNetSourceDir)\PhotinoDialogEnums.cs" Link="PhotinoDialogEnums.cs" />
-    <Compile Include="$(PhotinoNetSourceDir)\PhotinoWindowEnums.cs" Link="PhotinoWindowEnums.cs" />
     <Compile Include="$(PhotinoNetSourceDir)\NativeMethods.cs" Link="NativeMethods.cs" />
     <Compile Include="$(PhotinoNetSourceDir)\NativeMethods.Application.cs" Link="NativeMethods.Application.cs" />
     <Compile Include="$(PhotinoNetSourceDir)\NativeMethods.Browser.cs" Link="NativeMethods.Browser.cs" />
@@ -62,6 +61,8 @@
     <Compile Include="$(PhotinoNetSourceDir)\PhotinoWindow.Helpers.cs" Link="PhotinoWindow.Helpers.cs" />
     <Compile Include="$(PhotinoNetSourceDir)\PhotinoWindow.cs" Link="PhotinoWindow.cs" />
     <Compile Include="$(PhotinoNetSourceDir)\PhotinoWindowCollection.cs" Link="PhotinoWindowCollection.cs" />
+    <Compile Include="$(PhotinoNetSourceDir)\PhotinoWindowEnums.cs" Link="PhotinoWindowEnums.cs" />
+    <Compile Include="$(PhotinoNetSourceDir)\PhotinoWindowEventArgs.cs" Link="PhotinoWindowEventArgs.cs" />
   </ItemGroup>
 
   <ItemGroup>
