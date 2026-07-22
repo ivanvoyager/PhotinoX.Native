@@ -133,6 +133,9 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Mac
 
         InitializeFromInitParams(initParams);
 
+        const auto startupWindowState = options_.windowState;
+        options_.windowState = PhotinoWindowState::Normal;
+
         if (initParams->UseOsDefaultSize)
 	    {
 		    initParams->Width = 800; //CW_USEDEFAULT;
@@ -205,10 +208,6 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Mac
         SetMaxSize(initParams->MaxWidth, initParams->MaxHeight); // Defaults to 10000,10000
         SetSize(initParams->Width, initParams->Height);
 
-        const bool startMinimized = initParams->Minimized;
-        const bool startMaximized = initParams->Maximized;
-        const bool startFullScreen = options_.fullScreen;
-
         SetResizable(initParams->Resizable);
 
         if (initParams->CenterOnInitialize)
@@ -232,16 +231,28 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Mac
 
         dialog_ = new PhotinoDialog();
 
+        suppressWindowStateCallbacks_ = true;
+
         Show();
+        UpdateWindowState();
 
-        if (startMaximized)
+        switch (startupWindowState)
+        {
+        case PhotinoWindowState::Maximized:
             SetMaximized(true);
-
-        if (startFullScreen)
-            SetFullScreen(true);
-
-        if (startMinimized)
+            break;
+        case PhotinoWindowState::Minimized:
             SetMinimized(true);
+            break;
+        case PhotinoWindowState::FullScreen:
+            SetFullScreen(true);
+            break;
+        default:
+            break;
+        }
+
+        UpdateWindowState();
+        suppressWindowStateCallbacks_ = false;
     }
 }
 

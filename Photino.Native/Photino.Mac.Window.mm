@@ -229,24 +229,72 @@ bool Photino::Center() const
     return true;
 }
 
-bool Photino::Maximize() const
+void Photino::ApplyPendingStateAfterFullScreenExit()
+{
+    const auto pendingState = platform_->pendingStateAfterFullScreenExit;
+    platform_->pendingStateAfterFullScreenExit = PhotinoWindowState::Normal;
+
+    switch (pendingState)
+    {
+    case PhotinoWindowState::Maximized:
+        Maximize();
+        break;
+    case PhotinoWindowState::Minimized:
+        Minimize();
+        break;
+    default:
+        break;
+    }
+}
+
+void Photino::HandleFullScreenExitCompleted() noexcept
+{
+    UpdateWindowState();
+    ApplyPendingStateAfterFullScreenExit();
+    suppressRestoredCallback_ = false;
+}
+
+bool Photino::Maximize()
 {
     assert(platform_->window);
     if (!platform_->window) return false;
 
-    if (![platform_->window isZoomed])
+    if (IsMinimized())
+        [platform_->window deminiaturize:nil];
+
+    if (IsFullScreen())
+    {
+        platform_->pendingStateAfterFullScreenExit = PhotinoWindowState::Maximized;
+        suppressRestoredCallback_ = true;
+        [platform_->window toggleFullScreen:nil];
+        return true;
+    }
+
+    if (!IsMaximized())
         [platform_->window zoom:nil];
+
+    UpdateWindowState();
 
     return true;
 }
 
-bool Photino::Minimize() const
+bool Photino::Minimize()
 {
     assert(platform_->window);
     if (!platform_->window) return false;
 
-    if (![platform_->window isMiniaturized])
+    if (IsFullScreen())
+    {
+        platform_->pendingStateAfterFullScreenExit = PhotinoWindowState::Minimized;
+        suppressRestoredCallback_ = true;
+        [platform_->window toggleFullScreen:nil];
+        return true;
+    }
+
+    if (!IsMinimized())
         [platform_->window miniaturize:nil];
+
+    UpdateWindowState();
 
     return true;
 }
@@ -256,14 +304,18 @@ bool Photino::Restore()
     assert(platform_->window);
     if (!platform_->window) return false;
 
+    platform_->pendingStateAfterFullScreenExit = PhotinoWindowState::Normal;
+
     if ([platform_->window isMiniaturized])
         [platform_->window deminiaturize:nil];
 
     if ([platform_->window isZoomed])
         [platform_->window zoom:nil];
 
-    if (([platform_->window styleMask] & NSWindowStyleMaskFullScreen) == NSWindowStyleMaskFullScreen)
+    if (IsFullScreen())
         [platform_->window toggleFullScreen:nil];
+
+    UpdateWindowState();
 
     return true;
 }
@@ -288,7 +340,7 @@ void Photino::BeginWindowDrag() const
     // against Cocoa. Windows is the currently supported platform.
 }
 
-void Photino::BeginWindowResize(WindowEdge) const
+void Photino::BeginWindowResize(PhotinoWindowEdge) const
 {
     // Not yet implemented on macOS. Cocoa has no direct analogue of the Windows
     // non-client resize loop; an NSEvent-driven implementation is needed and must
@@ -363,17 +415,45 @@ std::vector<Monitor> Photino::GetMonitors() const
     return monitors;
 }
 
-void Photino::GetFullScreen(bool* fullScreen) const
+bool Photino::IsFullScreen() const noexcept
 {
-    assert(fullScreen);
-    if (!fullScreen) return;
+    if (!platform_->window)
+        return false;
 
-    *fullScreen = false;
+    return ([platform_->window styleMask] & NSWindowStyleMaskFullScreen) == NSWindowStyleMaskFullScreen;
+}
 
-    if (!platform_->window) return;
+bool Photino::IsMinimized() const noexcept
+{
+    if (!platform_->window)
+        return false;
 
-    //*fullScreen = ([platform_->window.contentView isInFullScreenMode]);
-    *fullScreen = ([platform_->window styleMask] & NSWindowStyleMaskFullScreen) == NSWindowStyleMaskFullScreen;
+    return [platform_->window isMiniaturized];
+}
+
+bool Photino::IsMaximized() const noexcept
+{
+    if (!platform_->window)
+        return false;
+
+    return [platform_->window isZoomed];
+}
+
+PhotinoWindowState Photino::GetPlatformWindowState() const noexcept
+{
+    if (!platform_->window)
+        return options_.windowState;
+
+    if (IsMinimized())
+        return PhotinoWindowState::Minimized;
+
+    if (IsFullScreen())
+        return PhotinoWindowState::FullScreen;
+
+    if (IsMaximized())
+        return PhotinoWindowState::Maximized;
+
+    return PhotinoWindowState::Normal;
 }
 
 void Photino::SetFullScreen(bool fullScreen)
@@ -381,22 +461,22 @@ void Photino::SetFullScreen(bool fullScreen)
     assert(platform_->window);
     if (!platform_->window) return;
 
-    bool isFullScreen = ([platform_->window styleMask] & NSWindowStyleMaskFullScreen) == NSWindowStyleMaskFullScreen;
-    if (isFullScreen == fullScreen) return;
+    platform_->pendingStateAfterFullScreenExit = PhotinoWindowState::Normal;
+
+    const bool isFullScreen = IsFullScreen();
+
+    if (isFullScreen == fullScreen)
+    {
+        UpdateWindowState();
+        return;
+    }
+
+    if (fullScreen && IsMinimized())
+        [platform_->window deminiaturize:nil];
 
     [platform_->window toggleFullScreen:nil];
-}
 
-void Photino::GetMaximized(bool* isMaximized) const
-{
-    assert(isMaximized);
-    if (!isMaximized) return;
-
-    *isMaximized = false;
-
-    if (!platform_->window) return;
-
-    *isMaximized = [platform_->window isZoomed];
+    UpdateWindowState();
 }
 
 void Photino::SetMaximized(bool maximized)
@@ -404,21 +484,16 @@ void Photino::SetMaximized(bool maximized)
     assert(platform_->window);
     if (!platform_->window) return;
 
-    if ([platform_->window isZoomed] == maximized) return;
+    if (maximized)
+    {
+        Maximize();
+        return;
+    }
 
-    [platform_->window zoom:nil];
-}
+    if ([platform_->window isZoomed])
+        [platform_->window zoom:nil];
 
-void Photino::GetMinimized(bool* isMinimized) const
-{
-    assert(isMinimized);
-    if (!isMinimized) return;
-
-    *isMinimized = false;
-
-    if (!platform_->window) return;
-
-	*isMinimized = [platform_->window isMiniaturized];
+    UpdateWindowState();
 }
 
 void Photino::SetMinimized(bool minimized)
@@ -426,12 +501,16 @@ void Photino::SetMinimized(bool minimized)
     assert(platform_->window);
     if (!platform_->window) return;
 
-    if (platform_->window.isMiniaturized == minimized) return;
-
     if (minimized)
-        [platform_->window miniaturize:nil];
-    else
+    {
+        Minimize();
+        return;
+    }
+
+    if ([platform_->window isMiniaturized])
         [platform_->window deminiaturize:nil];
+
+    UpdateWindowState();
 }
 
 void Photino::GetResizable(bool* resizable) const

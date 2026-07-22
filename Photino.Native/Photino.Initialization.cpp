@@ -33,7 +33,7 @@ void Photino::InitializeOptions(const PhotinoInitParams* initParams)
 
     options_.zoom = initParams->Zoom;
     options_.chromeless = initParams->Chromeless;
-    options_.fullScreen = initParams->FullScreen;
+    options_.windowState = initParams->WindowState;
 
     options_.transparentEnabled = initParams->Transparent;
     options_.contextMenuEnabled = initParams->ContextMenuEnabled;
@@ -68,6 +68,7 @@ void Photino::InitializeCallbacks(const PhotinoInitParams* initParams)
     customSchemeCallback_ = initParams->CustomSchemeHandler;
     closedCallback_ = initParams->ClosedHandler;
     fullScreenChangedCallback_ = initParams->FullScreenChangedHandler;
+    stateChangedCallback_ = initParams->StateChangedHandler;
 }
 
 void Photino::InitializeCustomSchemes(const PhotinoInitParams* initParams)

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Photino.Enums.h"
 #include "Photino.Callbacks.h"
 #include "Photino.InitParams.h"
 #include "Photino.Options.h"
@@ -36,20 +37,6 @@ namespace PhotinoX::Native
 
     class PhotinoDialog;
 
-    // Which edge or corner a resize drag operates on. The ordering is the ABI
-    // contract with the managed PhotinoWindowEdge enum and must stay in sync.
-    enum class WindowEdge : int
-    {
-        Top,
-        Bottom,
-        Left,
-        Right,
-        TopLeft,
-        TopRight,
-        BottomLeft,
-        BottomRight,
-    };
-
     class Photino
     {
     private:
@@ -64,12 +51,16 @@ namespace PhotinoX::Native
         FocusInCallback focusInCallback_ = nullptr;
         FocusOutCallback focusOutCallback_ = nullptr;
         FullScreenChangedCallback fullScreenChangedCallback_ = nullptr;
+        StateChangedCallback stateChangedCallback_ = nullptr;
         WebResourceRequestedCallback customSchemeCallback_ = nullptr;
         std::vector<PlatformString> customSchemeNames_;
 
         PhotinoOptions options_;
         Photino* parent_ = nullptr;
         PhotinoDialog* dialog_ = nullptr;
+
+        bool suppressWindowStateCallbacks_ = false;
+        bool suppressRestoredCallback_ = false;
 
 #ifdef _WIN32
         std::unique_ptr<WindowsState> platform_;
@@ -89,6 +80,16 @@ namespace PhotinoX::Native
         bool RegisterCustomSchemeName(const PlatformString& scheme);
 
         void InvokeFullScreenChanged(bool fullScreen) const noexcept;
+        void InvokeStateChanged(PhotinoWindowState oldState, PhotinoWindowState newState) const noexcept;
+
+        // Common state
+        PhotinoWindowState GetPlatformWindowState() const noexcept;
+        bool ChangeWindowState(PhotinoWindowState state) noexcept;
+
+        // Common platform state predicates
+        bool IsFullScreen() const noexcept;
+        bool IsMinimized() const noexcept;
+        bool IsMaximized() const noexcept;
 
 #ifdef _WIN32
         PlatformString BuildStartupString() const;
@@ -107,6 +108,14 @@ namespace PhotinoX::Native
         static bool InstallWebView2();
         void NotifyWebView2WindowMove() const;
 
+        bool SaveFullScreenRestoreState();
+        bool RestoreFullScreenRestoreState();
+        void ResetFullScreenRestoreState();
+        bool SkipFullScreenChange(bool fullScreen) const noexcept;
+        bool EnterFullScreen();
+        bool ExitFullScreen();
+        bool TryExitFullScreen(bool suppressRestoredCallback);
+
 #elif defined(__linux__)
         void ApplyGeometryHints();
 
@@ -115,6 +124,8 @@ namespace PhotinoX::Native
         void SetWebKitSettings();
 #elif defined(__APPLE__)
         std::vector<Monitor> GetMonitors() const;
+
+        void ApplyPendingStateAfterFullScreenExit();
 
         void AttachWebView();
         void AddCustomSchemeHandlers();
@@ -128,10 +139,10 @@ namespace PhotinoX::Native
         void RefitContent() const;
         void FocusWebView2() const;
         void CloseWebView();
-        bool IsFullScreen() const noexcept;
-        void UpdateFullScreenState() noexcept;
 #elif defined(__linux__)
         void HandleConfigureEvent(int x, int y, int width, int height);
+#elif defined(__APPLE__)
+        void HandleFullScreenExitCompleted() noexcept;
 #endif
         Photino(PhotinoInitParams* initParams);
         ~Photino();
@@ -151,11 +162,14 @@ namespace PhotinoX::Native
 #elif defined(__APPLE__)
         void* GetNSWindow() const noexcept;
 #endif
+
+        bool UpdateWindowState() noexcept;
+
         bool Show() const;
         bool Activate() const;
         bool Center() const;
-        bool Maximize() const;
-        bool Minimize() const;
+        bool Maximize();
+        bool Minimize();
         bool Restore();
         void Close() const;
 
@@ -177,12 +191,15 @@ namespace PhotinoX::Native
         void SetMaxSize(int width, int height);
 
         void BeginWindowDrag() const;
-        void BeginWindowResize(WindowEdge edge) const;
+        void BeginWindowResize(PhotinoWindowEdge edge) const;
 
         unsigned int GetScreenDpi() const;
         void GetAllMonitors(GetAllMonitorsCallback callback) const noexcept;
 
         // Window state
+        void GetWindowState(PhotinoWindowState* state) const;
+        void SetWindowState(const PhotinoWindowState state);
+
         void GetFullScreen(bool* fullScreen) const;
         void SetFullScreen(bool fullScreen);
 
@@ -250,6 +267,8 @@ namespace PhotinoX::Native
         void SetMaximizedCallback(MaximizedCallback callback) noexcept { maximizedCallback_ = callback; }
         void SetRestoredCallback(RestoredCallback callback) noexcept { restoredCallback_ = callback; }
         void SetMinimizedCallback(MinimizedCallback callback) noexcept { minimizedCallback_ = callback; }
+        void SetFullScreenChangedCallback(FullScreenChangedCallback callback) noexcept { fullScreenChangedCallback_ = callback; }
+        void SetStateChangedCallback(StateChangedCallback callback) noexcept { stateChangedCallback_ = callback; }
 
         bool InvokeClosing() const noexcept;
         void InvokeClose() const noexcept;
@@ -260,8 +279,6 @@ namespace PhotinoX::Native
         void InvokeMaximized() const noexcept;
         void InvokeRestored() const noexcept;
         void InvokeMinimized() const noexcept;
-
-        void HandleFullScreenStateChanged(bool fullScreen) noexcept;
     };
 
 } // namespace PhotinoX::Native

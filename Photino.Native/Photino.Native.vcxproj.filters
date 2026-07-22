@@ -72,7 +72,10 @@
     <ClCompile Include="Photino.Application.Windows.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Photino.Application.Linux.cpp">
+    <ClCompile Include="Exports.Application.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Photino.WindowState.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -124,6 +127,9 @@
       <Filter>Source Files</Filter>
     </None>
     <None Include="Photino.Application.Mac.mm">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="Photino.Application.Linux.cpp">
       <Filter>Source Files</Filter>
     </None>
   </ItemGroup>
@@ -210,6 +216,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Photino.Application.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Photino.Enums.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

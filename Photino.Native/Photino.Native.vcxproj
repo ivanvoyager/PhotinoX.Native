@@ -282,6 +282,7 @@
     <ClCompile Include="Exports.Browser.cpp" />
     <ClCompile Include="Exports.cpp" />
     <ClCompile Include="Dependencies\wintoastlib.cpp" />
+    <ClCompile Include="Photino.WindowState.cpp" />
     <None Include="Photino.Application.Mac.mm" />
     <None Include="Photino.Linux.Window.cpp" />
     <None Include="Photino.Linux.Browser.cpp" />
@@ -309,6 +310,7 @@
     <ClInclude Include="Dependencies\wintoastlib.h" />
     <ClInclude Include="Dependencies\json.hpp" />
     <ClInclude Include="Photino.Application.h" />
+    <ClInclude Include="Photino.Enums.h" />
     <ClInclude Include="Photino.Export.h" />
     <ClInclude Include="Photino.Callbacks.h" />
     <ClInclude Include="Photino.Geometry.h" />

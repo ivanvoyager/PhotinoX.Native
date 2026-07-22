@@ -1,4 +1,5 @@
 #include "Photino.h"
+#include "Photino.Enums.h"
 #include "Photino.Callbacks.h"
 #include "Photino.Strings.h"
 #include "Photino.Windows.State.h"
@@ -7,6 +8,7 @@
 #include <WinUser.h>
 #include <Shellscalingapi.h>
 
+#include <algorithm>
 #include <cassert>
 
 #pragma comment(lib, "Shcore.lib")//TODO remove
@@ -16,6 +18,16 @@ using namespace PhotinoX::Native;
 
 namespace 
 {
+    struct WindowStateUpdateGuard
+    {
+        Photino& window;
+
+        ~WindowStateUpdateGuard() noexcept
+        {
+            window.UpdateWindowState();
+        }
+    };
+
     // https://learn.microsoft.com/en-us/windows/win32/api/winuser/nc-winuser-monitorenumproc
     // To continue the enumeration, return TRUE.
     // To stop the enumeration, return FALSE.
@@ -266,21 +278,31 @@ bool Photino::Center() const
     return result != FALSE;
 }
 
-bool Photino::Maximize() const
+bool Photino::Maximize()
 {
     assert(platform_->hWnd);
     if (!platform_->hWnd) return false;
 
+    if (!TryExitFullScreen(true))
+        return false;
+
     ShowWindow(platform_->hWnd, SW_MAXIMIZE);
+    UpdateWindowState();
+
     return true;
 }
 
-bool Photino::Minimize() const
+bool Photino::Minimize()
 {
     assert(platform_->hWnd);
     if (!platform_->hWnd) return false;
 
+    if (!TryExitFullScreen(true))
+        return false;
+
     ShowWindow(platform_->hWnd, SW_MINIMIZE);
+    UpdateWindowState();
+
     return true;
 }
 
@@ -289,13 +311,12 @@ bool Photino::Restore()
     assert(platform_->hWnd);
     if (!platform_->hWnd) return false;
 
-    if (options_.fullScreen || platform_->hasFullScreenRestoreState)
-    {
-        SetFullScreen(false);
-        return true;
-    }
+    if (!TryExitFullScreen(false))
+        return false;
 
     ShowWindow(platform_->hWnd, SW_RESTORE);
+    UpdateWindowState();
+
     return true;
 }
 
@@ -333,7 +354,7 @@ void Photino::BeginWindowDrag() const
     SendMessageW(platform_->hWnd, WM_NCLBUTTONDOWN, HTCAPTION, MAKELPARAM(cursor.x, cursor.y));
 }
 
-void Photino::BeginWindowResize(const WindowEdge edge) const
+void Photino::BeginWindowResize(const PhotinoWindowEdge edge) const
 {
     assert(platform_->hWnd);
     if (!platform_->hWnd) return;
@@ -341,14 +362,14 @@ void Photino::BeginWindowResize(const WindowEdge edge) const
     WPARAM hitTest;
     switch (edge)
     {
-    case WindowEdge::Top:         hitTest = HTTOP;         break;
-    case WindowEdge::Bottom:      hitTest = HTBOTTOM;      break;
-    case WindowEdge::Left:        hitTest = HTLEFT;        break;
-    case WindowEdge::Right:       hitTest = HTRIGHT;       break;
-    case WindowEdge::TopLeft:     hitTest = HTTOPLEFT;     break;
-    case WindowEdge::TopRight:    hitTest = HTTOPRIGHT;    break;
-    case WindowEdge::BottomLeft:  hitTest = HTBOTTOMLEFT;  break;
-    case WindowEdge::BottomRight: hitTest = HTBOTTOMRIGHT; break;
+    case PhotinoWindowEdge::Top:         hitTest = HTTOP;         break;
+    case PhotinoWindowEdge::Bottom:      hitTest = HTBOTTOM;      break;
+    case PhotinoWindowEdge::Left:        hitTest = HTLEFT;        break;
+    case PhotinoWindowEdge::Right:       hitTest = HTRIGHT;       break;
+    case PhotinoWindowEdge::TopLeft:     hitTest = HTTOPLEFT;     break;
+    case PhotinoWindowEdge::TopRight:    hitTest = HTTOPRIGHT;    break;
+    case PhotinoWindowEdge::BottomLeft:  hitTest = HTBOTTOMLEFT;  break;
+    case PhotinoWindowEdge::BottomRight: hitTest = HTBOTTOMRIGHT; break;
     default: return;
     }
 
@@ -378,6 +399,143 @@ void Photino::GetAllMonitors(GetAllMonitorsCallback callback) const noexcept
     assert(result);
 }
 
+bool Photino::SaveFullScreenRestoreState()
+{
+    if (!platform_->hWnd)
+        return false;
+
+    if (platform_->hasFullScreenRestoreState)
+        return true;
+
+    SetLastError(0);
+    const LONG_PTR style = GetWindowLongPtrW(platform_->hWnd, GWL_STYLE);
+    const DWORD lastError = GetLastError();
+
+    assert(style != 0 || lastError == ERROR_SUCCESS);
+
+    if (style == 0 && lastError != ERROR_SUCCESS)
+        return false;
+
+    platform_->fullScreenPlacement.length = sizeof(platform_->fullScreenPlacement);
+
+    if (GetWindowPlacement(platform_->hWnd, &platform_->fullScreenPlacement) == FALSE)
+    {
+        platform_->fullScreenStyle = 0;
+        platform_->hasFullScreenRestoreState = false;
+        return false;
+    }
+
+    platform_->fullScreenStyle = style;
+    platform_->hasFullScreenRestoreState = true;
+
+    return true;
+}
+
+bool Photino::RestoreFullScreenRestoreState()
+{
+    if (!platform_->hWnd)
+        return false;
+
+    if (platform_->fullScreenStyle != 0)
+    {
+        SetLastError(0);
+        LONG_PTR previousStyle = SetWindowLongPtrW(platform_->hWnd, GWL_STYLE, platform_->fullScreenStyle);
+        const DWORD lastError = GetLastError();
+        assert(previousStyle != 0 || lastError == ERROR_SUCCESS);
+
+        if (previousStyle == 0 && lastError != ERROR_SUCCESS)
+            return false;
+    }
+
+    if (platform_->hasFullScreenRestoreState)
+    {
+        BOOL placementResult = SetWindowPlacement(platform_->hWnd, &platform_->fullScreenPlacement);
+        assert(placementResult);
+
+        if (!placementResult)
+            return false;
+    }
+
+    return true;
+}
+
+void Photino::ResetFullScreenRestoreState()
+{
+    platform_->fullScreenStyle = 0;
+    platform_->hasFullScreenRestoreState = false;
+}
+
+bool Photino::EnterFullScreen()
+{
+    if (!platform_->hWnd)
+        return false;
+
+    HMONITOR monitor = MonitorFromWindow(platform_->hWnd, MONITOR_DEFAULTTONEAREST);
+    if (!monitor)
+        return false;
+
+    MONITORINFO monitorInfo{sizeof(monitorInfo)};
+    if (!GetMonitorInfoW(monitor, &monitorInfo))
+        return false;
+
+    LONG_PTR style = platform_->fullScreenStyle;
+    style |= WS_POPUP;
+    style &= ~WS_OVERLAPPEDWINDOW;
+
+    SetLastError(0);
+    LONG_PTR previousStyle = SetWindowLongPtrW(platform_->hWnd, GWL_STYLE, style);
+    const DWORD lastError = GetLastError();
+    assert(previousStyle != 0 || lastError == ERROR_SUCCESS);
+
+    if (previousStyle == 0 && lastError != ERROR_SUCCESS)
+        return false;
+
+    const RECT& rc = monitorInfo.rcMonitor;
+
+    BOOL result = SetWindowPos(
+        platform_->hWnd,
+        HWND_TOP,
+        rc.left,
+        rc.top,
+        rc.right - rc.left,
+        rc.bottom - rc.top,
+        SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
+
+    assert(result);
+    return result != FALSE;
+}
+
+bool Photino::ExitFullScreen()
+{
+    if (!platform_->hWnd)
+        return false;
+
+    BOOL result = SetWindowPos(
+        platform_->hWnd,
+        nullptr,
+        0,
+        0,
+        0,
+        0,
+        SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
+
+    assert(result);
+
+    return result != FALSE;
+}
+
+bool Photino::TryExitFullScreen(const bool suppressRestoredCallback)
+{
+    if (GetPlatformWindowState() != PhotinoWindowState::FullScreen && !platform_->hasFullScreenRestoreState)
+        return true;
+
+    suppressRestoredCallback_ = suppressRestoredCallback;
+    SetFullScreen(false);
+    suppressRestoredCallback_ = false;
+
+    return GetPlatformWindowState() != PhotinoWindowState::FullScreen && !platform_->hasFullScreenRestoreState;
+}
+
 bool Photino::IsFullScreen() const noexcept
 {
     if (!platform_->hWnd)
@@ -398,22 +556,44 @@ bool Photino::IsFullScreen() const noexcept
     return EqualRect(&windowRect, &monitorInfo.rcMonitor) != FALSE;
 }
 
-void Photino::UpdateFullScreenState() noexcept
+bool Photino::IsMinimized() const noexcept
 {
-    const bool fullScreen = IsFullScreen();
+    if (!platform_->hWnd)
+        return false;
 
-    if (options_.fullScreen == fullScreen)
-        return;
-
-    HandleFullScreenStateChanged(fullScreen);
+    return IsIconic(platform_->hWnd);// Determines whether the specified window is minimized (iconic).
 }
 
-void Photino::GetFullScreen(bool* fullScreen) const
+bool Photino::IsMaximized() const noexcept
 {
-    assert(fullScreen);
-    if (!fullScreen) return;
+    if (!platform_->hWnd)
+        return false;
 
-    *fullScreen = IsFullScreen();
+    return IsZoomed(platform_->hWnd); // Determines whether a window is maximized.
+}
+
+PhotinoWindowState Photino::GetPlatformWindowState() const noexcept
+{
+    if (!platform_->hWnd)
+        return options_.windowState;
+
+    if (IsFullScreen())
+        return PhotinoWindowState::FullScreen;
+
+    if (IsMinimized())
+        return PhotinoWindowState::Minimized;
+
+    if (IsMaximized())
+        return PhotinoWindowState::Maximized;
+
+    return PhotinoWindowState::Normal;
+}
+
+bool Photino::SkipFullScreenChange(const bool fullScreen) const noexcept
+{
+    return fullScreen
+               ? IsFullScreen()
+               : !IsFullScreen() && !platform_->hasFullScreenRestoreState;
 }
 
 void Photino::SetFullScreen(const bool fullScreen)
@@ -421,92 +601,37 @@ void Photino::SetFullScreen(const bool fullScreen)
     assert(platform_->hWnd);
     if (!platform_->hWnd) return;
 
+    WindowStateUpdateGuard updateGuard{*this};
+
+    if (SkipFullScreenChange(fullScreen))
+        return;
+
     if (fullScreen)
     {
-        if (IsFullScreen())
+        if (!SaveFullScreenRestoreState())
             return;
 
-        if (!platform_->hasFullScreenRestoreState)
+        if (!EnterFullScreen())
         {
-            platform_->fullScreenStyle = GetWindowLongPtrW(platform_->hWnd, GWL_STYLE);
-            platform_->fullScreenPlacement.length = sizeof(platform_->fullScreenPlacement);
-            platform_->hasFullScreenRestoreState = GetWindowPlacement(platform_->hWnd, &platform_->fullScreenPlacement) != FALSE;
-        }
+            const bool restored = RestoreFullScreenRestoreState();
+            const bool exited = ExitFullScreen();
 
-        LONG_PTR style = platform_->fullScreenStyle;
-        style |= WS_POPUP;
-        style &= ~WS_OVERLAPPEDWINDOW;
+            if (restored && exited)
+                ResetFullScreenRestoreState();
 
-        SetLastError(0);
-        LONG_PTR previousStyle = SetWindowLongPtrW(platform_->hWnd, GWL_STYLE, style);
-        assert(previousStyle != 0 || GetLastError() == ERROR_SUCCESS);
-
-        HMONITOR monitor = MonitorFromWindow(platform_->hWnd, MONITOR_DEFAULTTONEAREST);
-        MONITORINFO monitorInfo{sizeof(monitorInfo)};
-
-        if (GetMonitorInfoW(monitor, &monitorInfo))
-        {
-            const RECT& rc = monitorInfo.rcMonitor;
-
-            BOOL result = SetWindowPos(
-                platform_->hWnd,
-                HWND_TOP,
-                rc.left,
-                rc.top,
-                rc.right - rc.left,
-                rc.bottom - rc.top,
-                SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
-
-            assert(result);
+            return;
         }
     }
     else
     {
-        if (!IsFullScreen() && !platform_->hasFullScreenRestoreState)
+        if (!RestoreFullScreenRestoreState())
             return;
 
-        if (platform_->fullScreenStyle != 0)
-        {
-            SetLastError(0);
-            LONG_PTR previousStyle = SetWindowLongPtrW(platform_->hWnd, GWL_STYLE, platform_->fullScreenStyle);
-            assert(previousStyle != 0 || GetLastError() == ERROR_SUCCESS);
-        }
+        if (!ExitFullScreen())
+            return;
 
-        if (platform_->hasFullScreenRestoreState)
-        {
-            BOOL placementResult = SetWindowPlacement(platform_->hWnd, &platform_->fullScreenPlacement);
-            assert(placementResult);
-        }
-
-        BOOL result = SetWindowPos(
-            platform_->hWnd,
-            nullptr,
-            0,
-            0,
-            0,
-            0,
-            SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
-
-        assert(result);
-
-        platform_->fullScreenStyle = 0;
-        platform_->hasFullScreenRestoreState = false;
+        ResetFullScreenRestoreState();
     }
-
-    UpdateFullScreenState();
-}
-
-void Photino::GetMaximized(bool* isMaximized) const
-{
-    assert(isMaximized && platform_->hWnd);
-    if (!isMaximized) return;
-
-    *isMaximized = false;
-
-    if (!platform_->hWnd) return;
-
-    LONG lStyles = GetWindowLong(platform_->hWnd, GWL_STYLE);
-    if (lStyles & WS_MAXIMIZE) *isMaximized = true;
 }
 
 void Photino::SetMaximized(const bool maximized)
@@ -514,20 +639,17 @@ void Photino::SetMaximized(const bool maximized)
     assert(platform_->hWnd);
     if (!platform_->hWnd) return;
 
-    ShowWindow(platform_->hWnd, maximized ? SW_MAXIMIZE : SW_RESTORE);
-}
+    if (maximized)
+    {
+        Maximize();
+        return;
+    }
 
-void Photino::GetMinimized(bool* isMinimized) const
-{
-    assert(isMinimized && platform_->hWnd);
-    if (!isMinimized) return;
+    if (!TryExitFullScreen(false))
+        return;
 
-    *isMinimized = false;
-
-    if (!platform_->hWnd) return;
-
-    LONG lStyles = GetWindowLong(platform_->hWnd, GWL_STYLE);
-    if (lStyles & WS_MINIMIZE) *isMinimized = true;
+    ShowWindow(platform_->hWnd, SW_RESTORE);
+    UpdateWindowState();
 }
 
 void Photino::SetMinimized(const bool minimized)
@@ -535,7 +657,17 @@ void Photino::SetMinimized(const bool minimized)
     assert(platform_->hWnd);
     if (!platform_->hWnd) return;
 
-    ShowWindow(platform_->hWnd, minimized ? SW_MINIMIZE : SW_RESTORE);
+    if (minimized)
+    {
+        Minimize();
+        return;
+    }
+
+    if (!TryExitFullScreen(false))
+        return;
+
+    ShowWindow(platform_->hWnd, SW_RESTORE);
+    UpdateWindowState();
 }
 
 void Photino::GetResizable(bool* resizable) const

@@ -1,4 +1,5 @@
 #include "Photino.h"
+#include "Photino.Enums.h"
 
 using namespace PhotinoX::Native;
 
@@ -54,17 +55,12 @@ void Photino::InvokeMinimized() const noexcept
     if (minimizedCallback_) minimizedCallback_();
 }
 
+void Photino::InvokeStateChanged(PhotinoWindowState oldState, PhotinoWindowState newState) const noexcept
+{
+    if (stateChangedCallback_) stateChangedCallback_(oldState, newState);
+}
+
 void Photino::InvokeFullScreenChanged(bool fullScreen) const noexcept
 {
     if (fullScreenChangedCallback_) fullScreenChangedCallback_(fullScreen);
-}
-
-void Photino::HandleFullScreenStateChanged(bool fullScreen) noexcept
-{
-    if (options_.fullScreen == fullScreen)
-        return;
-
-    options_.fullScreen = fullScreen;
-
-    InvokeFullScreenChanged(fullScreen);
 }

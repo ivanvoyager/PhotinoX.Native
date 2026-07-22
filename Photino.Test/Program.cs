@@ -154,18 +154,21 @@ class Program
 
             .RegisterCreatingHandler(WindowCreating)
             .RegisterCreatedHandler(WindowCreated)
+            .RegisterClosingHandler(WindowClosing)
+            .RegisterClosedHandler(WindowClosed)
+
             .RegisterLocationChangedHandler(WindowLocationChanged)
             .RegisterSizeChangedHandler(WindowSizeChanged)
+            .RegisterActivatedHandler(WindowFocusIn)
+            .RegisterDeactivatedHandler(WindowFocusOut)
+
             .RegisterMaximizedHandler(WindowMaximized)
             .RegisterRestoredHandler(WindowRestored)
             .RegisterMinimizedHandler(WindowMinimized)
-            .RegisterWebMessageReceivedHandler(WindowWebMessageReceived)
-            .RegisterClosingHandler(WindowClosing)
-            .RegisterClosedHandler(WindowClosed)
-            .RegisterActivatedHandler(WindowFocusIn)
-            .RegisterDeactivatedHandler(WindowFocusOut)
             .RegisterFullScreenEnteredHandler(WindowFullScreenEntered)
             .RegisterFullScreenExitedHandler(WindowFullScreenExited)
+
+            .RegisterWebMessageReceivedHandler(WindowWebMessageReceived)
 
             .SetLogVerbosity(s_logEvents ? 2 : 0);
 
@@ -246,18 +249,21 @@ class Program
 
         s_mainWindow.Creating += WindowCreating;
         s_mainWindow.Created += WindowCreated;
+        s_mainWindow.Closing += WindowClosing;
+        s_mainWindow.Closed += WindowClosed;
+
         s_mainWindow.LocationChanged += WindowLocationChanged;
         s_mainWindow.SizeChanged += WindowSizeChanged;
+        s_mainWindow.Activated += WindowFocusIn;
+        s_mainWindow.Deactivated += WindowFocusOut;
+
         s_mainWindow.Maximized += WindowMaximized;
         s_mainWindow.Restored += WindowRestored;
         s_mainWindow.Minimized += WindowMinimized;
-        s_mainWindow.WebMessageReceived += WindowWebMessageReceived;
-        s_mainWindow.Closing += WindowClosing;
-        s_mainWindow.Closed += WindowClosed;
-        s_mainWindow.Activated += WindowFocusIn;
-        s_mainWindow.Deactivated += WindowFocusOut;
         s_mainWindow.FullScreenEntered += WindowFullScreenEntered;
         s_mainWindow.FullScreenExited += WindowFullScreenExited;
+
+        s_mainWindow.WebMessageReceived += WindowWebMessageReceived;
 
         //Can this be done with a property? 
         s_mainWindow.RegisterCustomSchemeHandler("app", AppCustomSchemeUsed);
@@ -440,7 +446,7 @@ class Program
         }
         else if (string.Compare(message, "setfullscreen", true) == 0)
         {
-            currentWindow.SetFullScreen(!currentWindow.FullScreen);
+            currentWindow.SetFullScreen(currentWindow.WindowState != PhotinoWindowState.FullScreen);
         }
         else if (string.Compare(message, "showproperties", true) == 0)
         {

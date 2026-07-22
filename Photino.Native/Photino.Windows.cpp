@@ -1,5 +1,6 @@
 #include "Photino.h"
 #include "Photino.Dialog.h"
+#include "Photino.Enums.h"
 #include "Photino.Strings.h"
 #include "Photino.Windows.DarkMode.h"
 #include "Photino.Windows.State.h"
@@ -89,7 +90,9 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Win
 
     InitializeFromInitParams(initParams);
 
-    const bool startFullScreen = options_.fullScreen;
+    const auto startupWindowState = options_.windowState;
+    options_.windowState = PhotinoWindowState::Normal;
+    const bool startFullScreen = startupWindowState == PhotinoWindowState::FullScreen;
 
     platform_->sizeLimits.minWidth = (std::max)(0, initParams->MinWidth);
     platform_->sizeLimits.minHeight = (std::max)(0, initParams->MinHeight);
@@ -163,12 +166,18 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Win
     if (initParams->CenterOnInitialize)
         Center();
 
-    if (initParams->Maximized)
+    switch (startupWindowState)
+    {
+    case PhotinoWindowState::Maximized:
         platform_->initialShowCommand = SW_SHOWMAXIMIZED;
-    else if(initParams->Minimized)
+        break;
+    case PhotinoWindowState::Minimized:
         platform_->initialShowCommand = SW_SHOWMINIMIZED;
-    else
+        break;
+    default:
         platform_->initialShowCommand = SW_SHOWDEFAULT;
+        break;
+    }
 
     SetResizable(initParams->Resizable);
 
@@ -189,10 +198,15 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Win
 
     dialog_ = new PhotinoDialog(this);
 
+    suppressWindowStateCallbacks_ = true;
+
     Show();
+    UpdateWindowState();
 
     if (startFullScreen)
         SetFullScreen(true);
+
+    suppressWindowStateCallbacks_ = false;
 
     // Photino creates WebView2 after the native window is shown because creating it
     // earlier has historically caused initialization/display issues.
@@ -375,7 +389,7 @@ LRESULT CALLBACK WindowProc(const HWND hwnd, const UINT uMsg, const WPARAM wPara
         {
             const auto photino = it->second;
             if (photino)
-                photino->UpdateFullScreenState();
+                photino->UpdateWindowState();
         }
 
         break;
@@ -388,26 +402,13 @@ LRESULT CALLBACK WindowProc(const HWND hwnd, const UINT uMsg, const WPARAM wPara
             const auto photino = it->second;
             if (!photino) return 0;
 
+            photino->UpdateWindowState();
+
             photino->RefitContent();
 
             int width = 0, height = 0;
             photino->GetSize(&width, &height);
             photino->InvokeResize(width, height);
-
-            switch (wParam)
-            {
-            case SIZE_MAXIMIZED:
-                if (!photino->IsFullScreen())
-                    photino->InvokeMaximized();
-                break;
-            case SIZE_RESTORED:
-                if (!photino->IsFullScreen())
-                    photino->InvokeRestored();
-                break;
-            case SIZE_MINIMIZED:
-                photino->InvokeMinimized();
-                break;
-            }
         }
         return 0;
     }

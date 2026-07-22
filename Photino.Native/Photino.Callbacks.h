@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Photino.Enums.h"
 #include "Photino.Monitor.h"
 #include "Photino.Strings.h"
 
@@ -33,4 +34,5 @@ namespace PhotinoX::Native
     using WebResourceRequestedCallback = ResourceCallback;
     using GetAllMonitorsCallback = MonitorCallback;
     using FullScreenChangedCallback = VoidBoolCallback;
+    using StateChangedCallback = void(*)(PhotinoWindowState oldState, PhotinoWindowState newState);
 }

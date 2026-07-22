@@ -82,33 +82,8 @@ namespace
         auto instance = static_cast<Photino*>(self);
         if (!instance || !event) return FALSE;
 
-        if (event->changed_mask & GDK_WINDOW_STATE_FULLSCREEN)
-        {
-            instance->HandleFullScreenStateChanged(
-                (event->new_window_state & GDK_WINDOW_STATE_FULLSCREEN) != 0);
-        }
-
-        if ((event->changed_mask & GDK_WINDOW_STATE_MAXIMIZED) &&
-            (event->new_window_state & GDK_WINDOW_STATE_MAXIMIZED))
-        {
-            instance->InvokeMaximized();
-            return FALSE;
-        }
-
-        if ((event->changed_mask & GDK_WINDOW_STATE_ICONIFIED) &&
-            (event->new_window_state & GDK_WINDOW_STATE_ICONIFIED))
-        {
-            instance->InvokeMinimized();
-            return FALSE;
-        }
-
-        if ((event->changed_mask & (GDK_WINDOW_STATE_MAXIMIZED | GDK_WINDOW_STATE_ICONIFIED | GDK_WINDOW_STATE_FULLSCREEN)) &&
-            !(event->new_window_state & GDK_WINDOW_STATE_MAXIMIZED) &&
-            !(event->new_window_state & GDK_WINDOW_STATE_ICONIFIED) &&
-            !(event->new_window_state & GDK_WINDOW_STATE_FULLSCREEN))
-        {
-            instance->InvokeRestored();
-        }
+        if (event->changed_mask & (GDK_WINDOW_STATE_FULLSCREEN | GDK_WINDOW_STATE_MAXIMIZED | GDK_WINDOW_STATE_ICONIFIED))
+            instance->UpdateWindowState();
 
         return FALSE;
     }
@@ -181,6 +156,9 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Lin
     }
 
     InitializeFromInitParams(initParams);
+
+    const auto startupWindowState = options_.windowState;
+    options_.windowState = PhotinoWindowState::Normal;
 
     platform_->sizeLimits.minWidth = (std::max)(0, initParams->MinWidth);
     platform_->sizeLimits.minHeight = (std::max)(0, initParams->MinHeight);
@@ -269,23 +247,31 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Lin
     if (!EnsureWebViewAttached())
         std::abort();
 
-    const bool startMinimized = initParams->Minimized;
-    const bool startMaximized = initParams->Maximized;
-    const bool startFullScreen = options_.fullScreen;
+    suppressWindowStateCallbacks_ = true;
 
     Show();
+    UpdateWindowState();
 
     if (options_.transparentEnabled)
-        SetTransparentEnabled(true);//WebKit background alpha
+        SetTransparentEnabled(true); // WebKit background alpha
 
-    if (startMaximized)
+    switch (startupWindowState)
+    {
+    case PhotinoWindowState::Maximized:
         SetMaximized(true);
-
-    if (startFullScreen)
-        SetFullScreen(true);
-
-    if (startMinimized)
+        break;
+    case PhotinoWindowState::Minimized:
         SetMinimized(true);
+        break;
+    case PhotinoWindowState::FullScreen:
+        SetFullScreen(true);
+        break;
+    default:
+        break;
+    }
+
+    UpdateWindowState();
+    suppressWindowStateCallbacks_ = false;
 
     g_signal_connect(G_OBJECT(platform_->window), "focus-in-event",
                      G_CALLBACK(on_focus_in_event),
@@ -348,6 +334,8 @@ void Photino::ShowNotification(const PlatformString& title, const PlatformString
 
 void Photino::HandleConfigureEvent(int x, int y, int width, int height)
 {
+    UpdateWindowState();
+
     if (platform_->lastGeometry.left != x || platform_->lastGeometry.top != y)
     {
         InvokeMove(x, y);
