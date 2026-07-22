@@ -13,7 +13,8 @@ namespace
 {
     struct InvokeWaitInfo
     {
-        InvokeCallback callback = nullptr;
+        InvokeStateCallback callback = nullptr;
+        void* state = nullptr;
         std::condition_variable completionNotifier;
         std::mutex mutex;
         bool isCompleted = false;
@@ -26,7 +27,7 @@ namespace
             return G_SOURCE_REMOVE;
 
         if (waitInfo->callback)
-            waitInfo->callback();
+            waitInfo->callback(waitInfo->state);
 
         {
             std::lock_guard guard(waitInfo->mutex);
@@ -75,6 +76,8 @@ int PhotinoApplication::RunCore()
 
 void PhotinoApplication::ShutdownCore(int exitCode) noexcept
 {
+    exitCode_.store(exitCode, std::memory_order_release);
+
     g_main_context_invoke_full(
         g_main_context_default(),
         G_PRIORITY_DEFAULT,
@@ -88,7 +91,7 @@ bool PhotinoApplication::CheckAccess() const noexcept
     return g_main_context_is_owner(g_main_context_default());
 }
 
-bool PhotinoApplication::Invoke(InvokeCallback callback) const
+bool PhotinoApplication::Invoke(InvokeStateCallback callback, void* state) const
 {
     assert(callback);
 
@@ -97,7 +100,7 @@ bool PhotinoApplication::Invoke(InvokeCallback callback) const
 
     if (CheckAccess())
     {
-        callback();
+        callback(state);
         return true;
     }
 
@@ -106,6 +109,7 @@ bool PhotinoApplication::Invoke(InvokeCallback callback) const
 
     InvokeWaitInfo waitInfo{};
     waitInfo.callback = callback;
+    waitInfo.state = state;
 
     g_main_context_invoke_full(
         g_main_context_default(),

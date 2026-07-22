@@ -15,7 +15,6 @@ namespace PhotinoX::Native
     using ResourceCallback = void* (*)(Utf8String, int*, Utf8String*);
     using MonitorCallback = int (*)(const Monitor*);
 
-    using InvokeCallback = VoidCallback;
     using InvokeStateCallback = VoidStateCallback;
 
     //no parameters, no return value

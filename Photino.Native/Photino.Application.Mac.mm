@@ -41,6 +41,8 @@ int PhotinoApplication::RunCore()
 
 void PhotinoApplication::ShutdownCore(int exitCode) noexcept
 {
+    exitCode_.store(exitCode, std::memory_order_release);
+
     if ([NSThread isMainThread])
     {
         StopApplicationLoop();
@@ -57,7 +59,7 @@ bool PhotinoApplication::CheckAccess() const noexcept
     return [NSThread isMainThread];
 }
 
-bool PhotinoApplication::Invoke(InvokeCallback callback) const
+bool PhotinoApplication::Invoke(InvokeStateCallback callback, void* state) const
 {
     assert(callback);
 
@@ -66,7 +68,7 @@ bool PhotinoApplication::Invoke(InvokeCallback callback) const
 
     if (CheckAccess())
     {
-        callback();
+        callback(state);
         return true;
     }
 
@@ -74,7 +76,7 @@ bool PhotinoApplication::Invoke(InvokeCallback callback) const
         return false;
 
     dispatch_sync(dispatch_get_main_queue(), ^{
-        callback();
+        callback(state);
     });
 
     return true;

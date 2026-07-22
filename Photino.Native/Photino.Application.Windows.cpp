@@ -10,9 +10,8 @@ using namespace PhotinoX::Native;
 namespace
 {
     constexpr wchar_t ApplicationWindowClassName[] = L"PhotinoXApplicationWindow";
-    constexpr UINT WM_PHOTINO_INVOKE = WM_APP + 1;
-    constexpr UINT WM_PHOTINO_INVOKE_STATE = WM_APP + 2;
-    constexpr UINT WM_PHOTINO_SHUTDOWN = WM_APP + 3;
+    constexpr UINT WM_PHOTINO_INVOKE_STATE = WM_APP + 1;
+    constexpr UINT WM_PHOTINO_SHUTDOWN = WM_APP + 2;
 
     std::atomic<DWORD> g_uiThreadId{0};
     std::atomic<HWND> g_messageWindow{nullptr};
@@ -21,18 +20,6 @@ namespace
     {
         switch (message)
         {
-        case WM_PHOTINO_INVOKE:
-        {
-            auto callback = reinterpret_cast<InvokeCallback>(wParam);
-            assert(callback);
-
-            if (!callback)
-                return FALSE;
-
-            callback();
-
-            return TRUE;
-        }
 
         case WM_PHOTINO_INVOKE_STATE:
         {
@@ -153,7 +140,7 @@ bool PhotinoApplication::CheckAccess() const noexcept
     return uiThreadId != 0 && currentThreadId == uiThreadId;
 }
 
-bool PhotinoApplication::Invoke(InvokeCallback callback) const
+bool PhotinoApplication::Invoke(InvokeStateCallback callback, void* state) const
 {
     assert(callback);
 
@@ -162,7 +149,7 @@ bool PhotinoApplication::Invoke(InvokeCallback callback) const
 
     if (CheckAccess())
     {
-        callback();
+        callback(state);
         return true;
     }
 
@@ -173,7 +160,11 @@ bool PhotinoApplication::Invoke(InvokeCallback callback) const
     if (!messageWindow || !IsWindow(messageWindow))
         return false;
 
-    return SendMessageW(messageWindow, WM_PHOTINO_INVOKE, reinterpret_cast<WPARAM>(callback), 0) == TRUE;
+    return SendMessageW(
+                messageWindow,
+                WM_PHOTINO_INVOKE_STATE,
+                reinterpret_cast<WPARAM>(callback),
+                reinterpret_cast<LPARAM>(state)) == TRUE;
 }
 
 bool PhotinoApplication::BeginInvoke(InvokeStateCallback callback, void* state) const

@@ -37,9 +37,9 @@ extern "C"
         return PhotinoApplication::Instance().CheckAccess();
     }
 
-    PHOTINO_EXPORT bool PhotinoApplication_Invoke(const InvokeCallback callback)
+    PHOTINO_EXPORT bool PhotinoApplication_Invoke(const InvokeStateCallback callback, void* state)
     {
-        return PhotinoApplication::Instance().Invoke(callback);
+        return PhotinoApplication::Instance().Invoke(callback, state);
     }
 
     PHOTINO_EXPORT bool PhotinoApplication_BeginInvoke(const InvokeStateCallback callback, void* state)

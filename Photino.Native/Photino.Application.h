@@ -29,7 +29,7 @@ class PhotinoApplication final
     void Shutdown(int exitCode = 0) noexcept;
     bool CheckAccess() const noexcept;
 
-    bool Invoke(InvokeCallback callback) const;
+    bool Invoke(InvokeStateCallback callback, void* state) const;
     bool BeginInvoke(InvokeStateCallback callback, void* state) const;
 };
 } // namespace PhotinoX::Native
