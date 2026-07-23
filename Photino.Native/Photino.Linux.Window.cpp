@@ -211,10 +211,10 @@ bool Photino::Maximize()
     if (IsMinimized())
         gtk_window_deiconify(window);
 
-    gtk_window_maximize(window);
-
     if (IsFullScreen())
         gtk_window_unfullscreen(window);
+
+    gtk_window_maximize(window);
 
     UpdateWindowState();
 
@@ -228,10 +228,10 @@ bool Photino::Minimize()
 
     GtkWindow* window = GTK_WINDOW(platform_->window);
 
-    gtk_window_iconify(window);
-
     if (IsFullScreen())
         gtk_window_unfullscreen(window);
+
+    gtk_window_iconify(window);
 
     UpdateWindowState();
 

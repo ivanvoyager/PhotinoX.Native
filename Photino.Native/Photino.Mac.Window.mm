@@ -249,8 +249,12 @@ void Photino::ApplyPendingStateAfterFullScreenExit()
 
 void Photino::HandleFullScreenExitCompleted() noexcept
 {
-    UpdateWindowState();
+    if (platform_->pendingStateAfterFullScreenExit != PhotinoWindowState::Normal)
+        suppressRestoredCallback_ = true;
+
     ApplyPendingStateAfterFullScreenExit();
+    UpdateWindowState();
+
     suppressRestoredCallback_ = false;
 }
 
@@ -305,6 +309,7 @@ bool Photino::Restore()
     if (!platform_->window) return false;
 
     platform_->pendingStateAfterFullScreenExit = PhotinoWindowState::Normal;
+    suppressRestoredCallback_ = false;
 
     if ([platform_->window isMiniaturized])
         [platform_->window deminiaturize:nil];
@@ -461,8 +466,6 @@ void Photino::SetFullScreen(bool fullScreen)
     assert(platform_->window);
     if (!platform_->window) return;
 
-    platform_->pendingStateAfterFullScreenExit = PhotinoWindowState::Normal;
-
     const bool isFullScreen = IsFullScreen();
 
     if (isFullScreen == fullScreen)
@@ -471,8 +474,18 @@ void Photino::SetFullScreen(bool fullScreen)
         return;
     }
 
-    if (fullScreen && IsMinimized())
-        [platform_->window deminiaturize:nil];
+    if (fullScreen)
+    {
+        if (IsMinimized())
+        {
+            [platform_->window deminiaturize:nil];
+            platform_->pendingStateAfterFullScreenExit = PhotinoWindowState::Normal;
+        }
+        else if (IsMaximized())
+            platform_->pendingStateAfterFullScreenExit = PhotinoWindowState::Maximized;
+        else
+            platform_->pendingStateAfterFullScreenExit = PhotinoWindowState::Normal;
+    }
 
     [platform_->window toggleFullScreen:nil];
 
