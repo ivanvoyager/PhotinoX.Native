@@ -143,6 +143,10 @@ namespace PhotinoX::Native
         void HandleConfigureEvent(int x, int y, int width, int height);
 #elif defined(__APPLE__)
         void HandleFullScreenExitCompleted() noexcept;
+        void HandleMiniaturizeCompleted() noexcept;
+        bool HasPendingStateAfterFullScreenExit() const noexcept;
+        bool IsFullScreenTransitioning() const noexcept;
+        void SetFullScreenTransitioning(bool value) noexcept;
 #endif
         Photino(PhotinoInitParams* initParams);
         ~Photino();

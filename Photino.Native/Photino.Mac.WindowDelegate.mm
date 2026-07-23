@@ -4,6 +4,7 @@
 #include "Photino.Application.h"
 #include "Photino.h"
 #include "Photino.Mac.State.h"
+#include "Photino.Mac.Internal.h"
 
 #include <dispatch/dispatch.h>
 
@@ -23,7 +24,10 @@ using namespace PhotinoX::Native;
 - (void)windowDidResize:(NSNotification*)notification {
     if (!photino) return;
 
-    photino->UpdateWindowState();
+    PHOTINO_MAC_LOG("[mac-event] windowDidResize\n");
+
+    if (!photino->IsFullScreenTransitioning())
+        photino->UpdateWindowState();
 
     int width = 0, height = 0;
     photino->GetSize(&width, &height);
@@ -33,7 +37,10 @@ using namespace PhotinoX::Native;
 - (void)windowDidMove:(NSNotification*)notification {
     if (!photino) return;
 
-    photino->UpdateWindowState();
+    PHOTINO_MAC_LOG("[mac-event] windowDidMove\n");
+
+    if (!photino->IsFullScreenTransitioning())
+        photino->UpdateWindowState();
 
     int x = 0, y = 0;
     photino->GetPosition(&x, &y);
@@ -43,11 +50,15 @@ using namespace PhotinoX::Native;
 - (void)windowDidBecomeKey:(NSNotification*)notification {
     if (!photino) return;
 
+    PHOTINO_MAC_LOG("[mac-event] windowDidBecomeKey\n");
+
     photino->InvokeFocusIn();
 }
 
 - (void)windowDidResignKey:(NSNotification*)notification {
     if (!photino) return;
+
+    PHOTINO_MAC_LOG("[mac-event] windowDidResignKey\n");
 
     photino->InvokeFocusOut();
 }
@@ -55,11 +66,14 @@ using namespace PhotinoX::Native;
 - (void)windowDidMiniaturize:(NSNotification*)notification {
     if (!photino) return;
 
-    photino->UpdateWindowState();
+    PHOTINO_MAC_LOG("[mac-event] windowDidMiniaturize\n");
+
+    photino->HandleMiniaturizeCompleted();
 }
 
 - (void)windowDidDeminiaturize:(NSNotification*)notification {
     if (!photino) return;
+    PHOTINO_MAC_LOG("[mac-event] windowDidDeminiaturize\n");
 
     photino->UpdateWindowState();
 }
@@ -67,11 +81,16 @@ using namespace PhotinoX::Native;
 - (void)windowDidEnterFullScreen:(NSNotification*)notification {
     if (!photino) return;
 
+    PHOTINO_MAC_LOG("[mac-event] windowDidEnterFullScreen\n");
+
+    photino->SetFullScreenTransitioning(false);
     photino->UpdateWindowState();
 }
 
 - (void)windowDidExitFullScreen:(NSNotification*)notification {
     if (!photino) return;
+
+    PHOTINO_MAC_LOG("[mac-event] windowDidExitFullScreen\n");
 
     photino->HandleFullScreenExitCompleted();
 }

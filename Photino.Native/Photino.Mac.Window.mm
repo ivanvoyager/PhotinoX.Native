@@ -9,6 +9,46 @@
 
 using namespace PhotinoX::Native;
 
+namespace
+{
+#ifdef PHOTINO_MAC_TRACE
+    void TraceMacState(const char* source, Photino* photino)
+    {
+        if (!photino)
+            return;
+
+        NSWindow* window = (__bridge NSWindow*)photino->GetNSWindow();
+
+        if (!window)
+        {
+            PHOTINO_MAC_LOG("[mac-state] %s: window=null\n", source);
+            return;
+        }
+
+        const auto styleMask = [window styleMask];
+        const bool isFullScreen = (styleMask & NSWindowStyleMaskFullScreen) == NSWindowStyleMaskFullScreen;
+        const bool isZoomed = [window isZoomed];
+        const bool isMiniaturized = [window isMiniaturized];
+
+        NSRect frame = [window frame];
+
+        PHOTINO_MAC_LOG(
+            "[mac-state] %s: fullscreen=%d zoomed=%d miniaturized=%d style=0x%lx frame=(%.0f,%.0f %.0fx%.0f)\n",
+            source,
+            isFullScreen,
+            isZoomed,
+            isMiniaturized,
+            static_cast<unsigned long>(styleMask),
+            frame.origin.x,
+            frame.origin.y,
+            frame.size.width,
+            frame.size.height);
+    }
+#else
+    void TraceMacState(const char*, Photino*) {}
+#endif
+}
+
 void* Photino::GetNSWindow() const noexcept
 {
     return (__bridge void*)platform_->window;
@@ -232,16 +272,19 @@ bool Photino::Center() const
 void Photino::ApplyPendingStateAfterFullScreenExit()
 {
     const auto pendingState = platform_->pendingStateAfterFullScreenExit;
-    platform_->pendingStateAfterFullScreenExit = PhotinoWindowState::Normal;
 
     switch (pendingState)
     {
     case PhotinoWindowState::Maximized:
-        Maximize();
+        if (!IsMaximized())
+            [platform_->window zoom:nil];
         break;
+
     case PhotinoWindowState::Minimized:
-        Minimize();
+        if (!IsMinimized())
+            [platform_->window miniaturize:nil];
         break;
+
     default:
         break;
     }
@@ -249,13 +292,81 @@ void Photino::ApplyPendingStateAfterFullScreenExit()
 
 void Photino::HandleFullScreenExitCompleted() noexcept
 {
-    if (platform_->pendingStateAfterFullScreenExit != PhotinoWindowState::Normal)
-        suppressRestoredCallback_ = true;
+    TraceMacState("HandleFullScreenExitCompleted:before", this);
 
-    ApplyPendingStateAfterFullScreenExit();
+    const auto pendingState = platform_->pendingStateAfterFullScreenExit;
+
+    PHOTINO_MAC_LOG("[mac-state] pendingAfterExit=%d\n", static_cast<int>(pendingState));
+
+    if (pendingState == PhotinoWindowState::Maximized)
+    {
+        suppressRestoredCallback_ = true;
+        platform_->isFullScreenTransitioning = true;
+
+        ApplyPendingStateAfterFullScreenExit();
+
+        TraceMacState("HandleFullScreenExitCompleted:after-apply-pending", this);
+
+        platform_->pendingStateAfterFullScreenExit = PhotinoWindowState::Normal;
+        platform_->isFullScreenTransitioning = false;
+
+        UpdateWindowState();
+
+        TraceMacState("HandleFullScreenExitCompleted:after-update", this);
+
+        suppressRestoredCallback_ = false;
+        return;
+    }
+
+    if (pendingState == PhotinoWindowState::Minimized)
+    {
+        suppressRestoredCallback_ = true;
+        platform_->isFullScreenTransitioning = true;
+
+        ApplyPendingStateAfterFullScreenExit();
+
+        TraceMacState("HandleFullScreenExitCompleted:after-apply-pending", this);
+
+        return;
+    }
+
+    platform_->isFullScreenTransitioning = false;
+
     UpdateWindowState();
 
-    suppressRestoredCallback_ = false;
+    TraceMacState("HandleFullScreenExitCompleted:after-normal-update", this);
+}
+
+void Photino::HandleMiniaturizeCompleted() noexcept
+{
+    if (platform_->isFullScreenTransitioning &&
+        platform_->pendingStateAfterFullScreenExit == PhotinoWindowState::Minimized)
+    {
+        platform_->pendingStateAfterFullScreenExit = PhotinoWindowState::Normal;
+        platform_->isFullScreenTransitioning = false;
+
+        UpdateWindowState();
+
+        suppressRestoredCallback_ = false;
+        return;
+    }
+
+    UpdateWindowState();
+}
+
+bool Photino::HasPendingStateAfterFullScreenExit() const noexcept
+{
+    return platform_->pendingStateAfterFullScreenExit != PhotinoWindowState::Normal;
+}
+
+bool Photino::IsFullScreenTransitioning() const noexcept
+{
+    return platform_->isFullScreenTransitioning;
+}
+
+void Photino::SetFullScreenTransitioning(bool value) noexcept
+{
+    platform_->isFullScreenTransitioning = value;
 }
 
 bool Photino::Maximize()
@@ -270,6 +381,7 @@ bool Photino::Maximize()
     {
         platform_->pendingStateAfterFullScreenExit = PhotinoWindowState::Maximized;
         suppressRestoredCallback_ = true;
+        platform_->isFullScreenTransitioning = true;
         [platform_->window toggleFullScreen:nil];
         return true;
     }
@@ -291,6 +403,7 @@ bool Photino::Minimize()
     {
         platform_->pendingStateAfterFullScreenExit = PhotinoWindowState::Minimized;
         suppressRestoredCallback_ = true;
+        platform_->isFullScreenTransitioning = true;
         [platform_->window toggleFullScreen:nil];
         return true;
     }
@@ -311,14 +424,18 @@ bool Photino::Restore()
     platform_->pendingStateAfterFullScreenExit = PhotinoWindowState::Normal;
     suppressRestoredCallback_ = false;
 
-    if ([platform_->window isMiniaturized])
+    if (IsFullScreen())
+    {
+        platform_->isFullScreenTransitioning = true;
+        [platform_->window toggleFullScreen:nil];
+        return true;
+    }
+
+    if (IsMinimized())
         [platform_->window deminiaturize:nil];
 
-    if ([platform_->window isZoomed])
+    if (IsMaximized())
         [platform_->window zoom:nil];
-
-    if (IsFullScreen())
-        [platform_->window toggleFullScreen:nil];
 
     UpdateWindowState();
 
@@ -330,7 +447,7 @@ bool Photino::Show() const
     assert(platform_->window);
     if (!platform_->window) return false;
 
-    if ([platform_->window isMiniaturized])
+    if (IsMinimized())
         [platform_->window deminiaturize:nil];
 
     [platform_->window makeKeyAndOrderFront:nil];
@@ -354,7 +471,7 @@ void Photino::BeginWindowResize(PhotinoWindowEdge) const
 
 unsigned int Photino::GetScreenDpi() const
 {
-    //not supported on macOS - _window's devices collection does have dpi
+    // DPI is not directly supported on macOS; use backing scale factor.
 	//https://stackoverflow.com/questions/2621439/hot-to-get-screen-dpi-linux-mac-programaticaly
     if (!platform_->window) return 72;
 
@@ -455,6 +572,12 @@ PhotinoWindowState Photino::GetPlatformWindowState() const noexcept
     if (IsFullScreen())
         return PhotinoWindowState::FullScreen;
 
+    if (platform_->isFullScreenTransitioning &&
+        platform_->pendingStateAfterFullScreenExit != PhotinoWindowState::Normal)
+    {
+        return platform_->pendingStateAfterFullScreenExit;
+    }
+
     if (IsMaximized())
         return PhotinoWindowState::Maximized;
 
@@ -463,6 +586,8 @@ PhotinoWindowState Photino::GetPlatformWindowState() const noexcept
 
 void Photino::SetFullScreen(bool fullScreen)
 {
+    TraceMacState("SetFullScreen:before", this);
+
     assert(platform_->window);
     if (!platform_->window) return;
 
@@ -471,6 +596,7 @@ void Photino::SetFullScreen(bool fullScreen)
     if (isFullScreen == fullScreen)
     {
         UpdateWindowState();
+        TraceMacState("SetFullScreen:skip-after-update", this);
         return;
     }
 
@@ -482,14 +608,24 @@ void Photino::SetFullScreen(bool fullScreen)
             platform_->pendingStateAfterFullScreenExit = PhotinoWindowState::Normal;
         }
         else if (IsMaximized())
+        {
             platform_->pendingStateAfterFullScreenExit = PhotinoWindowState::Maximized;
+        }
         else
+        {
             platform_->pendingStateAfterFullScreenExit = PhotinoWindowState::Normal;
+        }
     }
 
+    TraceMacState("SetFullScreen:before-toggle", this);
+
+    platform_->isFullScreenTransitioning = true;
     [platform_->window toggleFullScreen:nil];
 
-    UpdateWindowState();
+    TraceMacState("SetFullScreen:after-toggle", this);
+
+    // Do not call UpdateWindowState() here.
+    // AppKit reports transient intermediate window states while toggling fullscreen.
 }
 
 void Photino::SetMaximized(bool maximized)
@@ -503,7 +639,7 @@ void Photino::SetMaximized(bool maximized)
         return;
     }
 
-    if ([platform_->window isZoomed])
+    if (IsMaximized())
         [platform_->window zoom:nil];
 
     UpdateWindowState();
@@ -520,7 +656,7 @@ void Photino::SetMinimized(bool minimized)
         return;
     }
 
-    if ([platform_->window isMiniaturized])
+    if (IsMinimized())
         [platform_->window deminiaturize:nil];
 
     UpdateWindowState();

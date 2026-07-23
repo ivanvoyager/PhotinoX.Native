@@ -26,6 +26,7 @@ namespace PhotinoX::Native
         NavigationDelegate* navigationDelegate = nil;
 
         PhotinoWindowState pendingStateAfterFullScreenExit = PhotinoWindowState::Normal;
+        bool isFullScreenTransitioning = false;
     };
 }
 
