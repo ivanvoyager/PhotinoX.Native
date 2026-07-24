@@ -4,7 +4,7 @@
 #include "Photino.Application.h"
 #include "Photino.h"
 #include "Photino.Mac.State.h"
-#include "Photino.Mac.Internal.h"
+#include "Photino.Mac.Debug.h"
 
 #include <dispatch/dispatch.h>
 

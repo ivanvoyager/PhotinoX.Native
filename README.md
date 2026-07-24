@@ -143,6 +143,10 @@ Requirements:
 make mac-universal
 ```
 
+## Known limitations
+
+- **Linux Wayland:** top-level window position is compositor-controlled. Move notifications and position restore are best-effort; state and size tracking remain supported.
+
 ## Contributing
 
 Issues and PRs are welcome. Keep changes minimal and performance-conscious.

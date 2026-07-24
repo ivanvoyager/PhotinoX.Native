@@ -2,10 +2,10 @@
 
 #include "Photino.Application.h"
 #include "Photino.h"
-#include "Photino.Mac.Internal.h"
-#include "Photino.Mac.State.h"
 #include "Photino.Callbacks.h"
 #include "Photino.Strings.h"
+#include "Photino.Mac.State.h"
+#include "Photino.Mac.Debug.h"
 
 using namespace PhotinoX::Native;
 
@@ -639,6 +639,9 @@ void Photino::SetMaximized(bool maximized)
         return;
     }
 
+    if (IsFullScreen() || IsFullScreenTransitioning())
+        return;
+
     if (IsMaximized())
         [platform_->window zoom:nil];
 
@@ -655,6 +658,9 @@ void Photino::SetMinimized(bool minimized)
         Minimize();
         return;
     }
+
+    if (IsFullScreen() || IsFullScreenTransitioning())
+        return;
 
     if (IsMinimized())
         [platform_->window deminiaturize:nil];

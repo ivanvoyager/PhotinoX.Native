@@ -1,8 +1,9 @@
 #include "Photino.h"
-#include "Photino.Linux.State.h"
 #include "Photino.Dialog.h"
 #include "Photino.Strings.h"
 #include "Photino.Application.h"
+#include "Photino.Linux.State.h"
+#include "Photino.Linux.Debug.h"
 
 #include <algorithm>
 #include <cassert>
@@ -67,6 +68,13 @@ namespace
             auto instance = static_cast<Photino*>(self);
             if (!instance) return FALSE;
 
+            PHOTINO_LINUX_LOG(
+                "[linux-event] configure x=%d y=%d width=%d height=%d\n",
+                event->configure.x,
+                event->configure.y,
+                event->configure.width,
+                event->configure.height);
+
             instance->HandleConfigureEvent(
                 event->configure.x,
                 event->configure.y,
@@ -82,8 +90,18 @@ namespace
         auto instance = static_cast<Photino*>(self);
         if (!instance || !event) return FALSE;
 
-        if (event->changed_mask & (GDK_WINDOW_STATE_FULLSCREEN | GDK_WINDOW_STATE_MAXIMIZED | GDK_WINDOW_STATE_ICONIFIED))
-            instance->UpdateWindowState();
+        PHOTINO_LINUX_LOG(
+            "[linux-event] window-state changed=0x%x new=0x%x\n",
+            static_cast<unsigned int>(event->changed_mask),
+            static_cast<unsigned int>(event->new_window_state));
+
+        if (event->changed_mask & (GDK_WINDOW_STATE_FULLSCREEN |
+                                   GDK_WINDOW_STATE_MAXIMIZED |
+                                   GDK_WINDOW_STATE_ICONIFIED |
+                                   GDK_WINDOW_STATE_FOCUSED))
+        {
+            instance->HandleWindowStateEvent();
+        }
 
         return FALSE;
     }
@@ -330,23 +348,4 @@ void Photino::ShowNotification(const PlatformString& title, const PlatformString
         g_error_free(error);
 
     g_object_unref(G_OBJECT(notification));
-}
-
-void Photino::HandleConfigureEvent(int x, int y, int width, int height)
-{
-    UpdateWindowState();
-
-    if (platform_->lastGeometry.left != x || platform_->lastGeometry.top != y)
-    {
-        InvokeMove(x, y);
-        platform_->lastGeometry.left = x;
-        platform_->lastGeometry.top = y;
-    }
-
-    if (platform_->lastGeometry.width != width || platform_->lastGeometry.height != height)
-    {
-        InvokeResize(width, height);
-        platform_->lastGeometry.width = width;
-        platform_->lastGeometry.height = height;
-    }
 }

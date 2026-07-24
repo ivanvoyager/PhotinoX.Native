@@ -6,10 +6,9 @@
 #import "Photino.Mac.UrlSchemeHandler.h"
 
 #include "Photino.h"
-#include "Photino.Mac.Internal.h"
-#include "Photino.Mac.State.h"
 #include "Photino.Callbacks.h"
 #include "Photino.Strings.h"
+#include "Photino.Mac.State.h"
 
 #include <cassert>
 

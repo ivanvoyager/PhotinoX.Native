@@ -316,11 +316,12 @@
     <ClInclude Include="Photino.Geometry.h" />
     <ClInclude Include="Photino.h" />
     <ClInclude Include="Photino.InitParams.h" />
+    <ClInclude Include="Photino.Linux.Debug.h" />
     <ClInclude Include="Photino.Linux.Internal.h" />
     <ClInclude Include="Photino.Linux.State.h" />
     <ClInclude Include="Photino.Mac.AppDelegate.h" />
     <ClInclude Include="Photino.Mac.Dialog.Icons.h" />
-    <ClInclude Include="Photino.Mac.Internal.h" />
+    <ClInclude Include="Photino.Mac.Debug.h" />
     <ClInclude Include="Photino.Mac.NavigationDelegate.h" />
     <ClInclude Include="Photino.Mac.NSWindowBorderless.h" />
     <ClInclude Include="Photino.Mac.State.h" />

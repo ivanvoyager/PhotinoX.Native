@@ -1,8 +1,9 @@
 #include "Photino.h"
 #include "Photino.Enums.h"
 #include "Photino.Callbacks.h"
-#include "Photino.Linux.State.h"
 #include "Photino.Strings.h"
+#include "Photino.Linux.State.h"
+#include "Photino.Linux.Debug.h"
 
 #include <gtk/gtk.h>
 
@@ -10,6 +11,106 @@
 #include <cassert>
 
 using namespace PhotinoX::Native;
+
+namespace
+{
+#ifdef PHOTINO_LINUX_TRACE
+    const char* ToString(PhotinoWindowState state)
+    {
+        switch (state)
+        {
+        case PhotinoWindowState::Normal:
+            return "Normal";
+        case PhotinoWindowState::Minimized:
+            return "Minimized";
+        case PhotinoWindowState::Maximized:
+            return "Maximized";
+        case PhotinoWindowState::FullScreen:
+            return "FullScreen";
+        default:
+            return "Unknown";
+        }
+    }
+
+    void TraceLinuxState(const char* source, Photino* photino)
+    {
+        if (!photino)
+            return;
+
+        auto widget = static_cast<GtkWidget*>(photino->GetGtkWidget());
+
+        if (!widget)
+        {
+            PHOTINO_LINUX_LOG("[linux-state] %s: widget=null\n", source);
+            return;
+        }
+
+        GdkWindow* gdkWindow = gtk_widget_get_window(widget);
+
+        if (!gdkWindow)
+        {
+            PHOTINO_LINUX_LOG("[linux-state] %s: gdkWindow=null\n", source);
+            return;
+        }
+
+        const GdkWindowState rawState = gdk_window_get_state(gdkWindow);
+
+        gint x = 0;
+        gint y = 0;
+        gint width = 0;
+        gint height = 0;
+
+        gtk_window_get_position(GTK_WINDOW(widget), &x, &y);
+        gtk_window_get_size(GTK_WINDOW(widget), &width, &height);
+
+        gint originX = 0;
+        gint originY = 0;
+        gdk_window_get_origin(gdkWindow, &originX, &originY);
+
+        GdkRectangle frameExtents{};
+        gdk_window_get_frame_extents(gdkWindow, &frameExtents);
+
+        PhotinoWindowState logicalState{};
+        photino->GetWindowState(&logicalState);
+
+        PHOTINO_LINUX_LOG(
+            "[linux-state] %s: logical=%s fullscreen=%d maximized=%d minimized=%d focused=%d tiled=%d logicalMinimized=%d raw=0x%x pos=(%d,%d) origin=(%d,%d) frameExtents=(%d,%d %dx%d) size=%dx%d\n",
+            source,
+            ToString(logicalState),
+            (rawState & GDK_WINDOW_STATE_FULLSCREEN) != 0,
+            (rawState & GDK_WINDOW_STATE_MAXIMIZED) != 0,
+            (rawState & GDK_WINDOW_STATE_ICONIFIED) != 0,
+            (rawState & GDK_WINDOW_STATE_FOCUSED) != 0,
+            (rawState & GDK_WINDOW_STATE_TILED) != 0,
+            photino->IsMinimized(),
+            static_cast<unsigned int>(rawState),
+            x,
+            y,
+            originX,
+            originY,
+            frameExtents.x,
+            frameExtents.y,
+            frameExtents.width,
+            frameExtents.height,
+            width,
+            height);
+    }
+#else
+    void TraceLinuxState(const char*, Photino*) {}
+#endif
+
+    gboolean restore_normal_geometry_idle(gpointer data)
+    {
+        auto instance = static_cast<Photino*>(data);
+
+        if (!instance)
+            return G_SOURCE_REMOVE;
+
+        instance->CompleteScheduledRestoreNormalGeometry();
+        return G_SOURCE_REMOVE;
+    }
+
+}
 
 void* Photino::GetGtkWidget() const noexcept { return platform_->window; }
 
@@ -156,6 +257,86 @@ void Photino::ApplyGeometryHints()
         static_cast<GdkWindowHints>(GDK_HINT_MIN_SIZE | GDK_HINT_MAX_SIZE));
 }
 
+void Photino::SaveNormalGeometry()
+{
+    if (!platform_->window)
+        return;
+
+    int x = 0;
+    int y = 0;
+    int width = 0;
+    int height = 0;
+
+    GetPosition(&x, &y);
+    GetSize(&width, &height);
+
+    if (width <= 0 || height <= 0)
+        return;
+
+    platform_->normalGeometry.left = x;
+    platform_->normalGeometry.top = y;
+    platform_->normalGeometry.width = width;
+    platform_->normalGeometry.height = height;
+    platform_->hasNormalGeometry = true;
+
+    PHOTINO_LINUX_LOG(
+        "[linux-geometry] save normal: x=%d y=%d width=%d height=%d\n",
+        x,
+        y,
+        width,
+        height);
+}
+
+// Restore size only. Restoring toplevel position is not reliable on Wayland,
+// because the compositor owns global window placement.
+void Photino::RestoreNormalGeometry()
+{
+    if (!platform_->window || !platform_->hasNormalGeometry)
+        return;
+
+    const auto geometry = platform_->normalGeometry;
+
+    PHOTINO_LINUX_LOG(
+        "[linux-geometry] restore normal size: width=%d height=%d\n",
+        geometry.width,
+        geometry.height);
+
+    gtk_window_resize(GTK_WINDOW(platform_->window), geometry.width, geometry.height);
+    // Do not restore position on Linux. Some GTK backends/window managers do not expose reliable toplevel coordinates.
+}
+
+void Photino::ScheduleRestoreNormalGeometry()
+{
+    if (!platform_->restoreNormalGeometryAfterUnmaximize ||
+        platform_->restoreNormalGeometryScheduled)
+    {
+        return;
+    }
+
+    platform_->restoreNormalGeometryScheduled = true;
+
+    g_idle_add(restore_normal_geometry_idle, this);
+    //g_timeout_add(100, restore_normal_geometry_idle, this);
+}
+
+void Photino::CompleteScheduledRestoreNormalGeometry()
+{
+    if (!platform_->window)
+    {
+        platform_->restoreNormalGeometryAfterUnmaximize = false;
+        platform_->restoreNormalGeometryScheduled = false;
+        return;
+    }
+
+    RestoreNormalGeometry();
+
+    platform_->restoreNormalGeometryAfterUnmaximize = false;
+    platform_->restoreNormalGeometryScheduled = false;
+
+    UpdateWindowState();
+}
+
+
 bool Photino::Activate() const
 {
     assert(platform_->window);
@@ -201,20 +382,220 @@ bool Photino::Center() const
     return true;
 }
 
+// Wayland does not expose reliable global coordinates for toplevel windows.
+// Configure event x/y may stay at 0,0 and should be treated as best-effort.
+void Photino::HandleConfigureEvent(int x, int y, int width, int height)
+{
+    PHOTINO_LINUX_LOG(
+        "[linux-handle] HandleConfigureEvent: x=%d y=%d width=%d height=%d transitioning=%d exiting=%d pending=%d\n",
+        x,
+        y,
+        width,
+        height,
+        platform_->isFullScreenTransitioning,
+        platform_->isExitingFullScreen,
+        static_cast<int>(platform_->pendingStateAfterFullScreenExit));
+
+    if (!platform_->isFullScreenTransitioning &&
+        !platform_->restoreNormalGeometryAfterUnmaximize &&
+        GetPlatformWindowState() == PhotinoWindowState::Normal)
+    {
+        SaveNormalGeometry();
+    }
+
+    if (!platform_->isFullScreenTransitioning)
+        UpdateWindowState();
+
+    if (platform_->lastGeometry.left != x || platform_->lastGeometry.top != y)
+    {
+        // Configure x/y are best-effort for toplevel windows.
+        // On Wayland they are not reliable global screen coordinates.
+        InvokeMove(x, y);
+        platform_->lastGeometry.left = x;
+        platform_->lastGeometry.top = y;
+    }
+
+    if (platform_->lastGeometry.width != width || platform_->lastGeometry.height != height)
+    {
+        InvokeResize(width, height);
+        platform_->lastGeometry.width = width;
+        platform_->lastGeometry.height = height;
+    }
+}
+
+void Photino::HandleWindowStateEvent()
+{
+    TraceLinuxState("HandleWindowStateEvent:entry", this);
+
+    if (!platform_->window)
+        return;
+
+    GdkWindow* gdkWindow = gtk_widget_get_window(GTK_WIDGET(platform_->window));
+    if (!gdkWindow)
+        return;
+
+    const GdkWindowState state = gdk_window_get_state(gdkWindow);
+
+    PHOTINO_LINUX_LOG(
+        "[linux-handle] HandleWindowStateEvent: transitioning=%d exiting=%d pending=%d logicalMinimized=%d raw=0x%x\n",
+        platform_->isFullScreenTransitioning,
+        platform_->isExitingFullScreen,
+        static_cast<int>(platform_->pendingStateAfterFullScreenExit),
+        platform_->logicalMinimized,
+        static_cast<unsigned int>(state));
+
+    if (!platform_->isFullScreenTransitioning)
+    {
+        if (platform_->logicalMinimized && (state & GDK_WINDOW_STATE_FOCUSED))
+        {
+            PHOTINO_LINUX_LOG("[linux-handle] HandleWindowStateEvent: clearing logicalMinimized on focus\n");
+            platform_->logicalMinimized = false;
+        }
+
+        if (platform_->restoreNormalGeometryAfterUnmaximize &&
+            (state & GDK_WINDOW_STATE_MAXIMIZED) == 0)
+        {
+            ScheduleRestoreNormalGeometry();
+        }
+
+        TraceLinuxState("HandleWindowStateEvent:before-update", this);
+        UpdateWindowState();
+        TraceLinuxState("HandleWindowStateEvent:after-update", this);
+        return;
+    }
+
+    if (!platform_->isExitingFullScreen)
+    {
+        if (state & GDK_WINDOW_STATE_FULLSCREEN)
+        {
+            PHOTINO_LINUX_LOG("[linux-handle] HandleWindowStateEvent: fullscreen entered\n");
+
+            platform_->isFullScreenTransitioning = false;
+
+            TraceLinuxState("HandleWindowStateEvent:before-enter-update", this);
+            UpdateWindowState();
+            TraceLinuxState("HandleWindowStateEvent:after-enter-update", this);
+        }
+
+        return;
+    }
+
+    if (state & GDK_WINDOW_STATE_FULLSCREEN)
+    {
+        PHOTINO_LINUX_LOG("[linux-handle] HandleWindowStateEvent: still fullscreen, waiting\n");
+        return;
+    }
+
+    const auto pendingState = platform_->pendingStateAfterFullScreenExit;
+
+    PHOTINO_LINUX_LOG(
+        "[linux-handle] HandleWindowStateEvent: fullscreen exited, applying pending=%d\n",
+        static_cast<int>(pendingState));
+
+    GtkWindow* window = GTK_WINDOW(platform_->window);
+
+    switch (pendingState)
+    {
+    case PhotinoWindowState::Maximized:
+        if ((state & GDK_WINDOW_STATE_MAXIMIZED) == 0)
+        {
+            PHOTINO_LINUX_LOG("[linux-handle] applying pending Maximized\n");
+            gtk_window_maximize(window);
+            return;
+        }
+
+        PHOTINO_LINUX_LOG("[linux-handle] pending Maximized completed\n");
+        CompleteFullScreenTransition();
+        return;
+
+    case PhotinoWindowState::Minimized:
+        if ((state & GDK_WINDOW_STATE_ICONIFIED) == 0)
+        {
+            PHOTINO_LINUX_LOG("[linux-handle] applying pending Minimized via logical fallback\n");
+            gtk_window_iconify(window);
+            platform_->logicalMinimized = true;
+        }
+
+        PHOTINO_LINUX_LOG("[linux-handle] pending Minimized completed\n");
+        CompleteFullScreenTransition();
+        return;
+
+        case PhotinoWindowState::Normal:
+    default:
+        PHOTINO_LINUX_LOG("[linux-handle] pending Normal completed\n");
+        CompleteFullScreenTransition();
+        return;
+    }
+}
+
+void Photino::CompleteFullScreenTransition()
+{
+    TraceLinuxState("CompleteFullScreenTransition:before", this);
+
+    PHOTINO_LINUX_LOG(
+        "[linux-transition] CompleteFullScreenTransition: pending=%d transitioning=%d exiting=%d logicalMinimized=%d\n",
+        static_cast<int>(platform_->pendingStateAfterFullScreenExit),
+        platform_->isFullScreenTransitioning,
+        platform_->isExitingFullScreen,
+        platform_->logicalMinimized);
+
+    platform_->pendingStateAfterFullScreenExit = PhotinoWindowState::Normal;
+    platform_->isFullScreenTransitioning = false;
+    platform_->isExitingFullScreen = false;
+
+    TraceLinuxState("CompleteFullScreenTransition:before-update", this);
+    UpdateWindowState();
+    TraceLinuxState("CompleteFullScreenTransition:after-update", this);
+}
+
 bool Photino::Maximize()
 {
+    //PHOTINO_LINUX_LOG("[linux-command] Maximize\n");
+    PHOTINO_LINUX_LOG(
+        "[linux-command] Maximize: fullscreen=%d maximized=%d minimized=%d transitioning=%d exiting=%d pending=%d\n",
+        IsFullScreen(),
+        IsMaximized(),
+        IsMinimized(),
+        platform_->isFullScreenTransitioning,
+        platform_->isExitingFullScreen,
+        static_cast<int>(platform_->pendingStateAfterFullScreenExit));
+
     assert(platform_->window);
     if (!platform_->window) return false;
+
+    if (platform_->isFullScreenTransitioning)
+    {
+        if (platform_->isExitingFullScreen)
+            platform_->pendingStateAfterFullScreenExit = PhotinoWindowState::Maximized;
+
+        return true;
+    }
 
     GtkWindow* window = GTK_WINDOW(platform_->window);
 
     if (IsMinimized())
+    {
         gtk_window_deiconify(window);
+        platform_->logicalMinimized = false;
+    }
 
     if (IsFullScreen())
-        gtk_window_unfullscreen(window);
+    {
+        platform_->pendingStateAfterFullScreenExit = PhotinoWindowState::Maximized;
+        platform_->isFullScreenTransitioning = true;
+        platform_->isExitingFullScreen = true;
 
-    gtk_window_maximize(window);
+        gtk_window_unfullscreen(window);
+        return true;
+    }
+
+    if (!IsMaximized())
+    {
+        if (GetPlatformWindowState() == PhotinoWindowState::Normal)
+            SaveNormalGeometry();
+
+        gtk_window_maximize(window);
+    }
 
     UpdateWindowState();
 
@@ -223,15 +604,44 @@ bool Photino::Maximize()
 
 bool Photino::Minimize()
 {
+    //PHOTINO_LINUX_LOG("[linux-command] Minimize\n");
+    PHOTINO_LINUX_LOG(
+        "[linux-command] Minimize: fullscreen=%d maximized=%d minimized=%d transitioning=%d exiting=%d pending=%d\n",
+        IsFullScreen(),
+        IsMaximized(),
+        IsMinimized(),
+        platform_->isFullScreenTransitioning,
+        platform_->isExitingFullScreen,
+        static_cast<int>(platform_->pendingStateAfterFullScreenExit));
+
     assert(platform_->window);
     if (!platform_->window) return false;
+
+    if (platform_->isFullScreenTransitioning)
+    {
+        if (platform_->isExitingFullScreen)
+            platform_->pendingStateAfterFullScreenExit = PhotinoWindowState::Minimized;
+
+        return true;
+    }
 
     GtkWindow* window = GTK_WINDOW(platform_->window);
 
     if (IsFullScreen())
-        gtk_window_unfullscreen(window);
+    {
+        platform_->pendingStateAfterFullScreenExit = PhotinoWindowState::Minimized;
+        platform_->isFullScreenTransitioning = true;
+        platform_->isExitingFullScreen = true;
 
-    gtk_window_iconify(window);
+        gtk_window_unfullscreen(window);
+        return true;
+    }
+
+    if (!IsMinimized())
+    {
+        gtk_window_iconify(window);
+        platform_->logicalMinimized = true;
+    }
 
     UpdateWindowState();
 
@@ -240,16 +650,71 @@ bool Photino::Minimize()
 
 bool Photino::Restore()
 {
+    TraceLinuxState("Restore:entry", this);
+
+    PHOTINO_LINUX_LOG(
+        "[linux-command] Restore: fullscreen=%d maximized=%d minimized=%d transitioning=%d exiting=%d pending=%d logicalMinimized=%d\n",
+        IsFullScreen(),
+        IsMaximized(),
+        IsMinimized(),
+        platform_->isFullScreenTransitioning,
+        platform_->isExitingFullScreen,
+        static_cast<int>(platform_->pendingStateAfterFullScreenExit),
+        platform_->logicalMinimized);
+
     assert(platform_->window);
     if (!platform_->window) return false;
 
+    if (platform_->isFullScreenTransitioning)
+    {
+        if (platform_->isExitingFullScreen)
+            platform_->pendingStateAfterFullScreenExit = PhotinoWindowState::Normal;
+
+        TraceLinuxState("Restore:ignored-during-transition", this);
+        return true;
+    }
+
     GtkWindow* window = GTK_WINDOW(platform_->window);
 
-    gtk_window_unfullscreen(window);
-    gtk_window_unmaximize(window);
-    gtk_window_deiconify(window);
+    platform_->pendingStateAfterFullScreenExit = PhotinoWindowState::Normal;
 
+    if (IsFullScreen())
+    {
+        PHOTINO_LINUX_LOG("[linux-command] Restore: exiting fullscreen\n");
+
+        platform_->isFullScreenTransitioning = true;
+        platform_->isExitingFullScreen = true;
+
+        gtk_window_unfullscreen(window);
+
+        TraceLinuxState("Restore:after-unfullscreen-request", this);
+        return true;
+    }
+
+    if (IsMinimized())
+    {
+        PHOTINO_LINUX_LOG("[linux-command] Restore: deiconify\n");
+
+        gtk_window_deiconify(window);
+        platform_->logicalMinimized = false;
+
+        TraceLinuxState("Restore:after-deiconify-request", this);
+    }
+
+    if (IsMaximized())
+    {
+        PHOTINO_LINUX_LOG("[linux-command] Restore: unmaximize\n");
+
+        platform_->restoreNormalGeometryAfterUnmaximize = platform_->hasNormalGeometry;
+
+        TraceLinuxState("Restore:before-unmaximize", this);
+        gtk_window_unmaximize(window);
+        TraceLinuxState("Restore:after-unmaximize-request", this);
+    }
+
+    TraceLinuxState("Restore:before-update", this);
     UpdateWindowState();
+    TraceLinuxState("Restore:after-update", this);
 
     return true;
 }
@@ -346,6 +811,9 @@ bool Photino::IsMinimized() const noexcept
     if (!platform_->window)
         return false;
 
+    if (platform_->logicalMinimized)
+        return true;
+
     GdkWindow* gdkWindow = gtk_widget_get_window(GTK_WIDGET(platform_->window));
     if (!gdkWindow)
         return false;
@@ -376,11 +844,18 @@ PhotinoWindowState Photino::GetPlatformWindowState() const noexcept
 
     const GdkWindowState state = gdk_window_get_state(gdkWindow);
 
-    if (state & GDK_WINDOW_STATE_ICONIFIED)
+    if (platform_->logicalMinimized || (state & GDK_WINDOW_STATE_ICONIFIED))
         return PhotinoWindowState::Minimized;
 
     if (state & GDK_WINDOW_STATE_FULLSCREEN)
         return PhotinoWindowState::FullScreen;
+
+    if (platform_->isFullScreenTransitioning &&
+        platform_->isExitingFullScreen &&
+        platform_->pendingStateAfterFullScreenExit != PhotinoWindowState::Normal)
+    {
+        return platform_->pendingStateAfterFullScreenExit;
+    }
 
     if (state & GDK_WINDOW_STATE_MAXIMIZED)
         return PhotinoWindowState::Maximized;
@@ -390,24 +865,52 @@ PhotinoWindowState Photino::GetPlatformWindowState() const noexcept
 
 void Photino::SetFullScreen(bool fullScreen)
 {
+    PHOTINO_LINUX_LOG("[linux-command] SetFullScreen(%d)\n", fullScreen);
+
     assert(platform_->window);
     if (!platform_->window) return;
 
     GtkWindow* window = GTK_WINDOW(platform_->window);
 
+    const bool isFullScreen = IsFullScreen();
+
+    if (isFullScreen == fullScreen)
+    {
+        UpdateWindowState();
+        return;
+    }
+
     if (fullScreen)
     {
+        if (GetPlatformWindowState() == PhotinoWindowState::Normal)
+            SaveNormalGeometry();
+
         if (IsMinimized())
+        {
             gtk_window_deiconify(window);
+            platform_->logicalMinimized = false;
+            platform_->pendingStateAfterFullScreenExit = PhotinoWindowState::Normal;
+        }
+        else if (IsMaximized())
+        {
+            platform_->pendingStateAfterFullScreenExit = PhotinoWindowState::Maximized;
+        }
+        else
+        {
+            platform_->pendingStateAfterFullScreenExit = PhotinoWindowState::Normal;
+        }
+
+        platform_->isFullScreenTransitioning = true;
+        platform_->isExitingFullScreen = false;
 
         gtk_window_fullscreen(window);
-    }
-    else
-    {
-        gtk_window_unfullscreen(window);
+        return;
     }
 
-    UpdateWindowState();
+    platform_->isFullScreenTransitioning = true;
+    platform_->isExitingFullScreen = true;
+
+    gtk_window_unfullscreen(window);
 }
 
 void Photino::SetMaximized(bool maximized)
@@ -421,7 +924,18 @@ void Photino::SetMaximized(bool maximized)
         return;
     }
 
-    gtk_window_unmaximize(GTK_WINDOW(platform_->window));
+    if (IsFullScreen() || platform_->isFullScreenTransitioning)
+    {
+        UpdateWindowState();
+        return;
+    }
+
+    if (IsMaximized())
+    {
+        platform_->restoreNormalGeometryAfterUnmaximize = platform_->hasNormalGeometry;
+        gtk_window_unmaximize(GTK_WINDOW(platform_->window));
+    }
+
     UpdateWindowState();
 }
 
@@ -436,7 +950,18 @@ void Photino::SetMinimized(bool minimized)
         return;
     }
 
-    gtk_window_deiconify(GTK_WINDOW(platform_->window));
+    if (IsFullScreen() || platform_->isFullScreenTransitioning)
+    {
+        UpdateWindowState();
+        return;
+    }
+
+    if (IsMinimized())
+    {
+        gtk_window_deiconify(GTK_WINDOW(platform_->window));
+        platform_->logicalMinimized = false;
+    }
+
     UpdateWindowState();
 }
 

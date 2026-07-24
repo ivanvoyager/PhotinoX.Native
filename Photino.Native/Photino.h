@@ -86,11 +86,6 @@ namespace PhotinoX::Native
         PhotinoWindowState GetPlatformWindowState() const noexcept;
         bool ChangeWindowState(PhotinoWindowState state) noexcept;
 
-        // Common platform state predicates
-        bool IsFullScreen() const noexcept;
-        bool IsMinimized() const noexcept;
-        bool IsMaximized() const noexcept;
-
 #ifdef _WIN32
         PlatformString BuildStartupString() const;
         HRESULT CompleteWebViewInitialization();
@@ -119,6 +114,13 @@ namespace PhotinoX::Native
 #elif defined(__linux__)
         void ApplyGeometryHints();
 
+        void ApplyPendingStateAfterFullScreenExit();
+        void CompleteFullScreenTransition();
+
+        void SaveNormalGeometry();
+        void RestoreNormalGeometry();
+        void ScheduleRestoreNormalGeometry();
+
         bool EnsureWebViewAttached();
         void AddCustomSchemeHandlers();
         void SetWebKitSettings();
@@ -141,6 +143,9 @@ namespace PhotinoX::Native
         void CloseWebView();
 #elif defined(__linux__)
         void HandleConfigureEvent(int x, int y, int width, int height);
+        void HandleWindowStateEvent();
+
+        void CompleteScheduledRestoreNormalGeometry();
 #elif defined(__APPLE__)
         void HandleFullScreenExitCompleted() noexcept;
         void HandleMiniaturizeCompleted() noexcept;
@@ -166,6 +171,10 @@ namespace PhotinoX::Native
 #elif defined(__APPLE__)
         void* GetNSWindow() const noexcept;
 #endif
+        // Common platform state predicates
+        bool IsFullScreen() const noexcept;
+        bool IsMinimized() const noexcept;
+        bool IsMaximized() const noexcept;
 
         bool UpdateWindowState() noexcept;
 
