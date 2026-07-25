@@ -200,9 +200,6 @@
     <ClInclude Include="Photino.Geometry.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Photino.Mac.Internal.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Photino.Linux.Internal.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -219,6 +216,15 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Photino.Enums.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Photino.Linux.Debug.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Photino.Mac.Debug.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Photino.Windows.Debug.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

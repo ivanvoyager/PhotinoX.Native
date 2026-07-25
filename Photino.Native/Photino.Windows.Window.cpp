@@ -3,6 +3,7 @@
 #include "Photino.Callbacks.h"
 #include "Photino.Strings.h"
 #include "Photino.Windows.State.h"
+#include "Photino.Windows.Debug.h"
 
 #include "Dependencies/wintoastlib.h"
 #include <WinUser.h>
@@ -18,16 +19,6 @@ using namespace PhotinoX::Native;
 
 namespace 
 {
-    struct WindowStateUpdateGuard
-    {
-        Photino& window;
-
-        ~WindowStateUpdateGuard() noexcept
-        {
-            window.UpdateWindowState();
-        }
-    };
-
     // https://learn.microsoft.com/en-us/windows/win32/api/winuser/nc-winuser-monitorenumproc
     // To continue the enumeration, return TRUE.
     // To stop the enumeration, return FALSE.
@@ -280,44 +271,32 @@ bool Photino::Center() const
 
 bool Photino::Maximize()
 {
+    PHOTINO_WINDOWS_LOG("[windows-command] Maximize\n");
+
     assert(platform_->hWnd);
     if (!platform_->hWnd) return false;
 
-    if (!TryExitFullScreen(true))
-        return false;
-
-    ShowWindow(platform_->hWnd, SW_MAXIMIZE);
-    UpdateWindowState();
-
-    return true;
+    return ShowWindowAfterFullScreenExit(SW_MAXIMIZE);
 }
 
 bool Photino::Minimize()
 {
+    PHOTINO_WINDOWS_LOG("[windows-command] Minimize\n");
+
     assert(platform_->hWnd);
     if (!platform_->hWnd) return false;
 
-    if (!TryExitFullScreen(true))
-        return false;
-
-    ShowWindow(platform_->hWnd, SW_MINIMIZE);
-    UpdateWindowState();
-
-    return true;
+    return ShowWindowAfterFullScreenExit(SW_MINIMIZE);
 }
 
 bool Photino::Restore()
 {
+    PHOTINO_WINDOWS_LOG("[windows-command] Restore\n");
+
     assert(platform_->hWnd);
     if (!platform_->hWnd) return false;
 
-    if (!TryExitFullScreen(false))
-        return false;
-
-    ShowWindow(platform_->hWnd, SW_RESTORE);
-    UpdateWindowState();
-
-    return true;
+    return ShowWindowAfterFullScreenExit(SW_RESTORE);
 }
 
 bool Photino::Show() const
@@ -524,16 +503,42 @@ bool Photino::ExitFullScreen()
     return result != FALSE;
 }
 
-bool Photino::TryExitFullScreen(const bool suppressRestoredCallback)
+bool Photino::ShowWindowAfterFullScreenExit(const int showCommand)
 {
-    if (GetPlatformWindowState() != PhotinoWindowState::FullScreen && !platform_->hasFullScreenRestoreState)
+    PHOTINO_WINDOWS_LOG("[windows-command] ShowWindowAfterFullScreenExit(%d)\n", showCommand);
+
+    const bool wasFullScreen =
+        GetPlatformWindowState() == PhotinoWindowState::FullScreen ||
+        platform_->hasFullScreenRestoreState;
+
+    if (!wasFullScreen)
+    {
+        ShowWindow(platform_->hWnd, showCommand);
+        UpdateWindowState();
         return true;
+    }
 
-    suppressRestoredCallback_ = suppressRestoredCallback;
+    const bool previousSuppressWindowStateCallbacks = suppressWindowStateCallbacks_;
+
+    suppressWindowStateCallbacks_ = true;
+
     SetFullScreen(false);
-    suppressRestoredCallback_ = false;
 
-    return GetPlatformWindowState() != PhotinoWindowState::FullScreen && !platform_->hasFullScreenRestoreState;
+    if (GetPlatformWindowState() == PhotinoWindowState::FullScreen ||
+        platform_->hasFullScreenRestoreState)
+    {
+        suppressWindowStateCallbacks_ = previousSuppressWindowStateCallbacks;
+        return false;
+    }
+
+    ShowWindow(platform_->hWnd, showCommand);
+
+    suppressWindowStateCallbacks_ = previousSuppressWindowStateCallbacks;
+
+    options_.windowState = PhotinoWindowState::FullScreen;
+    UpdateWindowState();
+
+    return true;
 }
 
 bool Photino::IsFullScreen() const noexcept
@@ -598,40 +603,61 @@ bool Photino::SkipFullScreenChange(const bool fullScreen) const noexcept
 
 void Photino::SetFullScreen(const bool fullScreen)
 {
+    PHOTINO_WINDOWS_LOG("[windows-command] SetFullScreen(%d)\n", fullScreen);
+
     assert(platform_->hWnd);
     if (!platform_->hWnd) return;
-
-    WindowStateUpdateGuard updateGuard{*this};
 
     if (SkipFullScreenChange(fullScreen))
         return;
 
+    const auto previousWindowState = options_.windowState;
+    const bool previousSuppressWindowStateCallbacks = suppressWindowStateCallbacks_;
+
+    suppressWindowStateCallbacks_ = true;
+
+    bool success = false;
+
     if (fullScreen)
     {
-        if (!SaveFullScreenRestoreState())
-            return;
-
-        if (!EnterFullScreen())
+        if (SaveFullScreenRestoreState() && EnterFullScreen())
+        {
+            success = true;
+        }
+        else
         {
             const bool restored = RestoreFullScreenRestoreState();
             const bool exited = ExitFullScreen();
 
             if (restored && exited)
                 ResetFullScreenRestoreState();
-
-            return;
         }
     }
     else
     {
-        if (!RestoreFullScreenRestoreState())
-            return;
-
-        if (!ExitFullScreen())
-            return;
-
-        ResetFullScreenRestoreState();
+        if (RestoreFullScreenRestoreState() && ExitFullScreen())
+        {
+            ResetFullScreenRestoreState();
+            success = true;
+        }
     }
+
+    if (!success)
+    {
+        suppressWindowStateCallbacks_ = previousSuppressWindowStateCallbacks;
+        return;
+    }
+
+    if (previousSuppressWindowStateCallbacks)
+    {
+        UpdateWindowState();
+        suppressWindowStateCallbacks_ = previousSuppressWindowStateCallbacks;
+        return;
+    }
+
+    options_.windowState = previousWindowState;
+    suppressWindowStateCallbacks_ = false;
+    UpdateWindowState();
 }
 
 void Photino::SetMaximized(const bool maximized)
@@ -645,10 +671,15 @@ void Photino::SetMaximized(const bool maximized)
         return;
     }
 
-    if (!TryExitFullScreen(false))
+    if (IsFullScreen())
+    {
+        UpdateWindowState();
         return;
+    }
 
-    ShowWindow(platform_->hWnd, SW_RESTORE);
+    if (IsMaximized())
+        ShowWindow(platform_->hWnd, SW_RESTORE);
+
     UpdateWindowState();
 }
 
@@ -663,10 +694,15 @@ void Photino::SetMinimized(const bool minimized)
         return;
     }
 
-    if (!TryExitFullScreen(false))
+    if (IsFullScreen())
+    {
+        UpdateWindowState();
         return;
+    }
 
-    ShowWindow(platform_->hWnd, SW_RESTORE);
+    if (IsMinimized())
+        ShowWindow(platform_->hWnd, SW_RESTORE);
+
     UpdateWindowState();
 }
 

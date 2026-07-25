@@ -109,7 +109,7 @@ namespace PhotinoX::Native
         bool SkipFullScreenChange(bool fullScreen) const noexcept;
         bool EnterFullScreen();
         bool ExitFullScreen();
-        bool TryExitFullScreen(bool suppressRestoredCallback);
+        bool ShowWindowAfterFullScreenExit(int showCommand);
 
 #elif defined(__linux__)
         void ApplyGeometryHints();

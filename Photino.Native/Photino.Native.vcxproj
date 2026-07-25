@@ -333,6 +333,7 @@
     <ClInclude Include="Photino.Monitor.h" />
     <ClInclude Include="Photino.Options.h" />
     <ClInclude Include="Photino.Strings.h" />
+    <ClInclude Include="Photino.Windows.Debug.h" />
     <ClInclude Include="Photino.Windows.State.h" />
     <ClInclude Include="Photino.Windows.ToastHandler.h" />
     <ClInclude Include="Photino.Windows.DarkMode.h" />
