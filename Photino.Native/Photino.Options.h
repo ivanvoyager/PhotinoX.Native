@@ -40,6 +40,8 @@ struct PhotinoOptions
     int zoom = 100;
     bool chromeless = false;
 
-   PhotinoWindowState windowState = PhotinoWindowState::Normal;
+    bool useNativeWindowOwner = false;
+
+    PhotinoWindowState windowState = PhotinoWindowState::Normal;
 };
 } // namespace PhotinoX::Native

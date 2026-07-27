@@ -72,7 +72,9 @@ namespace PhotinoX::Native
         bool IgnoreCertificateErrorsEnabled;                    // #51
         bool NotificationsEnabled;                              // #52
 
-        int Size;                                               // #53
+        bool UseNativeWindowOwner;                              // #53
+
+        int Size;                                               // #54
     };
 
     static_assert(std::is_standard_layout_v<PhotinoInitParams>,

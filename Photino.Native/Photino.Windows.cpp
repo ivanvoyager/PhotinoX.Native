@@ -138,7 +138,7 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Win
     if (initParams->Width > initParams->MaxWidth && initParams->MaxWidth > 0)       initParams->Width = initParams->MaxWidth;
     if (initParams->Width < initParams->MinWidth && initParams->MinWidth > 0)       initParams->Width = initParams->MinWidth;
 
-    HWND parentHwnd = parent_ ? parent_->GetHwnd() : nullptr;
+    HWND ownerHwnd = options_.useNativeWindowOwner && parent_ ? parent_->GetHwnd() : nullptr;
 
     //Create the window
     platform_->hWnd = CreateWindowExW(
@@ -150,10 +150,10 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Win
         // Size and position
         initParams->Left, initParams->Top, initParams->Width, initParams->Height,
 
-        parentHwnd, // Parent window handle
-        nullptr,    //Menu
-        g_hInstance,//Instance handle
-        this        //Additional application data
+        ownerHwnd,  // Parent window handle
+        nullptr,    // Menu
+        g_hInstance,// Instance handle
+        this        // Additional application data
     );
 
     if (!platform_->hWnd)

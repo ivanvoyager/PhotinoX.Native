@@ -52,6 +52,7 @@ void Photino::InitializeOptions(const PhotinoInitParams* initParams)
 #endif
     options_.ignoreCertificateErrorsEnabled = initParams->IgnoreCertificateErrorsEnabled;
     options_.notificationsEnabled = initParams->NotificationsEnabled;
+    options_.useNativeWindowOwner = initParams->UseNativeWindowOwner;
 }
 
 void Photino::InitializeCallbacks(const PhotinoInitParams* initParams)
