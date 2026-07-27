@@ -208,7 +208,7 @@ namespace PhotinoX::Native
         void BeginWindowResize(PhotinoWindowEdge edge) const;
 
         unsigned int GetScreenDpi() const;
-        void GetAllMonitors(GetAllMonitorsCallback callback) const noexcept;
+        bool GetAllMonitors(GetAllMonitorsCallback callback, void* state) const noexcept;
 
         // Window state
         void GetWindowState(PhotinoWindowState* state) const;

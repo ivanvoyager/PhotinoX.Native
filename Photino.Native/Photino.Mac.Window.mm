@@ -510,10 +510,10 @@ unsigned int Photino::GetScreenDpi() const
     return static_cast<unsigned int>(roundf(72.0f * [screen backingScaleFactor]));
 }
 
-void Photino::GetAllMonitors(GetAllMonitorsCallback callback) const noexcept
+bool Photino::GetAllMonitors(GetAllMonitorsCallback callback, void* state) const noexcept
 {
     assert(callback);
-    if (!callback) return;
+    if (!callback) return false;
 
     for (NSScreen* screen in [NSScreen screens])
     {
@@ -533,9 +533,11 @@ void Photino::GetAllMonitors(GetAllMonitorsCallback callback) const noexcept
 
         props.scale = [screen backingScaleFactor];
 
-        if (!callback(&props))
+        if (!callback(&props, state))
             break;
     }
+
+    return true;
 }
 
 std::vector<Monitor> Photino::GetMonitors() const

@@ -19,13 +19,21 @@ using namespace PhotinoX::Native;
 
 namespace 
 {
+    struct MonitorEnumState
+    {
+        GetAllMonitorsCallback callback;
+        void* state;
+        bool stopped = false;
+    };
+
     // https://learn.microsoft.com/en-us/windows/win32/api/winuser/nc-winuser-monitorenumproc
     // To continue the enumeration, return TRUE.
     // To stop the enumeration, return FALSE.
     BOOL MonitorEnum(const HMONITOR hMonitor, HDC hdcMonitor, LPRECT lprcMonitor, const LPARAM dwData)
     {
-        auto callback = reinterpret_cast<GetAllMonitorsCallback>(dwData);
-        if (!callback) return FALSE;
+        auto enumState = reinterpret_cast<MonitorEnumState*>(dwData);
+        if (!enumState || !enumState->callback)
+            return FALSE;
 
         MONITORINFO info{};
         info.cbSize = sizeof(info);
@@ -46,7 +54,13 @@ namespace
         props.work.height = info.rcWork.bottom - info.rcWork.top;
         props.scale = static_cast<double>(dpiY) / 96.0;
 
-        return callback(&props) ? TRUE : FALSE;
+        if (!enumState->callback(&props, enumState->state))
+        {
+            enumState->stopped = true;
+            return FALSE;
+        }
+
+        return TRUE;
     }
 }
 
@@ -381,13 +395,15 @@ unsigned int Photino::GetScreenDpi() const
     return dpi ? dpi : 96;
 }
 
-void Photino::GetAllMonitors(GetAllMonitorsCallback callback) const noexcept
+bool Photino::GetAllMonitors(GetAllMonitorsCallback callback, void* state) const noexcept
 {
     assert(callback);
-    if (!callback) return;
+    if (!callback) return false;
 
-    BOOL result = EnumDisplayMonitors(nullptr, nullptr, MonitorEnum, reinterpret_cast<LPARAM>(callback));
-    assert(result);
+    MonitorEnumState enumState{callback, state};
+
+    BOOL result = EnumDisplayMonitors(nullptr, nullptr, MonitorEnum, reinterpret_cast<LPARAM>(&enumState));
+    return result != FALSE || enumState.stopped;
 }
 
 bool Photino::SaveFullScreenRestoreState()

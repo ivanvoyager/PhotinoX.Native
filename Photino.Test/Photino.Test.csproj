@@ -60,6 +60,7 @@
     <Compile Include="$(PhotinoNetSourceDir)\PhotinoWindow.Fluent.cs" Link="PhotinoWindow.Fluent.cs" />
     <Compile Include="$(PhotinoNetSourceDir)\PhotinoWindow.Fluent.Handlers.cs" Link="PhotinoWindow.Fluent.Handlers.cs" />
     <Compile Include="$(PhotinoNetSourceDir)\PhotinoWindow.Helpers.cs" Link="PhotinoWindow.Helpers.cs" />
+    <Compile Include="$(PhotinoNetSourceDir)\PhotinoWindow.States.cs" Link="PhotinoWindow.States.cs" />
     <Compile Include="$(PhotinoNetSourceDir)\PhotinoWindow.cs" Link="PhotinoWindow.cs" />
     <Compile Include="$(PhotinoNetSourceDir)\PhotinoWindowCollection.cs" Link="PhotinoWindowCollection.cs" />
     <Compile Include="$(PhotinoNetSourceDir)\PhotinoWindowEnums.cs" Link="PhotinoWindowEnums.cs" />

@@ -770,19 +770,19 @@ unsigned int Photino::GetScreenDpi() const
     return dpi < 0 ? 96 : static_cast<unsigned int>(dpi);
 }
 
-void Photino::GetAllMonitors(GetAllMonitorsCallback callback) const noexcept
+bool Photino::GetAllMonitors(GetAllMonitorsCallback callback, void* state) const noexcept
 {
     assert(callback);
-    if (!callback) return;
+    if (!callback) return false;
 
     assert(platform_->window);
-    if (!platform_->window) return;
+    if (!platform_->window) return false;
 
     GdkScreen* screen = gtk_window_get_screen(GTK_WINDOW(platform_->window));
-    if (!screen) return;
+    if (!screen) return false;
 
     GdkDisplay* display = gdk_screen_get_display(screen);
-    if (!display) return;
+    if (!display) return false;
 
     int n = gdk_display_get_n_monitors(display);
     for (int i = 0; i < n; i++)
@@ -806,9 +806,11 @@ void Photino::GetAllMonitors(GetAllMonitorsCallback callback) const noexcept
         props.work.height = workArea.height;
         props.scale = gdk_monitor_get_scale_factor(monitor);
 
-        if (!callback(&props))
+        if (!callback(&props, state))
             break;
     }
+
+    return true;
 }
 
 bool Photino::IsFullScreen() const noexcept

@@ -13,7 +13,7 @@ namespace PhotinoX::Native
     using IntIntCallback = void (*)(int, int);  // Resized, Moved
     using StringCallback = void (*)(Utf8String);
     using ResourceCallback = void* (*)(Utf8String, int*, Utf8String*);
-    using MonitorCallback = int (*)(const Monitor*);
+    using MonitorCallback = int (*)(const Monitor*, void* state);
 
     using InvokeStateCallback = VoidStateCallback;
 

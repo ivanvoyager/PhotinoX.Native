@@ -209,11 +209,11 @@ extern "C"
         return instance->GetScreenDpi();
     }
 
-    PHOTINO_EXPORT void Photino_GetAllMonitors(const Photino* instance, const GetAllMonitorsCallback callback)
+    PHOTINO_EXPORT bool Photino_GetAllMonitors(const Photino* instance, const GetAllMonitorsCallback callback, void* state)
     {
         assert(instance);
-        if (!instance || !callback) return;
-        instance->GetAllMonitors(callback);
+        if (!instance || !callback) return false;
+        return instance->GetAllMonitors(callback, state);
     }
 
 
