@@ -9,7 +9,6 @@
 
 #include <algorithm>
 #include <cassert>
-#include <map>
 #include <memory>
 
 #include <Windows.h>
@@ -24,7 +23,11 @@ namespace
     constexpr LPCWSTR CLASS_NAME = L"PhotinoX";
 
     HINSTANCE g_hInstance = nullptr;
-    std::map<HWND, Photino*> g_hwndToPhotino;
+
+    Photino* GetPhotino(const HWND hwnd) noexcept
+    {
+        return reinterpret_cast<Photino*>(GetWindowLongPtrW(hwnd, GWLP_USERDATA));
+    }
 }
 
 extern PlatformString g_webview2RuntimePath;
@@ -159,8 +162,6 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Win
     if (!platform_->hWnd)
         std::abort();
 
-    g_hwndToPhotino[platform_->hWnd] = this;
-
     SetIconFile(options_.iconFileName);
 
     if (initParams->CenterOnInitialize)
@@ -235,6 +236,21 @@ LRESULT CALLBACK WindowProc(const HWND hwnd, const UINT uMsg, const WPARAM wPara
 {
     switch (uMsg)
     {
+
+    case WM_NCCREATE:
+    {
+        const auto createStruct = reinterpret_cast<CREATESTRUCTW*>(lParam);
+        if (!createStruct)
+            return FALSE;
+
+        auto photino = static_cast<Photino*>(createStruct->lpCreateParams);
+        if (!photino)
+            return FALSE;
+
+        SetWindowLongPtrW(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(photino));
+        return TRUE;
+    }
+
     case WM_CREATE: {
         EnableDarkMode(hwnd, true);
         if (IsDarkModeEnabled())
@@ -306,20 +322,18 @@ LRESULT CALLBACK WindowProc(const HWND hwnd, const UINT uMsg, const WPARAM wPara
 
     case WM_ACTIVATE:
     {
-        if (const auto it = g_hwndToPhotino.find(hwnd); it != g_hwndToPhotino.end())
-        {
-            const auto photino = it->second;
-            if (!photino) return 0;
+        auto photino = GetPhotino(hwnd);
+        if (!photino)
+            return 0;
 
-            if (LOWORD(wParam) == WA_INACTIVE)
-            {
-                photino->InvokeFocusOut();
-            }
-            else
-            {
-                photino->FocusWebView2();
-                photino->InvokeFocusIn();
-            }
+        if (LOWORD(wParam) == WA_INACTIVE)
+        {
+            photino->InvokeFocusOut();
+        }
+        else
+        {
+            photino->FocusWebView2();
+            photino->InvokeFocusIn();
         }
 
         return 0;
@@ -327,33 +341,27 @@ LRESULT CALLBACK WindowProc(const HWND hwnd, const UINT uMsg, const WPARAM wPara
 
     case WM_CLOSE:
     {
-        if (const auto it = g_hwndToPhotino.find(hwnd); it != g_hwndToPhotino.end())
+        auto photino = GetPhotino(hwnd);
+        if (!photino)
+            break;
+
+        if (!PhotinoApplication::Instance().IsShuttingDown())
         {
-            const auto photino = it->second;
-
-            if (!PhotinoApplication::Instance().IsShuttingDown())
-            {
-                if (photino && photino->InvokeClosing())
-                    return 0;
-            }
-
-            DestroyWindow(hwnd);
-            return 0;
+            if (photino && photino->InvokeClosing())
+                return 0;
         }
 
-        break;
+        DestroyWindow(hwnd);
+        return 0;
     }
 
     case WM_DESTROY:
     {
-        if (const auto it = g_hwndToPhotino.find(hwnd); it != g_hwndToPhotino.end())
+        auto photino = GetPhotino(hwnd);
+        if (photino)
         {
-            auto photino = it->second;
-            if (photino)
-            {
-                photino->CloseWebView();
-                photino->InvokeClose();
-            }
+            photino->CloseWebView();
+            photino->InvokeClose();
         }
 
         return 0;
@@ -361,85 +369,61 @@ LRESULT CALLBACK WindowProc(const HWND hwnd, const UINT uMsg, const WPARAM wPara
 
     case WM_NCDESTROY:
     {
-        if (const auto it = g_hwndToPhotino.find(hwnd); it != g_hwndToPhotino.end())
-        {
-            auto photino = it->second;
-            g_hwndToPhotino.erase(it);
+        auto photino = GetPhotino(hwnd);
 
-            delete photino;
-        }
+        SetWindowLongPtrW(hwnd, GWLP_USERDATA, 0);
 
+        delete photino;
         return 0;
     }
 
     case WM_GETMINMAXINFO:
     {
-        if (const auto it = g_hwndToPhotino.find(hwnd); it != g_hwndToPhotino.end())
-        {
-            const auto photino = it->second;
-            if (photino)
-                photino->ApplySizeLimits(*reinterpret_cast<MINMAXINFO*>(lParam));
-        }
+        auto photino = GetPhotino(hwnd);
+        if (photino)
+            photino->ApplySizeLimits(*reinterpret_cast<MINMAXINFO*>(lParam));
+
         return 0;
     }
 
     case WM_WINDOWPOSCHANGED:
     {
-        if (const auto it = g_hwndToPhotino.find(hwnd); it != g_hwndToPhotino.end())
-        {
-            const auto photino = it->second;
-            if (photino)
-                photino->UpdateWindowState();
-        }
+        auto photino = GetPhotino(hwnd);
+        if (photino)
+            photino->UpdateWindowState();
 
         break;
     }
 
     case WM_SIZE:
     {
-        if (const auto it = g_hwndToPhotino.find(hwnd); it != g_hwndToPhotino.end())
-        {
-            const auto photino = it->second;
-            if (!photino) return 0;
+        auto photino = GetPhotino(hwnd);
+        if (!photino) return 0;
 
-            photino->UpdateWindowState();
+        photino->UpdateWindowState();
 
-            photino->RefitContent();
+        photino->RefitContent();
 
-            int width = 0, height = 0;
-            photino->GetSize(&width, &height);
-            photino->InvokeResize(width, height);
-        }
+        int width = 0, height = 0;
+        photino->GetSize(&width, &height);
+        photino->InvokeResize(width, height);
+
         return 0;
     }
 
     case WM_MOVE:
     {
-        if (const auto it = g_hwndToPhotino.find(hwnd); it != g_hwndToPhotino.end())
-        {
-            const auto photino = it->second;
-            if (!photino) return 0;
+        auto photino = GetPhotino(hwnd);
+        if (!photino) return 0;
 
-            // photino->NotifyWebView2WindowMove();
-            // photino->RefitContent();
+        // photino->NotifyWebView2WindowMove();
+        // photino->RefitContent();
 
-            int x = 0, y = 0;
-            photino->GetPosition(&x, &y);
-            photino->InvokeMove(x, y);
-        }
+        int x = 0, y = 0;
+        photino->GetPosition(&x, &y);
+        photino->InvokeMove(x, y);
+
         return 0;
-    }
-
-    case WM_MOVING:
-    {
-        if (const auto it = g_hwndToPhotino.find(hwnd); it != g_hwndToPhotino.end())
-        {
-            const auto photino = it->second;
-
-            // Photino->NotifyWebView2WindowMove();
-            // Photino->RefitContent();
-        }
-        break;
     }
 
     }
