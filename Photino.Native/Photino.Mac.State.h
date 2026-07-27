@@ -27,6 +27,7 @@ namespace PhotinoX::Native
 
         bool isFullScreenTransitioning = false;
         PhotinoWindowState pendingStateAfterFullScreenExit = PhotinoWindowState::Normal;
+        PhotinoWindowState stateBeforeMinimize = PhotinoWindowState::Normal;
     };
 }
 

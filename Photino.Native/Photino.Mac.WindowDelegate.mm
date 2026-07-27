@@ -63,6 +63,14 @@ using namespace PhotinoX::Native;
     photino->InvokeFocusOut();
 }
 
+- (void)windowWillMiniaturize:(NSNotification*)notification {
+    if (!photino) return;
+
+    PHOTINO_MAC_LOG("[mac-event] windowWillMiniaturize\n");
+
+    photino->HandleMiniaturizeStarted();
+}
+
 - (void)windowDidMiniaturize:(NSNotification*)notification {
     if (!photino) return;
 
@@ -75,7 +83,8 @@ using namespace PhotinoX::Native;
     if (!photino) return;
     PHOTINO_MAC_LOG("[mac-event] windowDidDeminiaturize\n");
 
-    photino->UpdateWindowState();
+    if (!photino->IsFullScreenTransitioning())
+        photino->UpdateWindowState();
 }
 
 - (void)windowDidEnterFullScreen:(NSNotification*)notification {

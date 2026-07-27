@@ -148,6 +148,7 @@ namespace PhotinoX::Native
         void CompleteScheduledRestoreNormalGeometry();
 #elif defined(__APPLE__)
         void HandleFullScreenExitCompleted() noexcept;
+        void HandleMiniaturizeStarted() noexcept;
         void HandleMiniaturizeCompleted() noexcept;
         bool HasPendingStateAfterFullScreenExit() const noexcept;
         bool IsFullScreenTransitioning() const noexcept;

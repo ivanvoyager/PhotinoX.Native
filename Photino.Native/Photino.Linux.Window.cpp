@@ -520,8 +520,15 @@ void Photino::HandleWindowStateEvent()
         CompleteFullScreenTransition();
         return;
 
-        case PhotinoWindowState::Normal:
+    case PhotinoWindowState::Normal:
     default:
+        if (state & GDK_WINDOW_STATE_MAXIMIZED)
+        {
+            PHOTINO_LINUX_LOG("[linux-handle] applying pending Normal by unmaximizing\n");
+            gtk_window_unmaximize(window);
+            return;
+        }
+
         PHOTINO_LINUX_LOG("[linux-handle] pending Normal completed\n");
         CompleteFullScreenTransition();
         return;
@@ -550,7 +557,6 @@ void Photino::CompleteFullScreenTransition()
 
 bool Photino::Maximize()
 {
-    //PHOTINO_LINUX_LOG("[linux-command] Maximize\n");
     PHOTINO_LINUX_LOG(
         "[linux-command] Maximize: fullscreen=%d maximized=%d minimized=%d transitioning=%d exiting=%d pending=%d\n",
         IsFullScreen(),
@@ -604,7 +610,6 @@ bool Photino::Maximize()
 
 bool Photino::Minimize()
 {
-    //PHOTINO_LINUX_LOG("[linux-command] Minimize\n");
     PHOTINO_LINUX_LOG(
         "[linux-command] Minimize: fullscreen=%d maximized=%d minimized=%d transitioning=%d exiting=%d pending=%d\n",
         IsFullScreen(),
@@ -650,8 +655,6 @@ bool Photino::Minimize()
 
 bool Photino::Restore()
 {
-    TraceLinuxState("Restore:entry", this);
-
     PHOTINO_LINUX_LOG(
         "[linux-command] Restore: fullscreen=%d maximized=%d minimized=%d transitioning=%d exiting=%d pending=%d logicalMinimized=%d\n",
         IsFullScreen(),
@@ -667,6 +670,8 @@ bool Photino::Restore()
 
     if (platform_->isFullScreenTransitioning)
     {
+        // If fullscreen is already exiting, explicit Restore should target Normal.
+        // But only during an already-running exit transition.
         if (platform_->isExitingFullScreen)
             platform_->pendingStateAfterFullScreenExit = PhotinoWindowState::Normal;
 
@@ -676,8 +681,6 @@ bool Photino::Restore()
 
     GtkWindow* window = GTK_WINDOW(platform_->window);
 
-    platform_->pendingStateAfterFullScreenExit = PhotinoWindowState::Normal;
-
     if (IsFullScreen())
     {
         PHOTINO_LINUX_LOG("[linux-command] Restore: exiting fullscreen\n");
@@ -685,23 +688,32 @@ bool Photino::Restore()
         platform_->isFullScreenTransitioning = true;
         platform_->isExitingFullScreen = true;
 
+        // Do not overwrite pendingStateAfterFullScreenExit here.
+        // It contains the state that should be restored after fullscreen exit.
+
         gtk_window_unfullscreen(window);
 
         TraceLinuxState("Restore:after-unfullscreen-request", this);
         return true;
     }
 
-    if (IsMinimized())
+    const bool wasMinimized = IsMinimized();
+
+    if (wasMinimized)
     {
         PHOTINO_LINUX_LOG("[linux-command] Restore: deiconify\n");
 
         gtk_window_deiconify(window);
         platform_->logicalMinimized = false;
 
+        gtk_window_present(window);
+
         TraceLinuxState("Restore:after-deiconify-request", this);
     }
 
-    if (IsMaximized())
+    bool requestedUnmaximize = false;
+
+    if (!wasMinimized && IsMaximized())
     {
         PHOTINO_LINUX_LOG("[linux-command] Restore: unmaximize\n");
 
@@ -710,7 +722,12 @@ bool Photino::Restore()
         TraceLinuxState("Restore:before-unmaximize", this);
         gtk_window_unmaximize(window);
         TraceLinuxState("Restore:after-unmaximize-request", this);
+
+        requestedUnmaximize = true;
     }
+
+    if (requestedUnmaximize)
+        return true;
 
     TraceLinuxState("Restore:before-update", this);
     UpdateWindowState();
@@ -885,13 +902,23 @@ void Photino::SetFullScreen(bool fullScreen)
         if (GetPlatformWindowState() == PhotinoWindowState::Normal)
             SaveNormalGeometry();
 
-        if (IsMinimized())
+        // Minimized is a logical state here: logicalMinimized may hide a raw
+        // GDK_WINDOW_STATE_MAXIMIZED state underneath. Preserve that raw maximized
+        // state so Maximized -> Minimized -> FullScreen -> Restore returns Maximized.
+        const bool wasMinimized = IsMinimized();
+        const bool wasMaximized = IsMaximized();
+
+        if (wasMinimized)
         {
             gtk_window_deiconify(window);
             platform_->logicalMinimized = false;
-            platform_->pendingStateAfterFullScreenExit = PhotinoWindowState::Normal;
+            platform_->pendingStateAfterFullScreenExit = wasMaximized 
+                ? PhotinoWindowState::Maximized 
+                : PhotinoWindowState::Normal;
+
+            gtk_window_present(window);
         }
-        else if (IsMaximized())
+        else if (wasMaximized)
         {
             platform_->pendingStateAfterFullScreenExit = PhotinoWindowState::Maximized;
         }
@@ -904,6 +931,10 @@ void Photino::SetFullScreen(bool fullScreen)
         platform_->isExitingFullScreen = false;
 
         gtk_window_fullscreen(window);
+
+        if (wasMinimized)
+            gtk_window_present(window);
+
         return;
     }
 
@@ -958,8 +989,12 @@ void Photino::SetMinimized(bool minimized)
 
     if (IsMinimized())
     {
-        gtk_window_deiconify(GTK_WINDOW(platform_->window));
+        GtkWindow* window = GTK_WINDOW(platform_->window);
+
+        gtk_window_deiconify(window);
         platform_->logicalMinimized = false;
+
+        gtk_window_present(window);
     }
 
     UpdateWindowState();

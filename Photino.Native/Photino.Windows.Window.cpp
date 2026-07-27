@@ -296,7 +296,19 @@ bool Photino::Restore()
     assert(platform_->hWnd);
     if (!platform_->hWnd) return false;
 
-    return ShowWindowAfterFullScreenExit(SW_RESTORE);
+    if (GetPlatformWindowState() == PhotinoWindowState::FullScreen ||
+        platform_->hasFullScreenRestoreState)
+    {
+        SetFullScreen(false);
+
+        return GetPlatformWindowState() != PhotinoWindowState::FullScreen &&
+               !platform_->hasFullScreenRestoreState;
+    }
+
+    ShowWindow(platform_->hWnd, SW_RESTORE);
+    UpdateWindowState();
+
+    return true;
 }
 
 bool Photino::Show() const
@@ -620,6 +632,9 @@ void Photino::SetFullScreen(const bool fullScreen)
 
     if (fullScreen)
     {
+        if (IsMinimized())
+            ShowWindow(platform_->hWnd, SW_RESTORE);
+
         if (SaveFullScreenRestoreState() && EnterFullScreen())
         {
             success = true;
