@@ -562,6 +562,7 @@ HRESULT Photino::HandlePermissionRequested(ICoreWebView2* webview, ICoreWebView2
 
 HRESULT Photino::HandleWebViewControllerCreated(HRESULT result, ICoreWebView2Controller* controller)
 {
+    assert(SUCCEEDED(result));
     if (FAILED(result)) return result;
     if (!controller) return E_POINTER;
 

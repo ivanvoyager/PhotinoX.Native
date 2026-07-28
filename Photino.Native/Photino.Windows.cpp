@@ -248,7 +248,8 @@ LRESULT CALLBACK WindowProc(const HWND hwnd, const UINT uMsg, const WPARAM wPara
             return FALSE;
 
         SetWindowLongPtrW(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(photino));
-        return TRUE;
+
+        break;
     }
 
     case WM_CREATE: {
