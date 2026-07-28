@@ -216,6 +216,14 @@ extern "C"
         return instance->GetAllMonitors(callback, state);
     }
 
+    PHOTINO_EXPORT bool Photino_GetWindowMonitor(const Photino* instance, Monitor* monitor)
+    {
+        assert(instance);
+        assert(monitor);
+        if (!instance || !monitor) return false;
+
+        return instance->GetWindowMonitor(*monitor);
+    }
 
     PHOTINO_EXPORT void Photino_GetFullScreen(const Photino* instance, bool* fullScreen)
     {

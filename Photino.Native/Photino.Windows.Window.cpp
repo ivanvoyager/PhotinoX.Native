@@ -19,6 +19,38 @@ using namespace PhotinoX::Native;
 
 namespace 
 {
+    bool TryGetMonitorInfo(const HMONITOR hMonitor, Monitor& monitor) noexcept
+    {
+        if (!hMonitor)
+            return false;
+
+        MONITORINFO info{};
+        info.cbSize = sizeof(info);
+
+        if (!GetMonitorInfoW(hMonitor, &info))
+            return false;
+
+        UINT dpiX = 96;
+        UINT dpiY = 96;
+
+        if (FAILED(GetDpiForMonitor(hMonitor, MDT_EFFECTIVE_DPI, &dpiX, &dpiY)))
+            dpiX = dpiY = 96;
+
+        monitor.monitor.x = info.rcMonitor.left;
+        monitor.monitor.y = info.rcMonitor.top;
+        monitor.monitor.width = info.rcMonitor.right - info.rcMonitor.left;
+        monitor.monitor.height = info.rcMonitor.bottom - info.rcMonitor.top;
+
+        monitor.work.x = info.rcWork.left;
+        monitor.work.y = info.rcWork.top;
+        monitor.work.width = info.rcWork.right - info.rcWork.left;
+        monitor.work.height = info.rcWork.bottom - info.rcWork.top;
+
+        monitor.scale = static_cast<double>(dpiY) / 96.0;
+
+        return true;
+    }
+
     struct MonitorEnumState
     {
         GetAllMonitorsCallback callback;
@@ -35,24 +67,9 @@ namespace
         if (!enumState || !enumState->callback)
             return FALSE;
 
-        MONITORINFO info{};
-        info.cbSize = sizeof(info);
-        if (!GetMonitorInfoW(hMonitor, &info)) return TRUE;
-
-        UINT dpiX = 96, dpiY = 96;
-        if (FAILED(GetDpiForMonitor(hMonitor, MDT_EFFECTIVE_DPI, &dpiX, &dpiY)))
-            dpiX = dpiY = 96;
-
         Monitor props{};
-        props.monitor.x = info.rcMonitor.left;
-        props.monitor.y = info.rcMonitor.top;
-        props.monitor.width = info.rcMonitor.right - info.rcMonitor.left;
-        props.monitor.height = info.rcMonitor.bottom - info.rcMonitor.top;
-        props.work.x = info.rcWork.left;
-        props.work.y = info.rcWork.top;
-        props.work.width = info.rcWork.right - info.rcWork.left;
-        props.work.height = info.rcWork.bottom - info.rcWork.top;
-        props.scale = static_cast<double>(dpiY) / 96.0;
+        if (!TryGetMonitorInfo(hMonitor, props))
+            return TRUE;
 
         if (!enumState->callback(&props, enumState->state))
         {
@@ -404,6 +421,18 @@ bool Photino::GetAllMonitors(GetAllMonitorsCallback callback, void* state) const
 
     BOOL result = EnumDisplayMonitors(nullptr, nullptr, MonitorEnum, reinterpret_cast<LPARAM>(&enumState));
     return result != FALSE || enumState.stopped;
+}
+
+bool Photino::GetWindowMonitor(Monitor& monitor) const noexcept
+{
+    assert(platform_->hWnd);
+    if (!platform_->hWnd)
+        return false;
+
+    HMONITOR hMonitor = MonitorFromWindow(platform_->hWnd, MONITOR_DEFAULTTONEAREST);
+    if (!hMonitor) return false;
+
+    return TryGetMonitorInfo(hMonitor, monitor);
 }
 
 bool Photino::SaveFullScreenRestoreState()

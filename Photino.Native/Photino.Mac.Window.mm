@@ -47,6 +47,30 @@ namespace
 #else
     void TraceMacState(const char*, Photino*) {}
 #endif
+
+    bool TryGetMonitorInfo(NSScreen* screen, Monitor& monitor) noexcept
+    {
+        if (!screen)
+            return false;
+
+        NSRect frame = [screen frame];
+
+        monitor.monitor.x = static_cast<int>(roundf(frame.origin.x));
+        monitor.monitor.y = static_cast<int>(roundf(frame.origin.y));
+        monitor.monitor.width = static_cast<int>(roundf(frame.size.width));
+        monitor.monitor.height = static_cast<int>(roundf(frame.size.height));
+
+        NSRect visibleFrame = [screen visibleFrame];
+
+        monitor.work.x = static_cast<int>(roundf(visibleFrame.origin.x));
+        monitor.work.y = static_cast<int>(roundf(visibleFrame.origin.y));
+        monitor.work.width = static_cast<int>(roundf(visibleFrame.size.width));
+        monitor.work.height = static_cast<int>(roundf(visibleFrame.size.height));
+
+        monitor.scale = [screen backingScaleFactor];
+
+        return true;
+    }
 }
 
 void* Photino::GetNSWindow() const noexcept
@@ -519,25 +543,31 @@ bool Photino::GetAllMonitors(GetAllMonitorsCallback callback, void* state) const
     {
         Monitor props{};
 
-        NSRect frame = [screen frame];
-        props.monitor.x = static_cast<int>(roundf(frame.origin.x));
-        props.monitor.y = static_cast<int>(roundf(frame.origin.y));
-        props.monitor.width = static_cast<int>(roundf(frame.size.width));
-        props.monitor.height = static_cast<int>(roundf(frame.size.height));
-
-        NSRect visibleFrame = [screen visibleFrame];
-        props.work.x = static_cast<int>(roundf(visibleFrame.origin.x));
-        props.work.y = static_cast<int>(roundf(visibleFrame.origin.y));
-        props.work.width = static_cast<int>(roundf(visibleFrame.size.width));
-        props.work.height = static_cast<int>(roundf(visibleFrame.size.height));
-
-        props.scale = [screen backingScaleFactor];
+        if (!TryGetMonitorInfo(screen, props))
+            continue;
 
         if (!callback(&props, state))
             break;
     }
 
     return true;
+}
+
+bool Photino::GetWindowMonitor(Monitor& monitor) const noexcept
+{
+    assert(platform_->window);
+    if (!platform_->window)
+        return false;
+
+    NSScreen* screen = [platform_->window screen];
+
+    if (!screen)
+        screen = [NSScreen mainScreen];
+
+    if (!screen)
+        screen = [[NSScreen screens] firstObject];
+
+    return TryGetMonitorInfo(screen, monitor);
 }
 
 std::vector<Monitor> Photino::GetMonitors() const

@@ -110,6 +110,31 @@ namespace
         return G_SOURCE_REMOVE;
     }
 
+    bool TryGetMonitorInfo(GdkMonitor* gdkMonitor, Monitor& monitor) noexcept
+    {
+        if (!gdkMonitor)
+            return false;
+
+        GdkRectangle monitorArea{};
+        GdkRectangle workArea{};
+
+        gdk_monitor_get_geometry(gdkMonitor, &monitorArea);
+        gdk_monitor_get_workarea(gdkMonitor, &workArea);
+
+        monitor.monitor.x = monitorArea.x;
+        monitor.monitor.y = monitorArea.y;
+        monitor.monitor.width = monitorArea.width;
+        monitor.monitor.height = monitorArea.height;
+
+        monitor.work.x = workArea.x;
+        monitor.work.y = workArea.y;
+        monitor.work.width = workArea.width;
+        monitor.work.height = workArea.height;
+
+        monitor.scale = gdk_monitor_get_scale_factor(gdkMonitor);
+
+        return true;
+    }
 }
 
 void* Photino::GetGtkWidget() const noexcept { return platform_->window; }
@@ -356,23 +381,23 @@ bool Photino::Center() const
     gtk_window_get_size(GTK_WINDOW(platform_->window), &windowWidth, &windowHeight);
 
     GdkDisplay* display = gdk_display_get_default();
-    if (display == nullptr)
+    if (!display)
         return false;
 
     GdkWindow* gdkWindow = gtk_widget_get_window(platform_->window);
-    GdkMonitor* monitor = gdkWindow
+    GdkMonitor* gdkMonitor = gdkWindow
                               ? gdk_display_get_monitor_at_window(display, gdkWindow)
                               : gdk_display_get_primary_monitor(display);
 
-    if (monitor == nullptr)
+    if (gdkMonitor == nullptr)
     {
-        monitor = gdk_display_get_monitor(display, 0);
-        if (monitor == nullptr)
+        gdkMonitor = gdk_display_get_monitor(display, 0);
+        if (gdkMonitor == nullptr)
             return false;
     }
 
     GdkRectangle screen{};
-    gdk_monitor_get_workarea(monitor, &screen);
+    gdk_monitor_get_workarea(gdkMonitor, &screen);
 
     gtk_window_move(
         GTK_WINDOW(platform_->window),
@@ -787,30 +812,39 @@ bool Photino::GetAllMonitors(GetAllMonitorsCallback callback, void* state) const
     int n = gdk_display_get_n_monitors(display);
     for (int i = 0; i < n; i++)
     {
-        GdkMonitor* monitor = gdk_display_get_monitor(display, i);
-        if (!monitor) continue;
-
-        GdkRectangle monitorArea{};
-        GdkRectangle workArea{};
-        gdk_monitor_get_geometry(monitor, &monitorArea);
-        gdk_monitor_get_workarea(monitor, &workArea);
+        GdkMonitor* gdkMonitor = gdk_display_get_monitor(display, i);
+        if (!gdkMonitor) continue;
 
         Monitor props{};
-        props.monitor.x = monitorArea.x;
-        props.monitor.y = monitorArea.y;
-        props.monitor.width = monitorArea.width;
-        props.monitor.height = monitorArea.height;
-        props.work.x = workArea.x;
-        props.work.y = workArea.y;
-        props.work.width = workArea.width;
-        props.work.height = workArea.height;
-        props.scale = gdk_monitor_get_scale_factor(monitor);
+        if (!TryGetMonitorInfo(gdkMonitor, props))
+            continue;
 
         if (!callback(&props, state))
             break;
     }
 
     return true;
+}
+
+bool Photino::GetWindowMonitor(Monitor& monitor) const noexcept
+{
+    assert(platform_->window);
+    if (!platform_->window)
+        return false;
+
+    GdkDisplay* display = gdk_display_get_default();
+    if (!display)
+        return false;
+
+    GdkWindow* gdkWindow = gtk_widget_get_window(platform_->window);
+    GdkMonitor* gdkMonitor = gdkWindow
+                                 ? gdk_display_get_monitor_at_window(display, gdkWindow)
+                                 : gdk_display_get_primary_monitor(display);
+
+    if (!gdkMonitor)
+        return false;
+
+    return TryGetMonitorInfo(gdkMonitor, monitor);
 }
 
 bool Photino::IsFullScreen() const noexcept

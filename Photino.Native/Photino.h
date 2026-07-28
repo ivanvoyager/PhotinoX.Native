@@ -209,6 +209,7 @@ namespace PhotinoX::Native
 
         unsigned int GetScreenDpi() const;
         bool GetAllMonitors(GetAllMonitorsCallback callback, void* state) const noexcept;
+        bool GetWindowMonitor(Monitor& monitor) const noexcept;
 
         // Window state
         void GetWindowState(PhotinoWindowState* state) const;
