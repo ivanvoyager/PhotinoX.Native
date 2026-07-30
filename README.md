@@ -146,6 +146,7 @@ make mac-universal
 ## Known limitations
 
 - **Linux Wayland:** top-level window position is compositor-controlled. Move notifications and position restore are best-effort; state and size tracking remain supported.
+- **Linux chromeless drag/resize:** native chromeless drag and resize use GTK event-driven hit testing over configured drag and resize regions. The generic `BeginWindowDrag` / `BeginWindowResize` entry points remain no-ops on Linux because GTK/Wayland require the original trusted native pointer event.
 
 ## Contributing
 
