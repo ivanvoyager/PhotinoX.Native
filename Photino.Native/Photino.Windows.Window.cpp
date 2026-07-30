@@ -611,7 +611,7 @@ bool Photino::ShowWindowAfterFullScreenExit(const int showCommand)
 
 bool Photino::IsFullScreen() const noexcept
 {
-    if (!platform_->hWnd)
+    if (!platform_->hWnd || !platform_->hasFullScreenRestoreState)
         return false;
 
     RECT windowRect{};
