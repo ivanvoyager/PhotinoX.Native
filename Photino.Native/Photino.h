@@ -128,6 +128,9 @@ namespace PhotinoX::Native
         std::vector<Monitor> GetMonitors() const;
 
         void ApplyPendingStateAfterFullScreenExit();
+        void ResetLogicalMaximizedState() const noexcept;
+        void RestoreLogicalMaximizedState() const noexcept;
+        void StopInteractiveWindowOperation() const noexcept;
 
         void AttachWebView();
         void AddCustomSchemeHandlers();
