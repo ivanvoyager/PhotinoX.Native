@@ -118,32 +118,56 @@ void Photino::SetIconFile(const PlatformString& filename)
     if (!platform_->hWnd || filename.empty())
         return;
 
-    HICON iconSmall = static_cast<HICON>(LoadImageW(
-        nullptr,
-        filename.c_str(),
-        IMAGE_ICON,
-        GetSystemMetrics(SM_CXSMICON),
-        GetSystemMetrics(SM_CYSMICON),
-        LR_LOADFROMFILE | LR_SHARED));
-
-    HICON iconBig = static_cast<HICON>(LoadImageW(
-        nullptr,
-        filename.c_str(),
-        IMAGE_ICON,
-        GetSystemMetrics(SM_CXICON),
-        GetSystemMetrics(SM_CYICON),
-        LR_LOADFROMFILE | LR_SHARED));
-
-    if (!iconSmall && !iconBig)
-        return;
-
+    const PlatformString previous = options_.iconFileName;
     options_.iconFileName = filename;
 
+    if (!RefreshWindowIconsForDpi(0))
+        options_.iconFileName = previous;
+}
+
+bool Photino::RefreshWindowIconsForDpi(UINT dpi)
+{
+    if (!platform_->hWnd || options_.iconFileName.empty())
+        return false;
+
+    if (dpi == 0)
+        dpi = GetDpiForWindow(platform_->hWnd);
+
+    const auto load = [&](const int metricX, const int metricY) -> HICON
+    {
+        return static_cast<HICON>(LoadImageW(
+            nullptr,
+            options_.iconFileName.c_str(),
+            IMAGE_ICON,
+            GetSystemMetricsForDpi(metricX, dpi),
+            GetSystemMetricsForDpi(metricY, dpi),
+            LR_LOADFROMFILE));
+    };
+
+    HICON iconSmall = load(SM_CXSMICON, SM_CYSMICON);
+    HICON iconBig = load(SM_CXICON, SM_CYICON);
+
     if (iconSmall)
+    {
         SendMessageW(platform_->hWnd, WM_SETICON, ICON_SMALL, reinterpret_cast<LPARAM>(iconSmall));
 
+        if (platform_->ownedSmallIcon)
+            DestroyIcon(platform_->ownedSmallIcon);
+
+        platform_->ownedSmallIcon = iconSmall;
+    }
+
     if (iconBig)
+    {
         SendMessageW(platform_->hWnd, WM_SETICON, ICON_BIG, reinterpret_cast<LPARAM>(iconBig));
+
+        if (platform_->ownedBigIcon)
+            DestroyIcon(platform_->ownedBigIcon);
+
+        platform_->ownedBigIcon = iconBig;
+    }
+
+    return iconSmall || iconBig;
 }
 
 void Photino::GetPosition(int* x, int* y) const

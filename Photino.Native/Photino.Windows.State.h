@@ -39,6 +39,9 @@ namespace PhotinoX::Native
         LONG_PTR fullScreenStyle = 0;
         WINDOWPLACEMENT fullScreenPlacement{sizeof(WINDOWPLACEMENT)};
         bool hasFullScreenRestoreState = false;
+
+        HICON ownedSmallIcon = nullptr;
+        HICON ownedBigIcon = nullptr;
     };
 }
 
