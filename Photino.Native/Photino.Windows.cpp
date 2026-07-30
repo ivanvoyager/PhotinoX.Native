@@ -225,18 +225,12 @@ Photino::~Photino()
 
     if (platform_->ownedSmallIcon)
     {
-        if (platform_->hWnd)
-            SendMessageW(platform_->hWnd, WM_SETICON, ICON_SMALL, 0);
-
         DestroyIcon(platform_->ownedSmallIcon);
         platform_->ownedSmallIcon = nullptr;
     }
 
     if (platform_->ownedBigIcon)
     {
-        if (platform_->hWnd)
-            SendMessageW(platform_->hWnd, WM_SETICON, ICON_BIG, 0);
-
         DestroyIcon(platform_->ownedBigIcon);
         platform_->ownedBigIcon = nullptr;
     }

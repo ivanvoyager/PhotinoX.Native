@@ -127,26 +127,21 @@ void Photino::SetIconFile(const PlatformString& filename)
 
 bool Photino::RefreshWindowIconsForDpi(UINT dpi)
 {
-    if (!platform_->hWnd)
+    if (!platform_->hWnd || options_.iconFileName.empty())
         return false;
 
     if (dpi == 0)
         dpi = GetDpiForWindow(platform_->hWnd);
 
-    const bool fromFile = !options_.iconFileName.empty();
-    const HINSTANCE module = fromFile ? nullptr : GetModuleHandleW(nullptr);
-    const LPCWSTR source = fromFile ? options_.iconFileName.c_str() : IDI_APPLICATION;
-    const UINT flags = fromFile ? LR_LOADFROMFILE : 0u;
-
     const auto load = [&](const int metricX, const int metricY) -> HICON
     {
         return static_cast<HICON>(LoadImageW(
-            module,
-            source,
+            nullptr,
+            options_.iconFileName.c_str(),
             IMAGE_ICON,
             GetSystemMetricsForDpi(metricX, dpi),
             GetSystemMetricsForDpi(metricY, dpi),
-            flags));
+            LR_LOADFROMFILE));
     };
 
     HICON iconSmall = load(SM_CXSMICON, SM_CYSMICON);
