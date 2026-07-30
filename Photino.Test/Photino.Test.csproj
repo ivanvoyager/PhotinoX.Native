@@ -12,22 +12,10 @@
     <Platforms>AnyCPU;x64;ARM64</Platforms>
   </PropertyGroup>
 
-  <PropertyGroup>
-    <IsWindows Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows)))' == 'true'">true</IsWindows>
-    <IsOSX Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::OSX)))' == 'true'">true</IsOSX>
-    <IsLinux Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Linux)))' == 'true'">true</IsLinux>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(IsWindows)' == 'true'">
-    <DefineConstants>$(DefineConstants);Windows</DefineConstants>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(IsOSX)' == 'true'">
-    <DefineConstants>$(DefineConstants);OSX</DefineConstants>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(IsLinux)' == 'true'">
-    <DefineConstants>$(DefineConstants);Linux</DefineConstants>
+  <PropertyGroup Condition="'$(PhotinoX_UseLocalProjects)' == 'true'">
+    <OSPlatform Condition="$([MSBuild]::IsOSPlatform('Windows'))">Windows</OSPlatform>
+    <OSPlatform Condition="$([MSBuild]::IsOSPlatform('OSX'))">OSX</OSPlatform>
+    <OSPlatform Condition="$([MSBuild]::IsOSPlatform('Linux'))">Linux</OSPlatform>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(PhotinoX_UseLocalProjects)' == 'true'">
@@ -83,22 +71,22 @@
     </None>
   </ItemGroup>
 
-  <PropertyGroup Condition="'$(PhotinoX_UseLocalProjects)' == 'true' AND '$(IsWindows)' == 'true'">
+  <PropertyGroup Condition="'$(PhotinoX_UseLocalProjects)' == 'true' AND '$(OSPlatform)' == 'Windows'">
     <NativePlatform Condition="'$(Platform)' == 'x64'">x64</NativePlatform>
     <NativePlatform Condition="'$(Platform)' == 'ARM64'">ARM64</NativePlatform>
-    <NativePlatform Condition="'$(Platform)' == 'AnyCPU'">x64</NativePlatform>
+    <NativePlatform Condition="'$(Platform)' == 'AnyCPU' OR '$(Platform)' == ''">x64</NativePlatform>
 
     <NativeRidArch Condition="'$(NativePlatform)' == 'x64'">x64</NativeRidArch>
     <NativeRidArch Condition="'$(NativePlatform)' == 'ARM64'">arm64</NativeRidArch>
 
-    <NativeProjectPath>$(MSBuildProjectDirectory)\..\Photino.Native\Photino.Native.vcxproj</NativeProjectPath>
-    <NativeOutputDir>$(MSBuildProjectDirectory)\..\Photino.Native\$(NativePlatform)\$(Configuration)\</NativeOutputDir>
+    <NativeProjectPath>$(MSBuildProjectDirectory)/../Photino.Native/Photino.Native.vcxproj</NativeProjectPath>
+    <NativeOutputDir>$(MSBuildProjectDirectory)/../Photino.Native/$(NativePlatform)/$(Configuration)/</NativeOutputDir>
   </PropertyGroup>
 
   <Target Name="ValidatePhotinoNetSourceDir"
-        BeforeTargets="BeforeBuild"
-        Condition="'$(PhotinoX_UseLocalProjects)' == 'true'
-                   AND '$(DesignTimeBuild)' != 'true'">
+          BeforeTargets="BeforeBuild"
+          Condition="'$(PhotinoX_UseLocalProjects)' == 'true'
+                 AND '$(DesignTimeBuild)' != 'true'">
     <Error
       Text="PhotinoNetSourceDir does not exist or does not contain PhotinoWindow.cs: $(PhotinoNetSourceDir)"
       Condition="!Exists('$(PhotinoNetSourceDir)\PhotinoWindow.cs')" />
@@ -107,10 +95,10 @@
   <Target Name="Photino_BuildNativeWindows"
           BeforeTargets="DispatchToInnerBuilds"
           Condition="'$(PhotinoX_UseLocalProjects)' == 'true'
-                   AND '$(IsWindows)' == 'true'
-                   AND '$(NativePlatform)' != ''
-                   AND '$(IsCrossTargetingBuild)' == 'true'
-                   AND '$(DesignTimeBuild)' != 'true'">
+                 AND '$(OSPlatform)' == 'Windows'
+                 AND '$(NativePlatform)' != ''
+                 AND '$(IsCrossTargetingBuild)' == 'true'
+                 AND '$(DesignTimeBuild)' != 'true'">
 
     <Error
       Text="Native project not found: $(NativeProjectPath)"
@@ -128,10 +116,10 @@
   <Target Name="Photino_CopyNativeLibs_Windows"
           AfterTargets="Build"
           Condition="'$(PhotinoX_UseLocalProjects)' == 'true'
-                   AND '$(IsWindows)' == 'true'
-                   AND '$(NativePlatform)' != ''
-                   AND '$(TargetFramework)' != ''
-                   AND '$(DesignTimeBuild)' != 'true'">
+                 AND '$(OSPlatform)' == 'Windows'
+                 AND '$(NativePlatform)' != ''
+                 AND '$(TargetFramework)' != ''
+                 AND '$(DesignTimeBuild)' != 'true'">
 
     <Message Importance="High"
              Text="Copying native libs from '$(NativeOutputDir)' to '$(TargetDir)'" />
@@ -150,13 +138,72 @@
       DestinationFiles="$(TargetDir)PhotinoX.Native.pdb"
       SkipUnchangedFiles="true"
       Condition="'$(Configuration)' == 'Debug'
-               AND Exists('$(NativeOutputDir)PhotinoX.Native.pdb')" />
+             AND Exists('$(NativeOutputDir)PhotinoX.Native.pdb')" />
 
     <Copy
-      SourceFiles="$(NativeOutputDir)runtimes\win-$(NativeRidArch)\native\WebView2Loader.dll"
+      SourceFiles="$(NativeOutputDir)runtimes/win-$(NativeRidArch)/native/WebView2Loader.dll"
       DestinationFiles="$(TargetDir)WebView2Loader.dll"
       SkipUnchangedFiles="true"
-      Condition="Exists('$(NativeOutputDir)runtimes\win-$(NativeRidArch)\native\WebView2Loader.dll')" />
+      Condition="Exists('$(NativeOutputDir)runtimes/win-$(NativeRidArch)/native/WebView2Loader.dll')" />
+  </Target>
+
+  <PropertyGroup Condition="'$(PhotinoX_UseLocalProjects)' == 'true' AND '$(OSPlatform)' == 'OSX'">
+    <NativeOutputDir>$(MSBuildProjectDirectory)/../lib/x64/</NativeOutputDir>
+  </PropertyGroup>
+
+  <Target Name="Photino_CopyNativeLibs_OSX"
+          AfterTargets="Build"
+          Condition="'$(PhotinoX_UseLocalProjects)' == 'true'
+               AND '$(OSPlatform)' == 'OSX'
+               AND '$(TargetFramework)' != ''
+               AND '$(DesignTimeBuild)' != 'true'">
+
+    <Message Importance="High"
+             Text="Copying native libs from '$(NativeOutputDir)' to '$(TargetDir)'" />
+
+    <Error
+      Text="Native library not found: $(NativeOutputDir)PhotinoX.Native.dylib"
+      Condition="!Exists('$(NativeOutputDir)PhotinoX.Native.dylib')" />
+
+    <Copy
+      SourceFiles="$(NativeOutputDir)PhotinoX.Native.dylib"
+      DestinationFiles="$(TargetDir)PhotinoX.Native.dylib"
+      SkipUnchangedFiles="true" />
+  </Target>
+
+  <PropertyGroup Condition="'$(PhotinoX_UseLocalProjects)' == 'true' AND '$(OSPlatform)' == 'Linux'">
+    <HostArchitecture>$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture)</HostArchitecture>
+
+    <NativePlatform Condition="'$(Platform)' == 'x64'">x64</NativePlatform>
+    <NativePlatform Condition="'$(Platform)' == 'ARM64'">arm64</NativePlatform>
+
+    <NativePlatform Condition="('$(Platform)' == 'AnyCPU' OR '$(Platform)' == '') AND '$(HostArchitecture)' == 'Arm64'">arm64</NativePlatform>
+    <NativePlatform Condition="('$(Platform)' == 'AnyCPU' OR '$(Platform)' == '') AND '$(HostArchitecture)' == 'X64'">x64</NativePlatform>
+
+    <NativePlatform Condition="'$(NativePlatform)' == ''">x64</NativePlatform>
+
+    <NativeOutputDir>$(MSBuildProjectDirectory)/../lib/$(NativePlatform)/</NativeOutputDir>
+  </PropertyGroup>
+
+  <Target Name="Photino_CopyNativeLibs_Linux"
+          AfterTargets="Build"
+          Condition="'$(PhotinoX_UseLocalProjects)' == 'true'
+               AND '$(OSPlatform)' == 'Linux'
+               AND '$(NativePlatform)' != ''
+               AND '$(TargetFramework)' != ''
+               AND '$(DesignTimeBuild)' != 'true'">
+
+    <Message Importance="High"
+             Text="Copying native libs from '$(NativeOutputDir)' to '$(TargetDir)'" />
+
+    <Error
+      Text="Native library not found: $(NativeOutputDir)PhotinoX.Native.so"
+      Condition="!Exists('$(NativeOutputDir)PhotinoX.Native.so')" />
+
+    <Copy
+      SourceFiles="$(NativeOutputDir)PhotinoX.Native.so"
+      DestinationFiles="$(TargetDir)PhotinoX.Native.so"
+      SkipUnchangedFiles="true" />
   </Target>
 
 </Project>
