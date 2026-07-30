@@ -144,7 +144,7 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Win
     HWND ownerHwnd = options_.useNativeWindowOwner && parent_ ? parent_->GetHwnd() : nullptr;
 
     //Create the window
-    platform_->hWnd = CreateWindowExW(
+    HWND hWnd = CreateWindowExW(
         options_.transparentEnabled ? WS_EX_LAYERED : 0,        // WS_EX_OVERLAPPEDWINDOW, //An optional extended window style.
         CLASS_NAME,                                             // Window class
         options_.windowTitle.c_str(),                           // Window text
@@ -158,6 +158,9 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Win
         g_hInstance,// Instance handle
         this        // Additional application data
     );
+
+    assert(platform_->hWnd == hWnd);
+    platform_->hWnd = hWnd;
 
     if (!platform_->hWnd)
         std::abort();
@@ -213,6 +216,8 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Win
     // earlier has historically caused initialization/display issues.
     if (!EnsureWebViewAttached())
         std::abort();
+
+    platform_->suppressWindowCallbacks = false;
 }
 
 Photino::~Photino()
@@ -248,6 +253,8 @@ LRESULT CALLBACK WindowProc(const HWND hwnd, const UINT uMsg, const WPARAM wPara
             return FALSE;
 
         SetWindowLongPtrW(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(photino));
+
+        photino->Platform().hWnd = hwnd;
 
         break;
     }
@@ -403,6 +410,9 @@ LRESULT CALLBACK WindowProc(const HWND hwnd, const UINT uMsg, const WPARAM wPara
 
         photino->UpdateWindowState();
 
+        if (photino->Platform().suppressWindowCallbacks)
+            return 0;
+
         photino->RefitContent();
 
         int width = 0, height = 0;
@@ -416,6 +426,9 @@ LRESULT CALLBACK WindowProc(const HWND hwnd, const UINT uMsg, const WPARAM wPara
     {
         auto photino = GetPhotino(hwnd);
         if (!photino) return 0;
+
+        if (photino->Platform().suppressWindowCallbacks)
+            return 0;
 
         // photino->NotifyWebView2WindowMove();
         // photino->RefitContent();

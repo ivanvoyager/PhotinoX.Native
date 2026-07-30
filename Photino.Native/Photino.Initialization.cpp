@@ -33,6 +33,7 @@ void Photino::InitializeOptions(const PhotinoInitParams* initParams)
 
     options_.zoom = initParams->Zoom;
     options_.chromeless = initParams->Chromeless;
+    options_.resizable = initParams->Resizable;
     options_.windowState = initParams->WindowState;
 
     options_.transparentEnabled = initParams->Transparent;

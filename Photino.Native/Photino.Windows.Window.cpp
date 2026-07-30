@@ -362,6 +362,14 @@ bool Photino::Show() const
     return true;
 }
 
+bool Photino::CanBeginResize() const noexcept
+{
+    return platform_->hWnd &&
+           options_.resizable &&
+           !IsFullScreen() &&
+           !IsMaximized();
+}
+
 void Photino::BeginWindowDrag() const
 {
     assert(platform_->hWnd);
@@ -380,6 +388,9 @@ void Photino::BeginWindowResize(const PhotinoWindowEdge edge) const
 {
     assert(platform_->hWnd);
     if (!platform_->hWnd) return;
+
+    if (!CanBeginResize())
+        return;
 
     WPARAM hitTest;
     switch (edge)
@@ -768,21 +779,21 @@ void Photino::SetMinimized(const bool minimized)
 
 void Photino::GetResizable(bool* resizable) const
 {
-    assert(resizable && platform_->hWnd);
+    assert(resizable);
     if (!resizable) return;
 
-    *resizable = false;
-
-    if (!platform_->hWnd) return;
-
-    LONG lStyles = GetWindowLong(platform_->hWnd, GWL_STYLE);
-    if (lStyles & WS_THICKFRAME) *resizable = true;
+    *resizable = options_.resizable;
 }
 
 void Photino::SetResizable(const bool resizable)
 {
     assert(platform_->hWnd);
     if (!platform_->hWnd) return;
+
+    options_.resizable = resizable;
+
+    if (options_.chromeless)
+        return;
 
     LONG_PTR style = GetWindowLongPtrW(platform_->hWnd, GWL_STYLE);
 

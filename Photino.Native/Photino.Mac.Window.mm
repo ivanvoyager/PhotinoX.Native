@@ -507,6 +507,14 @@ bool Photino::Show() const
     return true;
 }
 
+bool Photino::CanBeginResize() const noexcept
+{
+    return platform_->window &&
+           options_.resizable &&
+           !IsFullScreen() &&
+           !IsMaximized();
+}
+
 void Photino::BeginWindowDrag() const
 {
     // Not yet implemented on macOS. NSWindow's -performWindowDragWithEvent: needs
@@ -740,17 +748,18 @@ void Photino::GetResizable(bool* resizable) const
     assert(resizable);
     if (!resizable) return;
 
-    *resizable = false;
-
-    if (!platform_->window) return;
-
-    *resizable = ([platform_->window styleMask] & NSWindowStyleMaskResizable) == NSWindowStyleMaskResizable;
+    *resizable = options_.resizable;
 }
 
 void Photino::SetResizable(bool resizable)
 {
     assert(platform_->window);
     if (!platform_->window) return;
+
+    options_.resizable = resizable;
+
+    if (options_.chromeless)
+        return;
 
     NSWindowStyleMask styleMask = [platform_->window styleMask];
 

@@ -167,8 +167,12 @@ namespace PhotinoX::Native
         // Platform handles
 #ifdef _WIN32
         HWND GetHwnd() const noexcept;
+        WindowsState& Platform() noexcept { return *platform_; }
+        const WindowsState& Platform() const noexcept { return *platform_; }
 #elif defined(__linux__)
         void* GetGtkWidget() const noexcept;
+        LinuxState& Platform() noexcept { return *platform_; }
+        const LinuxState& Platform() const noexcept { return *platform_; }
 #elif defined(__APPLE__)
         void* GetNSWindow() const noexcept;
 #endif
@@ -204,6 +208,7 @@ namespace PhotinoX::Native
         void SetMinSize(int width, int height);
         void SetMaxSize(int width, int height);
 
+        bool CanBeginResize() const noexcept;
         void BeginWindowDrag() const;
         void BeginWindowResize(PhotinoWindowEdge edge) const;
 

@@ -770,6 +770,15 @@ bool Photino::Show() const
     return true;
 }
 
+
+bool Photino::CanBeginResize() const noexcept
+{
+    return platform_->window &&
+           options_.resizable &&
+           !IsFullScreen() &&
+           !IsMaximized();
+}
+
 void Photino::BeginWindowDrag() const
 {
     // Not yet implemented on Linux. GTK offers gtk_window_begin_move_drag, but it
@@ -780,8 +789,8 @@ void Photino::BeginWindowDrag() const
 
 void Photino::BeginWindowResize(PhotinoWindowEdge) const
 {
-    // Not yet implemented on Linux. As with BeginWindowDrag, the GTK equivalent
-    // (gtk_window_begin_resize_drag) needs the originating GDK event context.
+    // Linux resize is handled from native GTK edge button events. This generic
+    // entry point has no originating GdkEventButton context and remains a no-op.
 }
 
 unsigned int Photino::GetScreenDpi() const
@@ -1041,11 +1050,7 @@ void Photino::GetResizable(bool* resizable) const
     assert(resizable);
     if (!resizable) return;
 
-    *resizable = false;
-
-    if (!platform_->window) return;
-
-    *resizable = gtk_window_get_resizable(GTK_WINDOW(platform_->window)) != FALSE;
+    *resizable = options_.resizable;
 }
 
 void Photino::SetResizable(bool resizable)
@@ -1053,7 +1058,19 @@ void Photino::SetResizable(bool resizable)
     assert(platform_->window);
     if (!platform_->window) return;
 
+    options_.resizable = resizable;
+
     gtk_window_set_resizable(GTK_WINDOW(platform_->window), resizable);
+
+    if (!resizable)
+    {
+        if (platform_->webview)
+            gtk_widget_input_shape_combine_region(platform_->webview, nullptr);
+
+        auto gdkWindow = gtk_widget_get_window(platform_->window);
+        if (gdkWindow)
+            gdk_window_set_cursor(gdkWindow, nullptr);
+    }
 }
 
 void Photino::GetTopmost(bool* topmost) const

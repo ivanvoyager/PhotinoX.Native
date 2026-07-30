@@ -15,6 +15,8 @@ namespace PhotinoX::Native
         GtkWidget* webview = nullptr;
         GdkGeometry hints{};
 
+        int resizeBorderThickness = 8;
+
         WindowSizeLimits sizeLimits;
 
         WindowGeometry lastGeometry;

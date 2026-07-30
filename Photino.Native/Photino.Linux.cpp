@@ -144,6 +144,156 @@ namespace
         instance->InvokeFocusOut();
         return FALSE;
     }
+
+    void on_webview_size_allocate(GtkWidget* widget, GdkRectangle* allocation, gpointer self)
+    {
+        auto instance = static_cast<Photino*>(self);
+
+        if (!instance || !widget || !allocation)
+            return;
+
+        if (!instance->CanBeginResize())
+        {
+            gtk_widget_input_shape_combine_region(widget, nullptr);
+            return;
+        }
+
+        auto& platform = instance->Platform();
+        const int border = platform.resizeBorderThickness;
+
+        if (allocation->width <= 2 * border || allocation->height <= 2 * border)
+        {
+            gtk_widget_input_shape_combine_region(widget, nullptr);
+            return;
+        }
+
+        cairo_rectangle_int_t rect =
+        {
+            border,
+            border,
+            allocation->width - 2 * border,
+            allocation->height - 2 * border
+        };
+
+        auto region = cairo_region_create_rectangle(&rect);
+        gtk_widget_input_shape_combine_region(widget, region);
+        cairo_region_destroy(region);
+    }
+
+    int GetResizeEdge(int x, int y, int width, int height, int border)
+    {
+        const bool top = y < border;
+        const bool bottom = y >= height - border;
+        const bool left = x < border;
+        const bool right = x >= width - border;
+
+        if (top && left) return GDK_WINDOW_EDGE_NORTH_WEST;
+        if (top && right) return GDK_WINDOW_EDGE_NORTH_EAST;
+        if (bottom && left) return GDK_WINDOW_EDGE_SOUTH_WEST;
+        if (bottom && right) return GDK_WINDOW_EDGE_SOUTH_EAST;
+        if (top) return GDK_WINDOW_EDGE_NORTH;
+        if (bottom) return GDK_WINDOW_EDGE_SOUTH;
+        if (left) return GDK_WINDOW_EDGE_WEST;
+        if (right) return GDK_WINDOW_EDGE_EAST;
+
+        return -1;
+    }
+
+    const char* GetResizeCursorName(int edge)
+    {
+        switch (edge)
+        {
+        case GDK_WINDOW_EDGE_NORTH: return "n-resize";
+        case GDK_WINDOW_EDGE_SOUTH: return "s-resize";
+        case GDK_WINDOW_EDGE_WEST: return "w-resize";
+        case GDK_WINDOW_EDGE_EAST: return "e-resize";
+        case GDK_WINDOW_EDGE_NORTH_WEST: return "nw-resize";
+        case GDK_WINDOW_EDGE_NORTH_EAST: return "ne-resize";
+        case GDK_WINDOW_EDGE_SOUTH_WEST: return "sw-resize";
+        case GDK_WINDOW_EDGE_SOUTH_EAST: return "se-resize";
+        default: return nullptr;
+        }
+    }
+
+    gboolean on_button_press_event(GtkWidget* widget, GdkEventButton* event, gpointer self)
+    {
+        auto instance = static_cast<Photino*>(self);
+
+        if (!instance || !widget || !event)
+            return FALSE;
+
+        if (event->button != GDK_BUTTON_PRIMARY)
+            return FALSE;
+
+        if (!instance->CanBeginResize())
+            return FALSE;
+
+        const int width = gtk_widget_get_allocated_width(widget);
+        const int height = gtk_widget_get_allocated_height(widget);
+
+        auto& platform = instance->Platform();
+
+        const int edge = GetResizeEdge(static_cast<int>(event->x), static_cast<int>(event->y), width, height, platform.resizeBorderThickness);
+
+        if (edge < 0)
+            return FALSE;
+
+        gtk_window_begin_resize_drag(GTK_WINDOW(widget),
+            static_cast<GdkWindowEdge>(edge), event->button,
+            static_cast<int>(event->x_root),
+            static_cast<int>(event->y_root),
+            event->time);
+
+        return TRUE;
+    }
+
+    gboolean on_motion_notify_event(GtkWidget* widget, GdkEventMotion* event, gpointer self)
+    {
+        auto instance = static_cast<Photino*>(self);
+
+        if (!instance || !widget || !event)
+            return FALSE;
+
+        auto gdkWindow = gtk_widget_get_window(widget);
+        if (!gdkWindow)
+            return FALSE;
+
+        if (!instance->CanBeginResize())
+        {
+            gdk_window_set_cursor(gdkWindow, nullptr);
+            return FALSE;
+        }
+
+        const int width = gtk_widget_get_allocated_width(widget);
+        const int height = gtk_widget_get_allocated_height(widget);
+
+        auto& platform = instance->Platform();
+
+        const int edge = GetResizeEdge(
+            static_cast<int>(event->x),
+            static_cast<int>(event->y),
+            width,
+            height,
+            platform.resizeBorderThickness);
+
+        const char* cursorName = GetResizeCursorName(edge);
+        if (!cursorName)
+        {
+            gdk_window_set_cursor(gdkWindow, nullptr);
+            return FALSE;
+        }
+
+        auto display = gdk_window_get_display(gdkWindow);
+        auto cursor = gdk_cursor_new_from_name(display, cursorName);
+
+        gdk_window_set_cursor(gdkWindow, cursor);
+
+        if (cursor)
+            g_object_unref(cursor);
+
+        return FALSE;
+    }
+
 } //namespace
 
 
@@ -229,7 +379,7 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Lin
     SetTitle(options_.windowTitle);
 
     if (options_.chromeless)
-        gtk_window_set_decorated(GTK_WINDOW(platform_->window), false);
+        gtk_window_set_decorated(GTK_WINDOW(platform_->window), FALSE);
 
     SetIconFile(options_.iconFileName);
 
@@ -239,31 +389,28 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Lin
     if (initParams->Topmost)
         SetTopmost(true);
 
-    // g_signal_connect(G_OBJECT(platform_->window), "size-allocate",
+    // g_signal_connect(platform_->window, "size-allocate",
     //	G_CALLBACK(on_size_allocate),
     //	this);
 
-    g_signal_connect(G_OBJECT(platform_->window), "configure-event",
-                     G_CALLBACK(on_configure_event),
-                     this);
-
-    g_signal_connect(G_OBJECT(platform_->window), "window-state-event",
-                     G_CALLBACK(on_window_state_event),
-                     this);
-
-    g_signal_connect(G_OBJECT(platform_->window), "delete-event",
-                     G_CALLBACK(on_widget_deleted),
-                     this);
-
-    g_signal_connect(G_OBJECT(platform_->window), "destroy",
-                     G_CALLBACK(on_widget_destroyed),
-                     this);
+    g_signal_connect(platform_->window, "configure-event",    G_CALLBACK(on_configure_event), this);
+    g_signal_connect(platform_->window, "window-state-event", G_CALLBACK(on_window_state_event), this);
+    g_signal_connect(platform_->window, "delete-event", G_CALLBACK(on_widget_deleted), this);
+    g_signal_connect(platform_->window, "destroy", G_CALLBACK(on_widget_destroyed), this);
 
     if (options_.transparentEnabled)
         SetTransparentEnabled(true);//visual/app-paintable
 
     if (!EnsureWebViewAttached())
         std::abort();
+
+    if (options_.chromeless)
+    {
+        gtk_widget_add_events(platform_->window, GDK_POINTER_MOTION_MASK | GDK_BUTTON_PRESS_MASK);
+        g_signal_connect(platform_->window, "motion-notify-event", G_CALLBACK(on_motion_notify_event), this);
+        g_signal_connect(platform_->window, "button-press-event", G_CALLBACK(on_button_press_event), this);
+        g_signal_connect(platform_->webview, "size-allocate", G_CALLBACK(on_webview_size_allocate), this);
+    }
 
     suppressWindowStateCallbacks_ = true;
 
@@ -291,13 +438,8 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Lin
     UpdateWindowState();
     suppressWindowStateCallbacks_ = false;
 
-    g_signal_connect(G_OBJECT(platform_->window), "focus-in-event",
-                     G_CALLBACK(on_focus_in_event),
-                     this);
-
-    g_signal_connect(G_OBJECT(platform_->window), "focus-out-event",
-                     G_CALLBACK(on_focus_out_event),
-                     this);
+    g_signal_connect(platform_->window, "focus-in-event", G_CALLBACK(on_focus_in_event), this);
+    g_signal_connect(platform_->window, "focus-out-event", G_CALLBACK(on_focus_out_event), this);
 
     if (options_.zoom != 100.0)
         SetZoom(options_.zoom);

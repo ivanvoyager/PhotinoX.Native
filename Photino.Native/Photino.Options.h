@@ -39,6 +39,7 @@ struct PhotinoOptions
 
     int zoom = 100;
     bool chromeless = false;
+    bool resizable = true;
 
     bool useNativeWindowOwner = false;
 
