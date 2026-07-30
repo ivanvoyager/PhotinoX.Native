@@ -258,6 +258,8 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Mac
 
 Photino::~Photino()
 {
+    StopInteractiveWindowOperation();
+
     if (platform_->webViewConfiguration)
     {
         WKUserContentController* userContentController = platform_->webViewConfiguration.userContentController;

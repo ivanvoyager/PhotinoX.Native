@@ -29,15 +29,17 @@ namespace
         const bool isFullScreen = (styleMask & NSWindowStyleMaskFullScreen) == NSWindowStyleMaskFullScreen;
         const bool isZoomed = [window isZoomed];
         const bool isMiniaturized = [window isMiniaturized];
+        const bool logicalMaximized = photino->IsMaximized();
 
         NSRect frame = [window frame];
 
         PHOTINO_MAC_LOG(
-            "[mac-state] %s: fullscreen=%d zoomed=%d miniaturized=%d style=0x%lx frame=(%.0f,%.0f %.0fx%.0f)\n",
+            "[mac-state] %s: fullscreen=%d zoomed=%d miniaturized=%d logicalMaximized=%d style=0x%lx frame=(%.0f,%.0f %.0fx%.0f)\n",
             source,
             isFullScreen,
             isZoomed,
             isMiniaturized,
+            logicalMaximized,
             static_cast<unsigned long>(styleMask),
             frame.origin.x,
             frame.origin.y,
@@ -71,7 +73,26 @@ namespace
 
         return true;
     }
-}
+
+    bool IsResizeEdge(PhotinoWindowEdge edge) noexcept
+    {
+        switch (edge)
+        {
+        case PhotinoWindowEdge::Top:
+        case PhotinoWindowEdge::Bottom:
+        case PhotinoWindowEdge::Left:
+        case PhotinoWindowEdge::Right:
+        case PhotinoWindowEdge::TopLeft:
+        case PhotinoWindowEdge::TopRight:
+        case PhotinoWindowEdge::BottomLeft:
+        case PhotinoWindowEdge::BottomRight:
+            return true;
+        default:
+            return false;
+        }
+    }
+
+} // namespace
 
 void* Photino::GetNSWindow() const noexcept
 {
@@ -167,6 +188,8 @@ void Photino::SetPosition(int x, int y)
     assert(platform_->window);
     if (!platform_->window) return;
 
+    StopInteractiveWindowOperation();
+
     NSScreen* screen = [platform_->window screen];
     if (!screen) return;
 
@@ -178,6 +201,8 @@ void Photino::SetPosition(int x, int y)
         + screenFrame.size.height
         - static_cast<CGFloat>(y)
         - windowFrame.size.height;
+
+    ResetLogicalMaximizedState();
 
     [platform_->window setFrameOrigin:NSMakePoint(left, top)];
 }
@@ -205,6 +230,9 @@ void Photino::SetSize(int width, int height)
 
     if (width <= 0 || height <= 0)
         return;
+
+    StopInteractiveWindowOperation();
+    ResetLogicalMaximizedState();
 
     // The macOS window server has a limit of 10,000 pixels for either dimension
     // See: https://developer.apple.com/documentation/appkit/nswindow/1419595-maxsize
@@ -289,8 +317,46 @@ bool Photino::Center() const
     assert(platform_->window);
     if (!platform_->window) return false;
 
+    StopInteractiveWindowOperation();
+    ResetLogicalMaximizedState();
+
     [platform_->window center];
     return true;
+}
+
+void Photino::ResetLogicalMaximizedState() const noexcept
+{
+    if (!options_.chromeless || !platform_->logicalMaximized)
+        return;
+
+    platform_->logicalMaximized = false;
+    platform_->hasNormalFrame = false;
+}
+
+void Photino::RestoreLogicalMaximizedState() const noexcept
+{
+    platform_->logicalMaximized = false;
+
+    if (platform_->hasNormalFrame)
+    {
+        [platform_->window setFrame:platform_->normalFrame display:YES animate:NO];
+        platform_->hasNormalFrame = false;
+    }
+}
+
+void Photino::StopInteractiveWindowOperation() const noexcept
+{
+    if (platform_->drag.monitor)
+    {
+        [NSEvent removeMonitor:platform_->drag.monitor];
+        platform_->drag.monitor = nil;
+    }
+
+    if (platform_->resize.monitor)
+    {
+        [NSEvent removeMonitor:platform_->resize.monitor];
+        platform_->resize.monitor = nil;
+    }
 }
 
 void Photino::ApplyPendingStateAfterFullScreenExit()
@@ -300,8 +366,29 @@ void Photino::ApplyPendingStateAfterFullScreenExit()
     switch (pendingState)
     {
     case PhotinoWindowState::Maximized:
-        if (!IsMaximized())
+        if (options_.chromeless)
+        {
+            if (!platform_->hasNormalFrame)
+            {
+                platform_->normalFrame = [platform_->window frame];
+                platform_->hasNormalFrame = true;
+            }
+
+            NSScreen* screen = [platform_->window screen];
+            if (!screen)
+                screen = [NSScreen mainScreen];
+
+            if (screen)
+            {
+                platform_->logicalMaximized = true;
+                [platform_->window setFrame:[screen visibleFrame] display:YES animate:NO];
+            }
+        }
+        else if (!IsMaximized())
+        {
             [platform_->window zoom:nil];
+        }
+
         break;
 
     case PhotinoWindowState::Minimized:
@@ -413,6 +500,8 @@ bool Photino::Maximize()
     assert(platform_->window);
     if (!platform_->window) return false;
 
+    StopInteractiveWindowOperation();
+
     if (IsMinimized())
         [platform_->window deminiaturize:nil];
 
@@ -426,7 +515,27 @@ bool Photino::Maximize()
     }
 
     if (!IsMaximized())
-        [platform_->window zoom:nil];
+    {
+        if (options_.chromeless)
+        {
+            NSScreen* screen = [platform_->window screen];
+            if (!screen)
+                screen = [NSScreen mainScreen];
+
+            if (!screen)
+                return false;
+
+            platform_->normalFrame = [platform_->window frame];
+            platform_->hasNormalFrame = true;
+            platform_->logicalMaximized = true;
+
+            [platform_->window setFrame:[screen visibleFrame] display:YES animate:NO];
+        }
+        else
+        {
+            [platform_->window zoom:nil];
+        }
+    }
 
     UpdateWindowState();
 
@@ -439,6 +548,8 @@ bool Photino::Minimize()
 
     assert(platform_->window);
     if (!platform_->window) return false;
+
+    StopInteractiveWindowOperation();
 
     if (IsFullScreen())
     {
@@ -471,6 +582,8 @@ bool Photino::Restore()
     assert(platform_->window);
     if (!platform_->window) return false;
 
+    StopInteractiveWindowOperation();
+
     suppressRestoredCallback_ = false;
 
     if (IsFullScreen())
@@ -488,7 +601,16 @@ bool Photino::Restore()
         [platform_->window deminiaturize:nil];
 
     if (!wasMinimized && IsMaximized())
-        [platform_->window zoom:nil];
+    {
+        if (options_.chromeless)
+        {
+            RestoreLogicalMaximizedState();
+        }
+        else
+        {
+            [platform_->window zoom:nil];
+        }
+    }
 
     UpdateWindowState();
 
@@ -507,19 +629,195 @@ bool Photino::Show() const
     return true;
 }
 
-void Photino::BeginWindowDrag() const
+bool Photino::CanBeginResize() const noexcept
 {
-    // Not yet implemented on macOS. NSWindow's -performWindowDragWithEvent: needs
-    // the current NSEvent (the mouse-down that began the drag), which this entry
-    // point does not receive. Left as a no-op until it can be built and tested
-    // against Cocoa. Windows is the currently supported platform.
+    return platform_->window &&
+           options_.resizable &&
+           !platform_->isFullScreenTransitioning &&
+           !IsFullScreen() &&
+           !IsMaximized();
 }
 
-void Photino::BeginWindowResize(PhotinoWindowEdge) const
+bool Photino::CanBeginDrag() const noexcept
 {
-    // Not yet implemented on macOS. Cocoa has no direct analogue of the Windows
-    // non-client resize loop; an NSEvent-driven implementation is needed and must
-    // be tested on macOS first.
+    return platform_->window &&
+           !platform_->isFullScreenTransitioning &&
+           !IsFullScreen() &&
+           !IsMaximized() &&
+           !IsMinimized();
+}
+
+void Photino::BeginWindowDrag() const
+{
+    if (!CanBeginDrag())
+        return;
+
+    StopInteractiveWindowOperation();
+
+    platform_->drag.startMouse = [NSEvent mouseLocation];
+    platform_->drag.startOrigin = [platform_->window frame].origin;
+
+    __block MacState* state = platform_.get();
+
+    platform_->drag.monitor = [NSEvent addLocalMonitorForEventsMatchingMask:
+        (NSEventMaskLeftMouseDragged | NSEventMaskLeftMouseUp)
+        handler:^NSEvent*(NSEvent* event)
+        {
+            if (!state || !state->window)
+                return event;
+
+            if (event.type == NSEventTypeLeftMouseUp)
+            {
+                if (state->drag.monitor)
+                {
+                    [NSEvent removeMonitor:state->drag.monitor];
+                    state->drag.monitor = nil;
+                }
+
+                return event;
+            }
+
+            NSPoint currentMouse = [NSEvent mouseLocation];
+
+            CGFloat dx = currentMouse.x - state->drag.startMouse.x;
+            CGFloat dy = currentMouse.y - state->drag.startMouse.y;
+
+            NSPoint origin = NSMakePoint(
+                state->drag.startOrigin.x + dx,
+                state->drag.startOrigin.y + dy);
+
+            [state->window setFrameOrigin:origin];
+
+            return event;
+        }];
+}
+
+void Photino::BeginWindowResize(PhotinoWindowEdge edge) const
+{
+    if (!CanBeginResize() || !IsResizeEdge(edge))
+        return;
+
+    StopInteractiveWindowOperation();
+
+    platform_->resize.edge = edge;
+    platform_->resize.startMouse = [NSEvent mouseLocation];
+    platform_->resize.startFrame = [platform_->window frame];
+
+    __block MacState* state = platform_.get();
+
+    platform_->resize.monitor = [NSEvent addLocalMonitorForEventsMatchingMask:
+        (NSEventMaskLeftMouseDragged | NSEventMaskLeftMouseUp)
+        handler:^NSEvent*(NSEvent* event)
+        {
+            if (!state || !state->window)
+                return event;
+
+            if (event.type == NSEventTypeLeftMouseUp)
+            {
+                if (state->resize.monitor)
+                {
+                    [NSEvent removeMonitor:state->resize.monitor];
+                    state->resize.monitor = nil;
+                }
+
+                return event;
+            }
+
+            NSPoint currentMouse = [NSEvent mouseLocation];
+
+            CGFloat dx = currentMouse.x - state->resize.startMouse.x;
+            CGFloat dy = currentMouse.y - state->resize.startMouse.y;
+
+            NSRect startFrame = state->resize.startFrame;
+
+            CGFloat left = startFrame.origin.x;
+            CGFloat bottom = startFrame.origin.y;
+            CGFloat right = startFrame.origin.x + startFrame.size.width;
+            CGFloat top = startFrame.origin.y + startFrame.size.height;
+
+            const bool resizeLeft =
+                state->resize.edge == PhotinoWindowEdge::Left ||
+                state->resize.edge == PhotinoWindowEdge::TopLeft ||
+                state->resize.edge == PhotinoWindowEdge::BottomLeft;
+
+            const bool resizeRight =
+                state->resize.edge == PhotinoWindowEdge::Right ||
+                state->resize.edge == PhotinoWindowEdge::TopRight ||
+                state->resize.edge == PhotinoWindowEdge::BottomRight;
+
+            const bool resizeTop =
+                state->resize.edge == PhotinoWindowEdge::Top ||
+                state->resize.edge == PhotinoWindowEdge::TopLeft ||
+                state->resize.edge == PhotinoWindowEdge::TopRight;
+
+            const bool resizeBottom =
+                state->resize.edge == PhotinoWindowEdge::Bottom ||
+                state->resize.edge == PhotinoWindowEdge::BottomLeft ||
+                state->resize.edge == PhotinoWindowEdge::BottomRight;
+
+            if (resizeLeft)
+                left += dx;
+
+            if (resizeRight)
+                right += dx;
+
+            if (resizeTop)
+                top += dy;
+
+            if (resizeBottom)
+                bottom += dy;
+
+            NSSize minSize = [state->window minSize];
+            NSSize maxSize = [state->window maxSize];
+
+            CGFloat width = right - left;
+            CGFloat height = top - bottom;
+
+            if (width < minSize.width)
+            {
+                if (resizeLeft)
+                    left = right - minSize.width;
+                else
+                    right = left + minSize.width;
+            }
+
+            if (height < minSize.height)
+            {
+                if (resizeBottom)
+                    bottom = top - minSize.height;
+                else
+                    top = bottom + minSize.height;
+            }
+
+            width = right - left;
+            height = top - bottom;
+
+            if (maxSize.width > 0 && width > maxSize.width)
+            {
+                if (resizeLeft)
+                    left = right - maxSize.width;
+                else
+                    right = left + maxSize.width;
+            }
+
+            if (maxSize.height > 0 && height > maxSize.height)
+            {
+                if (resizeBottom)
+                    bottom = top - maxSize.height;
+                else
+                    top = bottom + maxSize.height;
+            }
+
+            NSRect frame = NSMakeRect(
+                left,
+                bottom,
+                right - left,
+                top - bottom);
+
+            [state->window setFrame:frame display:YES];
+
+            return event;
+        }];
 }
 
 unsigned int Photino::GetScreenDpi() const
@@ -619,6 +917,9 @@ bool Photino::IsMaximized() const noexcept
     if (!platform_->window)
         return false;
 
+    if (options_.chromeless)
+        return platform_->logicalMaximized;
+
     return [platform_->window isZoomed];
 }
 
@@ -660,6 +961,8 @@ void Photino::SetFullScreen(bool fullScreen)
         TraceMacState("SetFullScreen:skip-after-update", this);
         return;
     }
+
+    StopInteractiveWindowOperation();
 
     if (fullScreen)
     {
@@ -709,8 +1012,19 @@ void Photino::SetMaximized(bool maximized)
     if (IsFullScreen() || IsFullScreenTransitioning())
         return;
 
+    StopInteractiveWindowOperation();
+
     if (IsMaximized())
-        [platform_->window zoom:nil];
+    {
+        if (options_.chromeless)
+        {
+            RestoreLogicalMaximizedState();
+        }
+        else
+        {
+            [platform_->window zoom:nil];
+        }
+    }
 
     UpdateWindowState();
 }
@@ -729,6 +1043,8 @@ void Photino::SetMinimized(bool minimized)
     if (IsFullScreen() || IsFullScreenTransitioning())
         return;
 
+    StopInteractiveWindowOperation();
+
     if (IsMinimized())
         [platform_->window deminiaturize:nil];
 
@@ -740,17 +1056,15 @@ void Photino::GetResizable(bool* resizable) const
     assert(resizable);
     if (!resizable) return;
 
-    *resizable = false;
-
-    if (!platform_->window) return;
-
-    *resizable = ([platform_->window styleMask] & NSWindowStyleMaskResizable) == NSWindowStyleMaskResizable;
+    *resizable = options_.resizable;
 }
 
 void Photino::SetResizable(bool resizable)
 {
     assert(platform_->window);
     if (!platform_->window) return;
+
+    options_.resizable = resizable;
 
     NSWindowStyleMask styleMask = [platform_->window styleMask];
 
@@ -760,6 +1074,12 @@ void Photino::SetResizable(bool resizable)
         styleMask &= ~NSWindowStyleMaskResizable;
 
     [platform_->window setStyleMask:styleMask];
+    
+    if (!resizable && platform_->resize.monitor)
+    {
+        [NSEvent removeMonitor:platform_->resize.monitor];
+        platform_->resize.monitor = nil;
+    }
 }
 
 void Photino::GetTopmost(bool* topmost) const

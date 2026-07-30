@@ -11,5 +11,6 @@ ReferenceAlignment: Left
 AllowShortFunctionsOnASingleLine: All
 AllowShortBlocksOnASingleLine: Always
 AllowShortIfStatementsOnASingleLine: WithoutElse
+AllowShortCaseLabelsOnASingleLine: true
 
 BreakBeforeBraces: Allman

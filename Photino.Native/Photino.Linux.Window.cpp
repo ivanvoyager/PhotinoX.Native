@@ -135,7 +135,8 @@ namespace
 
         return true;
     }
-}
+
+} //namespace
 
 void* Photino::GetGtkWidget() const noexcept { return platform_->window; }
 
@@ -770,18 +771,76 @@ bool Photino::Show() const
     return true;
 }
 
+void Photino::UpdateWebViewInputShape() const noexcept
+{
+    if (!platform_->webview)
+        return;
+
+    if (!options_.chromeless || !CanBeginResize())
+    {
+        gtk_widget_input_shape_combine_region(platform_->webview, nullptr);
+        return;
+    }
+
+    const int border = platform_->chromelessSettings.ResizeBorderThickness;
+    const int width = gtk_widget_get_allocated_width(platform_->webview);
+    const int height = gtk_widget_get_allocated_height(platform_->webview);
+
+    int effectiveBorder = border;
+    effectiveBorder = (std::min)(effectiveBorder, (std::max)(0, (width - 1) / 2));
+    effectiveBorder = (std::min)(effectiveBorder, (std::max)(0, (height - 1) / 2));
+
+    if (effectiveBorder <= 0)
+    {
+        gtk_widget_input_shape_combine_region(platform_->webview, nullptr);
+        return;
+    }
+
+    cairo_rectangle_int_t rect =
+        {
+            effectiveBorder,
+            effectiveBorder,
+            width - 2 * effectiveBorder,
+            height - 2 * effectiveBorder};
+
+    auto region = cairo_region_create_rectangle(&rect);
+    gtk_widget_input_shape_combine_region(platform_->webview, region);
+    cairo_region_destroy(region);
+}
+
+bool Photino::CanBeginResize() const noexcept
+{
+    return platform_->window &&
+           options_.chromeless &&
+           options_.resizable &&
+           platform_->chromelessSettings.ResizeBorderThickness > 0 &&
+           !platform_->isFullScreenTransitioning &&
+           !IsFullScreen() &&
+           !IsMaximized();
+}
+
+bool Photino::CanBeginDrag() const noexcept
+{
+    return platform_->window &&
+           options_.chromeless &&
+           platform_->chromelessSettings.DragRegionHeight > 0 &&
+           !platform_->isFullScreenTransitioning &&
+           !IsFullScreen() &&
+           !IsMaximized() &&
+           !IsMinimized();
+}
+
 void Photino::BeginWindowDrag() const
 {
-    // Not yet implemented on Linux. GTK offers gtk_window_begin_move_drag, but it
-    // needs the button, root x/y and event time from the originating GDK event,
-    // which this entry point does not receive. Left as a no-op until it can be
-    // built and tested against GTK. Windows is the currently supported platform.
+    // Linux chromeless drag is started from native GDK button events over the
+    // configured drag region. Wayland requires that originating trusted button
+    // event context, so this generic WebView-message entry point remains a no-op.
 }
 
 void Photino::BeginWindowResize(PhotinoWindowEdge) const
 {
-    // Not yet implemented on Linux. As with BeginWindowDrag, the GTK equivalent
-    // (gtk_window_begin_resize_drag) needs the originating GDK event context.
+    // Linux resize is handled from native GTK edge button events. This generic
+    // entry point has no originating GdkEventButton context and remains a no-op.
 }
 
 unsigned int Photino::GetScreenDpi() const
@@ -1041,11 +1100,7 @@ void Photino::GetResizable(bool* resizable) const
     assert(resizable);
     if (!resizable) return;
 
-    *resizable = false;
-
-    if (!platform_->window) return;
-
-    *resizable = gtk_window_get_resizable(GTK_WINDOW(platform_->window)) != FALSE;
+    *resizable = options_.resizable;
 }
 
 void Photino::SetResizable(bool resizable)
@@ -1053,7 +1108,18 @@ void Photino::SetResizable(bool resizable)
     assert(platform_->window);
     if (!platform_->window) return;
 
+    options_.resizable = resizable;
+
     gtk_window_set_resizable(GTK_WINDOW(platform_->window), resizable);
+
+    UpdateWebViewInputShape();
+
+    if (!resizable)
+    {
+        auto gdkWindow = gtk_widget_get_window(platform_->window);
+        if (gdkWindow)
+            gdk_window_set_cursor(gdkWindow, nullptr);
+    }
 }
 
 void Photino::GetTopmost(bool* topmost) const

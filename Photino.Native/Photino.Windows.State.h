@@ -26,6 +26,7 @@ namespace PhotinoX::Native
 
         WindowSizeLimits sizeLimits;
 
+        bool suppressWindowCallbacks = true;
         bool webViewInitialized = false;
 
         int initialShowCommand = SW_SHOWDEFAULT;

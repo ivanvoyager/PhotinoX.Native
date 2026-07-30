@@ -74,7 +74,12 @@ namespace PhotinoX::Native
 
         bool UseNativeWindowOwner;                              // #53
 
-        int Size;                                               // #54
+        int ChromelessDragRegionHeight;                         // #54
+        int ChromelessDragRegionLeftInset;                      // #55
+        int ChromelessDragRegionRightInset;                     // #56
+        int ChromelessResizeBorderThickness;                    // #57
+
+        int Size;                                               // #58
     };
 
     static_assert(std::is_standard_layout_v<PhotinoInitParams>,
@@ -83,6 +88,6 @@ namespace PhotinoX::Native
     static_assert(sizeof(PhotinoWindowState) == sizeof(int),
         "PhotinoWindowState must remain int-sized for managed/native interop.");
 
-    static_assert(sizeof(PhotinoInitParams) == 368,
+    static_assert(sizeof(PhotinoInitParams) == 384,
         "PhotinoInitParams size changed. Update the managed ABI layout and size validation.");
 }
