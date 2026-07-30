@@ -162,7 +162,7 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Win
     if (!platform_->hWnd)
         std::abort();
 
-    SetIconFile(options_.iconFileName);
+    RefreshWindowIconsForDpi(0);
 
     if (initParams->CenterOnInitialize)
         Center();
@@ -222,6 +222,24 @@ Photino::~Photino()
 
     delete platform_->toastHandler;
     platform_->toastHandler = nullptr;
+
+    if (platform_->ownedSmallIcon)
+    {
+        if (platform_->hWnd)
+            SendMessageW(platform_->hWnd, WM_SETICON, ICON_SMALL, 0);
+
+        DestroyIcon(platform_->ownedSmallIcon);
+        platform_->ownedSmallIcon = nullptr;
+    }
+
+    if (platform_->ownedBigIcon)
+    {
+        if (platform_->hWnd)
+            SendMessageW(platform_->hWnd, WM_SETICON, ICON_BIG, 0);
+
+        DestroyIcon(platform_->ownedBigIcon);
+        platform_->ownedBigIcon = nullptr;
+    }
 }
 
 void Photino::ApplySizeLimits(MINMAXINFO& info) const noexcept
@@ -275,6 +293,9 @@ LRESULT CALLBACK WindowProc(const HWND hwnd, const UINT uMsg, const WPARAM wPara
             newWindowRect->bottom - newWindowRect->top,
             SWP_NOZORDER | SWP_NOACTIVATE
             );
+
+        if (const auto photino = GetPhotino(hwnd))
+            photino->RefreshWindowIconsForDpi(LOWORD(wParam));
 
         return 0;
     }

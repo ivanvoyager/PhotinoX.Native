@@ -141,6 +141,7 @@ namespace PhotinoX::Native
         void RefitContent() const;
         void FocusWebView2() const;
         void CloseWebView();
+        bool RefreshWindowIconsForDpi(UINT dpi);
 #elif defined(__linux__)
         void HandleConfigureEvent(int x, int y, int width, int height);
         void HandleWindowStateEvent();
