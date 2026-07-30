@@ -370,10 +370,21 @@ bool Photino::CanBeginResize() const noexcept
            !IsMaximized();
 }
 
+bool Photino::CanBeginDrag() const noexcept
+{
+    return platform_->hWnd &&
+           !IsFullScreen() &&
+           !IsMaximized() &&
+           !IsMinimized();
+}
+
 void Photino::BeginWindowDrag() const
 {
     assert(platform_->hWnd);
     if (!platform_->hWnd) return;
+
+    if (!CanBeginDrag())
+        return;
 
     // Hand the drag off to the OS's non-client move loop so the window tracks
     // the cursor just like a native title bar would. Releasing capture first

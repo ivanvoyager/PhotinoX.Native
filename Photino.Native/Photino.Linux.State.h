@@ -9,13 +9,21 @@
 
 namespace PhotinoX::Native
 {
+    struct ChromelessSettings
+    {
+        int DragRegionHeight = 0;
+        int DragRegionLeftInset = 0;
+        int DragRegionRightInset = 0;
+        int ResizeBorderThickness = 8;
+    };
+
     struct LinuxState
     {
         GtkWidget* window = nullptr;
         GtkWidget* webview = nullptr;
         GdkGeometry hints{};
 
-        int resizeBorderThickness = 8;
+        ChromelessSettings chromelessSettings;
 
         WindowSizeLimits sizeLimits;
 

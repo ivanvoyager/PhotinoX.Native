@@ -36,8 +36,9 @@
   </PropertyGroup>
 
   <ItemGroup Condition="'$(PhotinoX_UseLocalProjects)' == 'true'">
-    <Compile Include="$(PhotinoNetSourceDir)\Utils\Platform.cs" Link="Utils\Platform.cs" />
-    <Compile Include="$(PhotinoNetSourceDir)\Utils\Platform.MacOS.cs" Link="Utils\Platform.MacOS.cs" />
+    <Compile Include="$(PhotinoNetSourceDir)\Platform.cs" Link="Utils\Platform.cs" />
+    <Compile Include="$(PhotinoNetSourceDir)\Platform.Linux.cs" Link="Utils\Platform.Linux.cs" />
+    <Compile Include="$(PhotinoNetSourceDir)\Platform.MacOS.cs" Link="Utils\Platform.MacOS.cs" />
     <Compile Include="$(PhotinoNetSourceDir)\PhotinoDialogEnums.cs" Link="PhotinoDialogEnums.cs" />
     <Compile Include="$(PhotinoNetSourceDir)\NativeMethods.cs" Link="NativeMethods.cs" />
     <Compile Include="$(PhotinoNetSourceDir)\NativeMethods.Application.cs" Link="NativeMethods.Application.cs" />

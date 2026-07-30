@@ -4,7 +4,6 @@ using System.Drawing;
 using System.Runtime.InteropServices;
 using System.Text;
 using Photino.NET;
-using Photino.NET.Utils;
 
 namespace Photino.Test;
 #endif

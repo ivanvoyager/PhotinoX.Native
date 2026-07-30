@@ -149,6 +149,8 @@ namespace PhotinoX::Native
         void HandleWindowStateEvent();
 
         void CompleteScheduledRestoreNormalGeometry();
+
+        void UpdateWebViewInputShape() const noexcept;
 #elif defined(__APPLE__)
         void HandleFullScreenExitCompleted() noexcept;
         void HandleMiniaturizeStarted() noexcept;
@@ -212,6 +214,7 @@ namespace PhotinoX::Native
         void SetMaxSize(int width, int height);
 
         bool CanBeginResize() const noexcept;
+        bool CanBeginDrag() const noexcept;
         void BeginWindowDrag() const;
         void BeginWindowResize(PhotinoWindowEdge edge) const;
 

@@ -152,32 +152,50 @@ namespace
         if (!instance || !widget || !allocation)
             return;
 
-        if (!instance->CanBeginResize())
-        {
-            gtk_widget_input_shape_combine_region(widget, nullptr);
-            return;
-        }
+        instance->UpdateWebViewInputShape();
+    }
+
+    gboolean on_webview_button_press_event(GtkWidget* widget, GdkEventButton* event, gpointer self)
+    {
+        auto instance = static_cast<Photino*>(self);
+
+        if (!instance || !widget || !event)
+            return FALSE;
+
+        if (event->button != GDK_BUTTON_PRIMARY)
+            return FALSE;
+
+        if (!instance->CanBeginDrag())
+            return FALSE;
 
         auto& platform = instance->Platform();
-        const int border = platform.resizeBorderThickness;
 
-        if (allocation->width <= 2 * border || allocation->height <= 2 * border)
-        {
-            gtk_widget_input_shape_combine_region(widget, nullptr);
-            return;
-        }
+        const int width = gtk_widget_get_allocated_width(widget);
+        const int x = static_cast<int>(event->x);
+        const int y = static_cast<int>(event->y);
 
-        cairo_rectangle_int_t rect =
-        {
-            border,
-            border,
-            allocation->width - 2 * border,
-            allocation->height - 2 * border
-        };
+        const int resizeBorder = instance->CanBeginResize()
+            ? platform.chromelessSettings.ResizeBorderThickness
+            : 0;
 
-        auto region = cairo_region_create_rectangle(&rect);
-        gtk_widget_input_shape_combine_region(widget, region);
-        cairo_region_destroy(region);
+        if (y < resizeBorder || y >= platform.chromelessSettings.DragRegionHeight)
+            return FALSE;
+
+        const int leftInset = (std::clamp)(platform.chromelessSettings.DragRegionLeftInset, 0, width);
+        const int rightInset = (std::clamp)(platform.chromelessSettings.DragRegionRightInset, 0, width);
+        const int dragRight = (std::max)(leftInset, width - rightInset);
+
+        if (x < leftInset || x >= dragRight)
+            return FALSE;
+
+        gtk_window_begin_move_drag(
+            GTK_WINDOW(platform.window),
+            event->button,
+            static_cast<int>(event->x_root),
+            static_cast<int>(event->y_root),
+            event->time);
+
+        return TRUE;
     }
 
     int GetResizeEdge(int x, int y, int width, int height, int border)
@@ -233,7 +251,7 @@ namespace
 
         auto& platform = instance->Platform();
 
-        const int edge = GetResizeEdge(static_cast<int>(event->x), static_cast<int>(event->y), width, height, platform.resizeBorderThickness);
+        const int edge = GetResizeEdge(static_cast<int>(event->x), static_cast<int>(event->y), width, height, platform.chromelessSettings.ResizeBorderThickness);
 
         if (edge < 0)
             return FALSE;
@@ -274,7 +292,7 @@ namespace
             static_cast<int>(event->y),
             width,
             height,
-            platform.resizeBorderThickness);
+            platform.chromelessSettings.ResizeBorderThickness);
 
         const char* cursorName = GetResizeCursorName(edge);
         if (!cursorName)
@@ -290,6 +308,18 @@ namespace
 
         if (cursor)
             g_object_unref(cursor);
+
+        return FALSE;
+    }
+
+    gboolean on_leave_notify_event(GtkWidget* widget, GdkEventCrossing* event, gpointer self)
+    {
+        if (!widget)
+            return FALSE;
+
+        auto gdkWindow = gtk_widget_get_window(widget);
+        if (gdkWindow)
+            gdk_window_set_cursor(gdkWindow, nullptr);
 
         return FALSE;
     }
@@ -379,7 +409,14 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Lin
     SetTitle(options_.windowTitle);
 
     if (options_.chromeless)
+    {
         gtk_window_set_decorated(GTK_WINDOW(platform_->window), FALSE);
+
+        platform_->chromelessSettings.DragRegionHeight = initParams->ChromelessDragRegionHeight;
+        platform_->chromelessSettings.DragRegionLeftInset = initParams->ChromelessDragRegionLeftInset;
+        platform_->chromelessSettings.DragRegionRightInset = initParams->ChromelessDragRegionRightInset;
+        platform_->chromelessSettings.ResizeBorderThickness = initParams->ChromelessResizeBorderThickness;
+    }
 
     SetIconFile(options_.iconFileName);
 
@@ -406,9 +443,14 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Lin
 
     if (options_.chromeless)
     {
-        gtk_widget_add_events(platform_->window, GDK_POINTER_MOTION_MASK | GDK_BUTTON_PRESS_MASK);
+        gtk_widget_add_events(platform_->window, GDK_POINTER_MOTION_MASK | GDK_BUTTON_PRESS_MASK | GDK_LEAVE_NOTIFY_MASK);
+        gtk_widget_add_events(platform_->webview, GDK_BUTTON_PRESS_MASK);
+
         g_signal_connect(platform_->window, "motion-notify-event", G_CALLBACK(on_motion_notify_event), this);
         g_signal_connect(platform_->window, "button-press-event", G_CALLBACK(on_button_press_event), this);
+        g_signal_connect(platform_->window, "leave-notify-event", G_CALLBACK(on_leave_notify_event), this);
+
+        g_signal_connect(platform_->webview, "button-press-event", G_CALLBACK(on_webview_button_press_event), this);
         g_signal_connect(platform_->webview, "size-allocate", G_CALLBACK(on_webview_size_allocate), this);
     }
 

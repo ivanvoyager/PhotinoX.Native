@@ -638,9 +638,18 @@ bool Photino::CanBeginResize() const noexcept
            !IsMaximized();
 }
 
+bool Photino::CanBeginDrag() const noexcept
+{
+    return platform_->window &&
+           !platform_->isFullScreenTransitioning &&
+           !IsFullScreen() &&
+           !IsMaximized() &&
+           !IsMinimized();
+}
+
 void Photino::BeginWindowDrag() const
 {
-    if (!platform_->window || platform_->isFullScreenTransitioning || IsFullScreen() || IsMaximized())
+    if (!CanBeginDrag())
         return;
 
     StopInteractiveWindowOperation();
