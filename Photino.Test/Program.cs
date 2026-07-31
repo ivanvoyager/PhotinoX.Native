@@ -286,11 +286,12 @@ class Program
         return new MemoryStream(Encoding.UTF8.GetBytes(js));
     }
 
-    private static async void WindowWebMessageReceived(object? sender, string message)
+    private static async void WindowWebMessageReceived(object? sender, WebMessageReceivedEventArgs e)
     {
         Log(sender, $"WindowWebMessageReceived Callback Fired.");
 
         var currentWindow = (sender as PhotinoWindow)!;
+        var message = e.Message;
         if (string.Compare(message, "child-window", true) == 0)
         {
             var iconFile = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
@@ -524,14 +525,14 @@ class Program
         Log(sender, "WindowCreated Callback Fired.");
     }
 
-    private static void WindowLocationChanged(object? sender, Point location)
+    private static void WindowLocationChanged(object? sender, LocationChangedEventArgs e)
     {
-        Log(sender, $"WindowLocationChanged Callback Fired.  Left: {location.X}  Top: {location.Y}");
+        Log(sender, $"WindowLocationChanged Callback Fired.  Left: {e.Left}  Top: {e.Top}");
     }
 
-    private static void WindowSizeChanged(object? sender, Size size)
+    private static void WindowSizeChanged(object? sender, SizeChangedEventArgs e)
     {
-        Log(sender, $"WindowSizeChanged Callback Fired.  Height: {size.Height}  Width: {size.Width}");
+        Log(sender, $"WindowSizeChanged Callback Fired.  Height: {e.Height}  Width: {e.Width}");
     }
 
     private static void WindowMaximized(object? sender, EventArgs e)
@@ -578,7 +579,7 @@ class Program
         Log(sender, "WindowFullScreenExited Callback Fired.");
     }
 
-    private static void WindowStateChanged(object? sender, PhotinoWindowStateChangedEventArgs e)
+    private static void WindowStateChanged(object? sender, StateChangedEventArgs e)
     {
         Log(sender, $"WindowStateChanged Callback Fired.  Old: {e.OldState}  New: {e.NewState}");
     }
