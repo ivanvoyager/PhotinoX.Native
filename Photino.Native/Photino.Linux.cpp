@@ -155,18 +155,10 @@ namespace
         instance->UpdateWebViewInputShape();
     }
 
-    gboolean on_webview_button_press_event(GtkWidget* widget, GdkEventButton* event, gpointer self)
+    bool IsInChromelessDragRegion(Photino* instance, GtkWidget* widget, GdkEventButton* event)
     {
-        auto instance = static_cast<Photino*>(self);
-
         if (!instance || !widget || !event)
-            return FALSE;
-
-        if (event->button != GDK_BUTTON_PRIMARY)
-            return FALSE;
-
-        if (!instance->CanBeginDrag())
-            return FALSE;
+            return false;
 
         auto& platform = instance->Platform();
 
@@ -179,14 +171,42 @@ namespace
             : 0;
 
         if (y < resizeBorder || y >= platform.chromelessSettings.DragRegionHeight)
-            return FALSE;
+            return false;
 
         const int leftInset = (std::clamp)(platform.chromelessSettings.DragRegionLeftInset, 0, width);
         const int rightInset = (std::clamp)(platform.chromelessSettings.DragRegionRightInset, 0, width);
         const int dragRight = (std::max)(leftInset, width - rightInset);
 
-        if (x < leftInset || x >= dragRight)
+        return x >= leftInset && x < dragRight;
+    }
+
+    gboolean on_webview_button_press_event(GtkWidget* widget, GdkEventButton* event, gpointer self)
+    {
+        auto instance = static_cast<Photino*>(self);
+
+        if (!instance || !widget || !event)
             return FALSE;
+
+        if (event->button != GDK_BUTTON_PRIMARY)
+            return FALSE;
+
+        if (!IsInChromelessDragRegion(instance, widget, event))
+            return FALSE;
+
+        if (event->type == GDK_2BUTTON_PRESS)
+        {
+            if (instance->IsMaximized())
+                instance->Restore();
+            else
+                instance->Maximize();
+
+            return TRUE;
+        }
+
+        if (!instance->CanBeginDrag())
+            return FALSE;
+
+        auto& platform = instance->Platform();
 
         gtk_window_begin_move_drag(
             GTK_WINDOW(platform.window),
