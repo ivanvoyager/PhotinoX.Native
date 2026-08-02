@@ -409,7 +409,6 @@ void Photino::AttachWebView()
 
     platform_->uiDelegate->photino = this;
     platform_->uiDelegate->window = platform_->window;
-    platform_->uiDelegate->webMessageReceivedCallback = webMessageReceivedCallback_;
 
     [userContentController addScriptMessageHandler:platform_->uiDelegate name:@"photinointerop"];
 

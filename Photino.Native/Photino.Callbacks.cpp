@@ -1,5 +1,6 @@
 #include "Photino.h"
 #include "Photino.Enums.h"
+#include "Photino.Strings.h"
 
 using namespace PhotinoX::Native;
 
@@ -55,12 +56,32 @@ void Photino::InvokeMinimized() const noexcept
     if (minimizedCallback_) minimizedCallback_();
 }
 
+void Photino::InvokeFullScreenChanged(bool fullScreen) const noexcept
+{
+    if (fullScreenChangedCallback_) fullScreenChangedCallback_(fullScreen);
+}
+
 void Photino::InvokeStateChanged(PhotinoWindowState oldState, PhotinoWindowState newState) const noexcept
 {
     if (stateChangedCallback_) stateChangedCallback_(oldState, newState);
 }
 
-void Photino::InvokeFullScreenChanged(bool fullScreen) const noexcept
+void Photino::InvokeWebMessageReceived(const PlatformString& message, const PlatformString& uri) const noexcept
 {
-    if (fullScreenChangedCallback_) fullScreenChangedCallback_(fullScreen);
+    if (!webMessageReceivedCallback_)
+        return;
+
+    std::string utf8Message = ToUtf8String(message);
+    std::string utf8Uri = ToUtf8String(uri);
+
+    webMessageReceivedCallback_(utf8Message.c_str(), utf8Uri.c_str());
+}
+
+void Photino::InvokeContentLoaded(const PlatformString& uri) const noexcept
+{
+    if (!contentLoadedCallback_)
+        return;
+
+    std::string utf8Uri = ToUtf8String(uri);
+    contentLoadedCallback_(utf8Uri.c_str());
 }

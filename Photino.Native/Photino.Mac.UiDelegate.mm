@@ -3,6 +3,8 @@
 
 #include "Photino.h"
 
+using namespace PhotinoX::Native;
+
 @implementation UiDelegate
 
 - (id)init
@@ -12,7 +14,6 @@
     {
         window = nil;
         photino = nullptr;
-        webMessageReceivedCallback = nullptr;
     }
 
     return self;
@@ -21,7 +22,7 @@
 - (void)userContentController:(WKUserContentController*)userContentController
         didReceiveScriptMessage:(WKScriptMessage*)message
 {
-    if (!webMessageReceivedCallback) return;
+    if (!photino) return;
 
     if (![message.body isKindOfClass:[NSString class]]) return;
 
@@ -29,7 +30,13 @@
     const char* messageUtf8 = [body UTF8String];
     if (!messageUtf8) return;
 
-    webMessageReceivedCallback(messageUtf8);
+    NSURL* url = message.frameInfo.request.URL;
+    NSString* uri = url.absoluteString;
+    const char* uriUtf8 = uri ? [uri UTF8String] : nullptr;
+
+    photino->InvokeWebMessageReceived(
+        PlatformString(messageUtf8),
+        uriUtf8 && *uriUtf8 ? PlatformString(uriUtf8) : PlatformString("about:blank"));
 }
 
 - (void)webView:(WKWebView*)webView

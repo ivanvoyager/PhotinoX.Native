@@ -287,7 +287,6 @@ Photino::~Photino()
     {
         platform_->uiDelegate->photino = nullptr;
         platform_->uiDelegate->window = nil;
-        platform_->uiDelegate->webMessageReceivedCallback = nullptr;
         [platform_->uiDelegate release];
         platform_->uiDelegate = nil;
     }

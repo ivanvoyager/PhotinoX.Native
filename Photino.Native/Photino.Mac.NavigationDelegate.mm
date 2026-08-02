@@ -5,6 +5,8 @@
 
 #include "Photino.h"
 
+using namespace PhotinoX::Native;
+
 @implementation NavigationDelegate : NSObject
 
 - (id)init
@@ -17,6 +19,19 @@
     }
 
     return self;
+}
+
+- (void)webView:(WKWebView*)webView
+    didFinishNavigation:(WKNavigation*)navigation
+{
+    if (!photino) return;
+
+    NSURL* url = webView.URL;
+    NSString* uri = url.absoluteString;
+    const char* uriUtf8 = uri ? [uri UTF8String] : nullptr;
+
+    photino->InvokeContentLoaded(
+        uriUtf8 && *uriUtf8 ? PlatformString(uriUtf8) : PlatformString("about:blank"));
 }
 
 - (void)webView:(WKWebView*)webView
