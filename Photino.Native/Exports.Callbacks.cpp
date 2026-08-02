@@ -84,4 +84,11 @@ extern "C"
         if (!instance) return;
         instance->SetStateChangedCallback(callback);
     }
+
+    PHOTINO_EXPORT void Photino_SetContentLoadedCallback(Photino* instance, const ContentLoadedCallback callback)
+    {
+        assert(instance);
+        if (!instance) return;
+        instance->SetContentLoadedCallback(callback);
+    }
 }

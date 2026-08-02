@@ -12,6 +12,7 @@ namespace PhotinoX::Native
     using BoolCallback = bool (*)();
     using IntIntCallback = void (*)(int, int);  // Resized, Moved
     using StringCallback = void (*)(Utf8String);
+    using StringStringCallback = void (*)(Utf8String, Utf8String);
     using ResourceCallback = void* (*)(Utf8String, int*, Utf8String*);
     using MonitorCallback = int (*)(const Monitor*, void* state);
 
@@ -29,7 +30,8 @@ namespace PhotinoX::Native
     using ClosingCallback = BoolCallback;
     using ResizedCallback = IntIntCallback; //(int width, int height)
     using MovedCallback = IntIntCallback;   //(int x, int y)
-    using WebMessageReceivedCallback = StringCallback;
+    using WebMessageReceivedCallback = StringStringCallback; // (message, uri)
+    using ContentLoadedCallback = StringCallback;
     using WebResourceRequestedCallback = ResourceCallback;
     using GetAllMonitorsCallback = MonitorCallback;
     using FullScreenChangedCallback = VoidBoolCallback;

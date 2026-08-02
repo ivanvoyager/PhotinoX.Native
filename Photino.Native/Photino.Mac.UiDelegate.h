@@ -19,7 +19,6 @@ namespace PhotinoX::Native
     @public
         NSWindow* window;
         PhotinoX::Native::Photino* photino;
-        PhotinoX::Native::WebMessageReceivedCallback webMessageReceivedCallback;
 }
 @end
 

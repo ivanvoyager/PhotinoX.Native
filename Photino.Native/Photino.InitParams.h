@@ -35,42 +35,43 @@ namespace PhotinoX::Native
         MinimizedCallback MinimizedHandler;                     // #17
         MovedCallback MovedHandler;                             // #18
         WebMessageReceivedCallback WebMessageReceivedHandler;   // #19
-        WebResourceRequestedCallback CustomSchemeHandler;       // #20
-        ClosedCallback ClosedHandler;                           // #21
-        FullScreenChangedCallback FullScreenChangedHandler;     // #22
-        StateChangedCallback StateChangedHandler;               // #23
+        ContentLoadedCallback ContentLoadedHandler;             // #20
+        WebResourceRequestedCallback CustomSchemeHandler;       // #21
+        ClosedCallback ClosedHandler;                           // #22
+        FullScreenChangedCallback FullScreenChangedHandler;     // #23
+        StateChangedCallback StateChangedHandler;               // #24
 
-        int Left;                                               // #24
-        int Top;                                                // #25
-        int Width;                                              // #26
-        int Height;                                             // #27
-        int Zoom;                                               // #28
-        int MinWidth;                                           // #29
-        int MinHeight;                                          // #30
-        int MaxWidth;                                           // #31
-        int MaxHeight;                                          // #32
+        int Left;                                               // #25
+        int Top;                                                // #26
+        int Width;                                              // #27
+        int Height;                                             // #28
+        int Zoom;                                               // #29
+        int MinWidth;                                           // #30
+        int MinHeight;                                          // #31
+        int MaxWidth;                                           // #32
+        int MaxHeight;                                          // #33
 
-        PhotinoWindowState WindowState;                         // #33
+        PhotinoWindowState WindowState;                         // #34
 
-        bool CenterOnInitialize;                                // #34
-        bool Chromeless;                                        // #35
-        bool Transparent;                                       // #36
-        bool ContextMenuEnabled;                                // #37
-        bool ZoomEnabled;                                       // #38
-        bool DevToolsEnabled;                                   // #39
-        bool Resizable;                                         // #40
-        bool Topmost;                                           // #41
-        bool UseOsDefaultLocation;                              // #42
-        bool UseOsDefaultSize;                                  // #43
-        bool GrantBrowserPermissions;                           // #44
-        bool MediaAutoplayEnabled;                              // #45
-        bool FileSystemAccessEnabled;                           // #46
-        bool WebSecurityEnabled;                                // #47
-        bool JavascriptClipboardAccessEnabled;                  // #48
-        bool MediaStreamEnabled;                                // #49
-        bool SmoothScrollingEnabled;                            // #50
-        bool IgnoreCertificateErrorsEnabled;                    // #51
-        bool NotificationsEnabled;                              // #52
+        bool CenterOnInitialize;                                // #35
+        bool Chromeless;                                        // #36
+        bool Transparent;                                       // #37
+        bool ContextMenuEnabled;                                // #38
+        bool ZoomEnabled;                                       // #39
+        bool DevToolsEnabled;                                   // #40
+        bool Resizable;                                         // #41
+        bool Topmost;                                           // #42
+        bool UseOsDefaultLocation;                              // #43
+        bool UseOsDefaultSize;                                  // #44
+        bool GrantBrowserPermissions;                           // #45
+        bool MediaAutoplayEnabled;                              // #46
+        bool FileSystemAccessEnabled;                           // #47
+        bool WebSecurityEnabled;                                // #48
+        bool JavascriptClipboardAccessEnabled;                  // #49
+        bool MediaStreamEnabled;                                // #50
+        bool SmoothScrollingEnabled;                            // #51
+        bool IgnoreCertificateErrorsEnabled;                    // #52
+        bool NotificationsEnabled;                              // #53
 
         bool UseNativeWindowOwner;                              // #53
 
@@ -88,6 +89,6 @@ namespace PhotinoX::Native
     static_assert(sizeof(PhotinoWindowState) == sizeof(int),
         "PhotinoWindowState must remain int-sized for managed/native interop.");
 
-    static_assert(sizeof(PhotinoInitParams) == 384,
+    static_assert(sizeof(PhotinoInitParams) == 392,
         "PhotinoInitParams size changed. Update the managed ABI layout and size validation.");
 }

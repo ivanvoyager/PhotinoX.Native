@@ -434,8 +434,7 @@ HRESULT Photino::HandleScriptAddedOnDocumentCreated(HRESULT result, LPCWSTR id)
 
 HRESULT Photino::HandleWebMessageReceived(ICoreWebView2* webview, ICoreWebView2WebMessageReceivedEventArgs* args)
 {
-    if (!args) return E_POINTER;
-    if (!webMessageReceivedCallback_) return S_OK;
+    if (!webview || !args) return E_POINTER;
 
     wil::unique_cotaskmem_string message;
     HRESULT hr = args->TryGetWebMessageAsString(&message);
@@ -447,15 +446,38 @@ HRESULT Photino::HandleWebMessageReceived(ICoreWebView2* webview, ICoreWebView2W
     if (FAILED(hr))
         return hr;
 
-    std::string utf8Message = ToUtf8String(message ? PlatformString(message.get()) : PlatformString());
-    webMessageReceivedCallback_(utf8Message.c_str());
+    InvokeWebMessageReceived(
+        message ? PlatformString(message.get()) : PlatformString(),
+        sourceUri && sourceUri.get()[0] ? PlatformString(sourceUri.get()) : PlatformString(L"about:blank"));
+
+    return S_OK;
+}
+
+HRESULT Photino::HandleNavigationCompleted(ICoreWebView2* webview, ICoreWebView2NavigationCompletedEventArgs* args)
+{
+    if (!webview || !args) return E_POINTER;
+
+    BOOL isSuccess = FALSE;
+    HRESULT hr = args->get_IsSuccess(&isSuccess);
+    if (FAILED(hr))
+        return hr;
+
+    if (!isSuccess)
+        return S_OK;
+
+    wil::unique_cotaskmem_string sourceUri;
+    hr = webview->get_Source(&sourceUri);
+    if (FAILED(hr))
+        return hr;
+
+    InvokeContentLoaded(sourceUri && sourceUri.get()[0] ? PlatformString(sourceUri.get()) : PlatformString(L"about:blank"));
 
     return S_OK;
 }
 
 HRESULT Photino::HandleWebResourceRequested(ICoreWebView2* webview, ICoreWebView2WebResourceRequestedEventArgs* args)
 {
-    if (!args) return E_POINTER;
+    if (!webview || !args) return E_POINTER;
 
     wil::com_ptr<ICoreWebView2WebResourceRequest> request;
     HRESULT hr = args->get_Request(&request);
@@ -552,7 +574,7 @@ HRESULT Photino::HandleWebResourceRequested(ICoreWebView2* webview, ICoreWebView
 
 HRESULT Photino::HandlePermissionRequested(ICoreWebView2* webview, ICoreWebView2PermissionRequestedEventArgs* args)
 {
-    if (!args) return E_POINTER;
+    if (!webview || !args) return E_POINTER;
 
     if (options_.grantBrowserPermissions)
         return args->put_State(COREWEBVIEW2_PERMISSION_STATE_ALLOW);
@@ -592,6 +614,13 @@ HRESULT Photino::HandleWebViewControllerCreated(HRESULT result, ICoreWebView2Con
         Callback<ICoreWebView2WebMessageReceivedEventHandler>(this, &Photino::HandleWebMessageReceived)
             .Get(),
         &webMessageToken);
+    if (FAILED(hr)) return hr;
+
+    EventRegistrationToken navigationCompletedToken;
+    hr = platform_->webViewWindow->add_NavigationCompleted(
+        Callback<ICoreWebView2NavigationCompletedEventHandler>(this, &Photino::HandleNavigationCompleted)
+            .Get(),
+        &navigationCompletedToken);
     if (FAILED(hr)) return hr;
 
     hr = platform_->webViewWindow->AddWebResourceRequestedFilter(L"*", COREWEBVIEW2_WEB_RESOURCE_CONTEXT_ALL);

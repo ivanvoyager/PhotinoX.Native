@@ -163,9 +163,19 @@ namespace
         FreeString(const_cast<char*>(contentType));
     }
 
+    PlatformString GetCurrentWebViewUri(WebKitWebView* webView)
+    {
+        if (!webView)
+            return "about:blank";
+
+        const gchar* uri = webkit_web_view_get_uri(webView);
+        return uri && *uri ? PlatformString(uri) : PlatformString("about:blank");
+    }
+
     void HandleWebMessage(WebKitUserContentManager* contentManager, WebKitJavascriptResult* jsResult, gpointer arg)
     {
-        if (!jsResult) return;
+        auto instance = static_cast<Photino*>(arg);
+        if (!instance || !jsResult) return;
 
         JSCValue* jsValue = webkit_javascript_result_get_js_value(jsResult);
         if (!jsValue || !jsc_value_is_string(jsValue)) return;
@@ -173,11 +183,23 @@ namespace
         gchar* strValue = jsc_value_to_string(jsValue);
         if (!strValue) return;
 
-        auto callback = reinterpret_cast<WebMessageReceivedCallback>(arg);
-        if (callback)
-            callback(strValue);
+        auto webView = WEBKIT_WEB_VIEW(instance->Platform().webview);
+
+        instance->InvokeWebMessageReceived(PlatformString(strValue), GetCurrentWebViewUri(webView));
 
         g_free(strValue);
+    }
+
+    void on_webview_load_changed(WebKitWebView* webView, WebKitLoadEvent loadEvent, gpointer self)
+    {
+        if (loadEvent != WEBKIT_LOAD_FINISHED)
+            return;
+
+        auto instance = static_cast<Photino*>(self);
+        if (!instance)
+            return;
+
+        instance->InvokeContentLoaded(GetCurrentWebViewUri(webView));
     }
 
     gboolean on_webview_context_menu(WebKitWebView* web_view, GtkWidget* default_menu, WebKitHitTestResult* hit_test_result,
@@ -646,7 +668,12 @@ bool Photino::EnsureWebViewAttached()
     webkit_user_content_manager_add_script(contentManager.get(), script.get());
 
     g_signal_connect(contentManager.get(), "script-message-received::Photinointerop",
-                     G_CALLBACK(HandleWebMessage), reinterpret_cast<void*>(webMessageReceivedCallback_));
+                     G_CALLBACK(HandleWebMessage),
+                     this);
+
+    g_signal_connect(G_OBJECT(platform_->webview), "load-changed",
+                     G_CALLBACK(on_webview_load_changed),
+                     this);
 
     if (!webkit_user_content_manager_register_script_message_handler(contentManager.get(), "Photinointerop"))
         return false;
