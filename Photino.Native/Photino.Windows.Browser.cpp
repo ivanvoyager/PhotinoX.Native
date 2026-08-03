@@ -453,6 +453,49 @@ HRESULT Photino::HandleWebMessageReceived(ICoreWebView2* webview, ICoreWebView2W
     return S_OK;
 }
 
+HRESULT Photino::HandleNavigationStarting(ICoreWebView2* webview, ICoreWebView2NavigationStartingEventArgs* args)
+{
+    if (!webview || !args) return E_POINTER;
+
+    wil::unique_cotaskmem_string uri;
+    HRESULT hr = args->get_Uri(&uri);
+    if (FAILED(hr))
+        return hr;
+
+    PlatformString navigationUri = uri.get() && uri.get()[0] ? PlatformString(uri.get()) : PlatformString(L"about:blank");
+
+    if (InvokeNavigationStarting(navigationUri))
+    {
+        hr = args->put_Cancel(TRUE);
+        if (FAILED(hr))
+            return hr;
+    }
+
+    return S_OK;
+}
+
+HRESULT Photino::HandleNewWindowRequested(ICoreWebView2* webview, ICoreWebView2NewWindowRequestedEventArgs* args)
+{
+    if (!webview || !args) return E_POINTER;
+
+    wil::unique_cotaskmem_string uri;
+    HRESULT hr = args->get_Uri(&uri);
+    if (FAILED(hr))
+        return hr;
+
+    PlatformString requestedUri = uri.get() && uri.get()[0] ? PlatformString(uri.get()) : PlatformString(L"about:blank");
+
+    InvokeNewWindowRequested(requestedUri);
+
+    // PhotinoX does not create browser-controlled popup windows.
+    // Applications can handle this event and open the URI externally if needed.
+    hr = args->put_Handled(TRUE);
+    if (FAILED(hr))
+        return hr;
+
+    return S_OK;
+}
+
 HRESULT Photino::HandleNavigationCompleted(ICoreWebView2* webview, ICoreWebView2NavigationCompletedEventArgs* args)
 {
     if (!webview || !args) return E_POINTER;
@@ -614,6 +657,20 @@ HRESULT Photino::HandleWebViewControllerCreated(HRESULT result, ICoreWebView2Con
         Callback<ICoreWebView2WebMessageReceivedEventHandler>(this, &Photino::HandleWebMessageReceived)
             .Get(),
         &webMessageToken);
+    if (FAILED(hr)) return hr;
+
+    EventRegistrationToken navigationStartingToken;
+    hr = platform_->webViewWindow->add_NavigationStarting(
+        Callback<ICoreWebView2NavigationStartingEventHandler>(this, &Photino::HandleNavigationStarting)
+            .Get(),
+        &navigationStartingToken);
+    if (FAILED(hr)) return hr;
+
+    EventRegistrationToken newWindowRequestedToken;
+    hr = platform_->webViewWindow->add_NewWindowRequested(
+        Callback<ICoreWebView2NewWindowRequestedEventHandler>(this, &Photino::HandleNewWindowRequested)
+            .Get(),
+        &newWindowRequestedToken);
     if (FAILED(hr)) return hr;
 
     EventRegistrationToken navigationCompletedToken;

@@ -1,3 +1,4 @@
+#include "Photino.InitParams.h"
 #include "Photino.h"
 
 #include <cassert>
@@ -10,6 +11,12 @@ void Photino::InitializeFromInitParams(const PhotinoInitParams* initParams)
     assert(initParams);
     if (!initParams)
         std::abort();
+
+    if (initParams->Size != sizeof(PhotinoInitParams) ||
+        initParams->AbiVersion != PhotinoNativeAbiVersion)
+    {
+        std::abort();
+    }
 
     InitializeOptions(initParams);
     InitializeCallbacks(initParams);
@@ -68,6 +75,8 @@ void Photino::InitializeCallbacks(const PhotinoInitParams* initParams)
     movedCallback_ = initParams->MovedHandler;
     webMessageReceivedCallback_ = initParams->WebMessageReceivedHandler;
     contentLoadedCallback_ = initParams->ContentLoadedHandler;
+    navigationStartingCallback_ = initParams->NavigationStartingHandler;
+    newWindowRequestedCallback_ = initParams->NewWindowRequestedHandler;
     customSchemeCallback_ = initParams->CustomSchemeHandler;
     closedCallback_ = initParams->ClosedHandler;
     fullScreenChangedCallback_ = initParams->FullScreenChangedHandler;

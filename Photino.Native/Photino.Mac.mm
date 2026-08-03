@@ -118,14 +118,19 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Mac
         if (!initParams)
             std::abort();
 
-        if (initParams->Size != sizeof(PhotinoInitParams))
+        if (initParams->Size != sizeof(PhotinoInitParams) ||
+            initParams->AbiVersion != PhotinoNativeAbiVersion)
         {
             NSAlert* alert = [[[NSAlert alloc] init] autorelease];
+
             [alert setMessageText:@"Native Initialization Failed"];
             [alert setInformativeText:[NSString stringWithFormat:
-                @"Initial parameters passed are %d bytes, but expected %zu bytes.",
+                @"Initial parameters ABI mismatch. Passed size: %d bytes, expected size: %zu bytes. Passed ABI version: %d, expected ABI version: %d.",
                 initParams->Size,
-                sizeof(PhotinoInitParams)]];
+                sizeof(PhotinoInitParams),
+                initParams->AbiVersion,
+                PhotinoNativeAbiVersion]];
+
             [alert runModal];
 
             std::abort();

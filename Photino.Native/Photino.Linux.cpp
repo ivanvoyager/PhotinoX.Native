@@ -362,12 +362,20 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Lin
     if (!initParams)
         std::abort();
 
-    if (initParams->Size != sizeof(PhotinoInitParams))
+    if (initParams->Size != sizeof(PhotinoInitParams) ||
+        initParams->AbiVersion != PhotinoNativeAbiVersion)
     {
-        GtkWidget *dialog = gtk_message_dialog_new(
-            nullptr, GTK_DIALOG_DESTROY_WITH_PARENT, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE,
-            "Initial parameters passed are %i bytes, but expected %zu bytes.",
-            initParams->Size, sizeof(PhotinoInitParams));
+        GtkWidget* dialog = gtk_message_dialog_new(
+            nullptr,
+            GTK_DIALOG_DESTROY_WITH_PARENT,
+            GTK_MESSAGE_ERROR,
+            GTK_BUTTONS_CLOSE,
+            "Initial parameters ABI mismatch. Passed size: %i bytes, expected size: %zu bytes. Passed ABI version: %i, expected ABI version: %i.",
+            initParams->Size,
+            sizeof(PhotinoInitParams),
+            initParams->AbiVersion,
+            PhotinoNativeAbiVersion);
+
         gtk_dialog_run(GTK_DIALOG(dialog));
         gtk_widget_destroy(dialog);
         std::abort();

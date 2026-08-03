@@ -39,6 +39,29 @@ using namespace PhotinoX::Native;
         uriUtf8 && *uriUtf8 ? PlatformString(uriUtf8) : PlatformString("about:blank"));
 }
 
+- (WKWebView*)webView:(WKWebView*)webView
+    createWebViewWithConfiguration:(WKWebViewConfiguration*)configuration
+    forNavigationAction:(WKNavigationAction*)navigationAction
+    windowFeatures:(WKWindowFeatures*)windowFeatures
+{
+    if (!navigationAction)
+        return nil;
+
+    NSURL* url = navigationAction.request.URL;
+    NSString* uri = url.absoluteString;
+    const char* uriUtf8 = uri ? [uri UTF8String] : nullptr;
+
+    if (photino)
+    {
+        photino->InvokeNewWindowRequested(
+            uriUtf8 && *uriUtf8 ? PlatformString(uriUtf8) : PlatformString("about:blank"));
+    }
+
+    // PhotinoX does not create browser-controlled popup windows.
+    // Applications can handle this event and open the URI externally if needed.
+    return nil;
+}
+
 - (void)webView:(WKWebView*)webView
         runJavaScriptAlertPanelWithMessage:(NSString*)message
         initiatedByFrame:(WKFrameInfo*)frame
