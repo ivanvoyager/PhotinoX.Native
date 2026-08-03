@@ -680,7 +680,21 @@ HRESULT Photino::HandleWebViewControllerCreated(HRESULT result, ICoreWebView2Con
         &navigationCompletedToken);
     if (FAILED(hr)) return hr;
 
-    hr = platform_->webViewWindow->AddWebResourceRequestedFilter(L"*", COREWEBVIEW2_WEB_RESOURCE_CONTEXT_ALL);
+    wil::com_ptr<ICoreWebView2_22> webview22;
+    hr = platform_->webViewWindow->QueryInterface(IID_PPV_ARGS(&webview22));
+    if (SUCCEEDED(hr) && webview22)
+    {
+        hr = webview22->AddWebResourceRequestedFilterWithRequestSourceKinds(
+            L"*",
+            COREWEBVIEW2_WEB_RESOURCE_CONTEXT_ALL,
+            COREWEBVIEW2_WEB_RESOURCE_REQUEST_SOURCE_KINDS_ALL);
+    }
+    else
+    {
+        hr = platform_->webViewWindow->AddWebResourceRequestedFilter(
+            L"*",
+            COREWEBVIEW2_WEB_RESOURCE_CONTEXT_ALL);
+    }
     if (FAILED(hr)) return hr;
 
     EventRegistrationToken webResourceRequestedToken;
