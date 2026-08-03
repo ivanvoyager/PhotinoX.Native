@@ -11,15 +11,14 @@
 **PhotinoX.Native** is an independent fork of [`tryphotino/photino.Native`](https://github.com/tryphotino/photino.Native) licensed under **Apache‑2.0**.  
 This project is **not affiliated** with the original Photino organization.
 
-The goal of this fork is to maintain and improve the native cross-platform layer for:
+This fork maintains and improves the native cross-platform host for:
 - **Windows x64 / ARM64**
 - **Linux x64 / ARM64**
 - **macOS x64 / ARM64 (Universal)**
 
-PhotinoX.Native provides a lightweight native window host using the OS’s built-in WebView stack, while improving native API structure, interop layout, application lifetime, message-loop ownership, and unified native window state tracking.
+PhotinoX.Native is a lightweight native desktop host for WebView-based applications. It creates and manages OS-native windows, embeds the platform WebView, owns the application message loop, and provides the interop and window-state infrastructure used by higher-level frameworks.
 
-- **Windows:** WebView2 Runtime  
-  Required component: **Microsoft.Web.WebView2** (Edge WebView2)  
+- **Windows:** Microsoft Edge WebView2 Runtime  
   https://learn.microsoft.com/microsoft-edge/webview2/
 - **macOS:** WKWebView (system WebKit)  
   https://developer.apple.com/documentation/webkit/wkwebview/
@@ -50,7 +49,7 @@ These repositories provide the managed .NET surface around the native binaries:
 - [**PhotinoX.Server**](https://github.com/ivanvoyager/PhotinoX.Server) - optional local static-file server for SPA/static assets.
 - [**PhotinoX.Samples**](https://github.com/ivanvoyager/PhotinoX.Samples) - sample projects showcasing common scenarios.
 
-This package is intended for developers building modern desktop apps with web‑based UI frameworks (Blazor, React, Vue, Angular, etc.) on top of native OS windows with minimal dependencies.
+This package is intended for developers building desktop applications with web-based UI frameworks such as Blazor, React, Vue, or Angular, while keeping the native host lightweight and dependency-minimal.
 
 > If you are looking for the main project, see:  
 > https://github.com/ivanvoyager/PhotinoX
@@ -59,33 +58,31 @@ This package is intended for developers building modern desktop apps with web‑
 
 | Aspect | Photino (upstream) | PhotinoX (fork) |
 |---|---|---|
-| **Concept / architecture** | Lightweight alternative to Electron: native window + system WebViews (Windows: WebView2, macOS: WKWebView, Linux: WebKitGTK). | Same lightweight architecture, with active work on native stability, packaging, interop, and long-running application scenarios. |
+| **Concept / architecture** | Lightweight alternative to Electron: native window + system WebViews (Windows: WebView2, macOS: WKWebView, Linux: WebKitGTK). | Same lightweight architecture, with fork-specific improvements in native stability, packaging, interop, and long-running application scenarios. |
 | **Native layer structure** | Central `Photino` class mixes public API, callbacks, platform headers, platform state, and platform-specific implementation details. | Keeps the same native foundation but separates callbacks, init parameters, options, strings, monitors, exports, and platform state into focused components, reducing cross-platform coupling. |
 | **Platform isolation** | Platform-specific headers, fields, and methods are mixed directly into the main `Photino` declaration. | Uses platform state objects (`WindowsState`, `LinuxState`, `MacState`) and platform-specific implementation sections to keep Windows, Linux, and macOS concerns isolated. |
 | **Native memory ownership** | Uses pointer-based string conversion and implicit ownership across several native interop paths, including custom-scheme/resource responses. | Uses explicit native allocation/free helpers, owned `PlatformString` values, and non-owning `Utf8String` ABI inputs. String conversion and response buffers crossing the managed/native boundary now have predictable native ownership to reduce leak-prone paths in long-running applications. |
 | **Application / message loop model** | Uses global native wait/invoke helpers around the native window/message loop. | Introduces `PhotinoApplication` as the native application lifetime object, with explicit run/shutdown semantics, check-access support, and application-level synchronous/asynchronous dispatch. |
 | **Application dispatch API** | Uses older global invoke/wait helpers without a consistent state-carrying callback ABI. | Provides application-level `Invoke` and `BeginInvoke` entry points using a state-aware callback shape (`callback + state`). This gives wrappers a predictable synchronous/asynchronous dispatch contract and allows explicit state passing without captured callbacks in dispatcher-facing paths. |
-| **Window lifecycle callbacks** | Provides the original window callback set. | Extends native lifecycle/state callbacks with closed, fullscreen, unified state-change, WebView navigation-policy, and content-loaded notifications for more complete and predictable native window and WebView state reporting. |
+| **Window lifecycle callbacks** | Provides the original window callback set. | Extends native callbacks with closed, fullscreen, unified state-change, WebView navigation, and content-loaded notifications for more complete window and WebView state reporting. |
 | **Window state model** | Window state handling is spread across platform-specific callbacks and legacy minimized/maximized/fullscreen paths, which can produce transient or duplicate restored notifications. | Uses a unified native-driven `PhotinoWindowState` model (`Normal`, `Minimized`, `Maximized`, `FullScreen`) with `StateChanged` as the primary transition event. Legacy state callbacks are derived from actual state transitions, avoiding misleading `Restored` notifications from transient resize/native messages. |
 | **Startup window state** | Startup minimized/maximized/fullscreen handling is platform-specific and tied to older separate state flags. | Startup state is normalized through the unified `PhotinoWindowState` model and synchronized without user state callbacks during native window construction where the platform allows it. |
 | **Windows fullscreen handling** | Fullscreen behavior follows the older platform-specific path. | Windows fullscreen is restore-aware: the previous style and placement are saved before entering fullscreen and restored when leaving fullscreen, with fullscreen transitions integrated into the unified state machine. |
 | **Linux dependency (WebKitGTK)** | Migrated to WebKitGTK 4.1 in early 2025 (makefile updated before the 4.0.22 release). | Uses WebKitGTK 4.1 consistently across CI/scripts. |
-| **Docs vs. reality (Linux)** | Public Photino.Native docs still mention `libwebkit2gtk-4.0-dev` and Azure Pipelines; the page wasn’t updated after the switch in code. | README/notes match current toolchains and 4.1 (no Azure Pipelines references). |
-| **Release activity** | Latest public upstream release: 4.0.22 (Jan 23, 2025). | Fork publishes its own PhotinoX.Native package with current artifacts. |
+| **Linux documentation** | Some upstream documentation still references older WebKitGTK 4.0 package. | README and build notes match the current WebKitGTK 4.1 toolchain. |
 | **RID packaging** | Uses standard `runtimes/<rid>/native/` layout in NuGet packages. | Same standard RID layout; emphasis on keeping all target RIDs green in CI (win‑x64/arm64, linux‑x64/arm64, osx‑x64/arm64). |
 
 ### History
 
 Photino succeeded Steve Sanderson’s experimental [WebWindow](https://github.com/SteveSandersonMS/WebWindow) project, which explored native OS windows hosting web UI for .NET applications on Windows, macOS, and Linux. Photino continued this idea as an Electron-inspired open-source .NET project backed by the CODE Magazine team and the open-source community, while using the OS-provided WebView stack instead of bundling Chromium.
 
-Upstream’s last public `Photino.Native` release is dated January 23, 2025 (v4.0.22). PhotinoX.Native continues the native-window model with maintained binaries, consistent RID packaging, improved native memory ownership, clearer platform isolation, Windows WebView2 integration fixes, unified native window state tracking, WebView navigation-policy and content-loaded callbacks, state-aware application dispatch APIs, and an application-oriented native message-loop model.
+Upstream’s last public `Photino.Native` release is dated January 23, 2025 (v4.0.22). PhotinoX.Native continues the native-window model with independently maintained binaries and standard RID packaging. The fork focuses on clearer platform isolation, explicit native memory ownership, WebView navigation and content-loaded callbacks, unified window state tracking, state-aware dispatch APIs, and an application-oriented native message-loop model.
 
 ---
 
 # Building (Windows / Linux / macOS)
 
-The build system for PhotinoX.Native uses a combination of MSBuild (Windows)  
-and the included `makefile` (Linux, macOS).
+PhotinoX.Native builds with MSBuild on Windows and the included makefile on Linux and macOS.
 
 > **Toolset note:** The project targets **MSVC v145** (Visual Studio 2026).  
 > CI also uses **v145**.
