@@ -83,10 +83,20 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Win
     //swprintf(msg, 50, L"MaxWidth: %i", initParams->MaxWidth);
     //MessageBox(nullptr, msg, L"", MB_OK);
 
-    if (initParams->Size != sizeof(PhotinoInitParams))
+    if (initParams->Size != sizeof(PhotinoInitParams) ||
+        initParams->AbiVersion != PhotinoNativeAbiVersion)
     {
-        wchar_t msg[200];
-        swprintf(msg, 200, L"Initial parameters passed are %i bytes, but expected %I64i bytes.", initParams->Size, sizeof(PhotinoInitParams));
+        wchar_t msg[256];
+
+        swprintf(
+            msg,
+            256,
+            L"Initial parameters ABI mismatch. Passed size: %i bytes, expected size: %I64i bytes. Passed ABI version: %i, expected ABI version: %i.",
+            initParams->Size,
+            sizeof(PhotinoInitParams),
+            initParams->AbiVersion,
+            PhotinoNativeAbiVersion);
+
         MessageBoxW(nullptr, msg, L"Native Initialization Failed", MB_OK);
         std::abort();
     }

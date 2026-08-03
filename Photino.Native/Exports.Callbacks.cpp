@@ -85,6 +85,20 @@ extern "C"
         instance->SetStateChangedCallback(callback);
     }
 
+    PHOTINO_EXPORT void Photino_SetNavigationStartingCallback(Photino* instance, const NavigationStartingCallback callback)
+    {
+        assert(instance);
+        if (!instance) return;
+        instance->SetNavigationStartingCallback(callback);
+    }
+
+    PHOTINO_EXPORT void Photino_SetNewWindowRequestedCallback(Photino* instance, const NewWindowRequestedCallback callback)
+    {
+        assert(instance);
+        if (!instance) return;
+        instance->SetNewWindowRequestedCallback(callback);
+    }
+
     PHOTINO_EXPORT void Photino_SetContentLoadedCallback(Photino* instance, const ContentLoadedCallback callback)
     {
         assert(instance);

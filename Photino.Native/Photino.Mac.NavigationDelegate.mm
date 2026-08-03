@@ -22,6 +22,46 @@ using namespace PhotinoX::Native;
 }
 
 - (void)webView:(WKWebView*)webView
+    decidePolicyForNavigationAction:(WKNavigationAction*)navigationAction
+    decisionHandler:(void (^)(WKNavigationActionPolicy))decisionHandler
+{
+    if (!decisionHandler)
+        return;
+
+    if (!photino || !navigationAction)
+    {
+        decisionHandler(WKNavigationActionPolicyAllow);
+        return;
+    }
+
+    WKFrameInfo* targetFrame = navigationAction.targetFrame;
+
+    // New-window navigations are handled by WKUIDelegate.
+    if (!targetFrame)
+    {
+        decisionHandler(WKNavigationActionPolicyAllow);
+        return;
+    }
+
+    // This event is for top-level navigation only.
+    if (![targetFrame isMainFrame])
+    {
+        decisionHandler(WKNavigationActionPolicyAllow);
+        return;
+    }
+
+    NSURL* url = navigationAction.request.URL;
+    NSString* uri = url.absoluteString;
+    const char* uriUtf8 = uri ? [uri UTF8String] : nullptr;
+
+    bool cancel = photino->InvokeNavigationStarting(
+        uriUtf8 && *uriUtf8 ? PlatformString(uriUtf8) : PlatformString("about:blank"));
+
+    decisionHandler(cancel ? WKNavigationActionPolicyCancel : WKNavigationActionPolicyAllow);
+}
+
+
+- (void)webView:(WKWebView*)webView
     didFinishNavigation:(WKNavigation*)navigation
 {
     if (!photino) return;

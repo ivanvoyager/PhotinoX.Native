@@ -22,6 +22,8 @@ struct ICoreWebView2EnvironmentOptions;
 struct ICoreWebView2Controller;
 struct ICoreWebView2WebMessageReceivedEventArgs;
 struct ICoreWebView2NavigationCompletedEventArgs;
+struct ICoreWebView2NavigationStartingEventArgs;
+struct ICoreWebView2NewWindowRequestedEventArgs;
 struct ICoreWebView2WebResourceRequestedEventArgs;
 struct ICoreWebView2PermissionRequestedEventArgs;
 #endif
@@ -43,6 +45,8 @@ namespace PhotinoX::Native
     private:
         WebMessageReceivedCallback webMessageReceivedCallback_ = nullptr;
         ContentLoadedCallback contentLoadedCallback_ = nullptr;
+        NavigationStartingCallback navigationStartingCallback_ = nullptr;
+        NewWindowRequestedCallback newWindowRequestedCallback_ = nullptr;
         MovedCallback movedCallback_ = nullptr;
         ResizedCallback resizedCallback_ = nullptr;
         MaximizedCallback maximizedCallback_ = nullptr;
@@ -90,6 +94,8 @@ namespace PhotinoX::Native
         HRESULT CompleteWebViewInitialization();
         HRESULT HandleScriptAddedOnDocumentCreated(HRESULT result, LPCWSTR id);
         HRESULT HandleWebMessageReceived(ICoreWebView2* webview, ICoreWebView2WebMessageReceivedEventArgs* args);
+        HRESULT HandleNavigationStarting(ICoreWebView2* webview, ICoreWebView2NavigationStartingEventArgs* args);
+        HRESULT HandleNewWindowRequested(ICoreWebView2* webview, ICoreWebView2NewWindowRequestedEventArgs* args);
         HRESULT HandleNavigationCompleted(ICoreWebView2* webview, ICoreWebView2NavigationCompletedEventArgs* args);
         HRESULT HandleWebResourceRequested(ICoreWebView2* webview, ICoreWebView2WebResourceRequestedEventArgs* args);
         HRESULT HandlePermissionRequested(ICoreWebView2* webview, ICoreWebView2PermissionRequestedEventArgs* args);
@@ -297,6 +303,8 @@ namespace PhotinoX::Native
         void SetFullScreenChangedCallback(FullScreenChangedCallback callback) noexcept { fullScreenChangedCallback_ = callback; }
         void SetStateChangedCallback(StateChangedCallback callback) noexcept { stateChangedCallback_ = callback; }
         void SetContentLoadedCallback(ContentLoadedCallback callback) noexcept { contentLoadedCallback_ = callback; }
+        void SetNavigationStartingCallback(NavigationStartingCallback callback) noexcept { navigationStartingCallback_ = callback; }
+        void SetNewWindowRequestedCallback(NewWindowRequestedCallback callback) noexcept { newWindowRequestedCallback_ = callback; }
 
         bool InvokeClosing() const noexcept;
         void InvokeClose() const noexcept;
@@ -311,6 +319,8 @@ namespace PhotinoX::Native
         void InvokeStateChanged(PhotinoWindowState oldState, PhotinoWindowState newState) const noexcept;
         void InvokeWebMessageReceived(const PlatformString& message, const PlatformString& uri) const noexcept;
         void InvokeContentLoaded(const PlatformString& uri) const noexcept;
+        bool InvokeNavigationStarting(const PlatformString& uri) const noexcept;
+        bool InvokeNewWindowRequested(const PlatformString& uri) const noexcept;
     };
 
 } // namespace PhotinoX::Native

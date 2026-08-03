@@ -190,6 +190,78 @@ namespace
         g_free(strValue);
     }
 
+    PlatformString GetNavigationActionUri(WebKitNavigationAction* navigationAction)
+    {
+        if (!navigationAction)
+            return "about:blank";
+
+        WebKitURIRequest* request = webkit_navigation_action_get_request(navigationAction);
+        if (!request)
+            return "about:blank";
+
+        const gchar* uri = webkit_uri_request_get_uri(request);
+        return uri && *uri ? PlatformString(uri) : PlatformString("about:blank");
+    }
+
+    PlatformString GetPolicyDecisionUri(WebKitPolicyDecision* decision)
+    {
+        if (!decision || !WEBKIT_IS_NAVIGATION_POLICY_DECISION(decision))
+            return "about:blank";
+
+        WebKitNavigationPolicyDecision* navigationDecision =
+            WEBKIT_NAVIGATION_POLICY_DECISION(decision);
+
+        return GetNavigationActionUri(webkit_navigation_policy_decision_get_navigation_action(navigationDecision));
+    }
+
+    gboolean on_webview_decide_policy(WebKitWebView* webView, WebKitPolicyDecision* decision, WebKitPolicyDecisionType decisionType, gpointer self)
+    {
+        auto instance = static_cast<Photino*>(self);
+        if (!instance || !decision)
+            return FALSE;
+
+        switch (decisionType)
+        {
+        case WEBKIT_POLICY_DECISION_TYPE_NAVIGATION_ACTION:
+        {
+            PlatformString uri = GetPolicyDecisionUri(decision);
+
+            if (instance->InvokeNavigationStarting(uri))
+            {
+                webkit_policy_decision_ignore(decision);
+                return TRUE;
+            }
+
+            return FALSE;
+        }
+
+        case WEBKIT_POLICY_DECISION_TYPE_NEW_WINDOW_ACTION:
+        {
+            PlatformString uri = GetPolicyDecisionUri(decision);
+
+            instance->InvokeNewWindowRequested(uri);
+
+            // PhotinoX does not create browser-controlled popup windows.
+            webkit_policy_decision_ignore(decision);
+            return TRUE;
+        }
+
+        default:
+            return FALSE;
+        }
+    }
+
+    GtkWidget * on_webview_create(WebKitWebView* webView, WebKitNavigationAction * navigationAction, gpointer self)
+    {
+        auto instance = static_cast<Photino*>(self);
+        if (!instance) return nullptr;
+
+        instance->InvokeNewWindowRequested(GetNavigationActionUri(navigationAction));
+
+        // PhotinoX does not create browser-controlled popup windows.
+        return nullptr;
+    }
+
     void on_webview_load_changed(WebKitWebView* webView, WebKitLoadEvent loadEvent, gpointer self)
     {
         if (loadEvent != WEBKIT_LOAD_FINISHED)
@@ -232,7 +304,7 @@ namespace
         webkit_permission_request_allow(request);
         return TRUE;
     }
-    }
+} // namespace
 
 struct InvokeJSWaitInfo
 {
@@ -671,18 +743,26 @@ bool Photino::EnsureWebViewAttached()
                      G_CALLBACK(HandleWebMessage),
                      this);
 
-    g_signal_connect(G_OBJECT(platform_->webview), "load-changed",
+    g_signal_connect(platform_->webview, "decide-policy",
+                     G_CALLBACK(on_webview_decide_policy),
+                     this);
+
+    g_signal_connect(platform_->webview, "create",
+                     G_CALLBACK(on_webview_create),
+                     this);
+
+    g_signal_connect(platform_->webview, "load-changed",
                      G_CALLBACK(on_webview_load_changed),
                      this);
 
     if (!webkit_user_content_manager_register_script_message_handler(contentManager.get(), "Photinointerop"))
         return false;
 
-    g_signal_connect(G_OBJECT(platform_->webview), "context-menu",
+    g_signal_connect(platform_->webview, "context-menu",
                      G_CALLBACK(on_webview_context_menu),
                      this);
 
-    g_signal_connect(G_OBJECT(platform_->webview), "permission-request",
+    g_signal_connect(platform_->webview, "permission-request",
                      G_CALLBACK(on_permission_request),
                      this);
 

@@ -13,7 +13,7 @@ bool Photino::InvokeClosing() const noexcept
     bool result = closingCallback_();
     isClosing_ = false;
 
-    return result;
+    return result; // Closing: true = cancel close, false = allow close
 }
 
 void Photino::InvokeClose() const noexcept
@@ -84,4 +84,22 @@ void Photino::InvokeContentLoaded(const PlatformString& uri) const noexcept
 
     std::string utf8Uri = ToUtf8String(uri);
     contentLoadedCallback_(utf8Uri.c_str());
+}
+
+bool Photino::InvokeNavigationStarting(const PlatformString& uri) const noexcept
+{
+    if (!navigationStartingCallback_)
+        return false;
+
+    std::string utf8Uri = ToUtf8String(uri);
+    return navigationStartingCallback_(utf8Uri.c_str()); // NavigationStarting: true = cancel navigation, false = allow/default behavior
+}
+
+bool Photino::InvokeNewWindowRequested(const PlatformString& uri) const noexcept
+{
+    if (!newWindowRequestedCallback_)
+        return false;
+
+    std::string utf8Uri = ToUtf8String(uri);
+    return newWindowRequestedCallback_(utf8Uri.c_str()); // NewWindowRequested: true = handled, false = allow/default behavior
 }
