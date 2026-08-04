@@ -33,7 +33,7 @@ void Photino::InitializeOptions(const PhotinoInitParams* initParams)
     options_.startString = ToPlatformString(initParams->StartString);
     options_.startUrl = ToPlatformString(initParams->StartUrl);
     
-    options_.temporaryFilesPath = ToPlatformString(initParams->TemporaryFilesPath);
+    options_.userDataFolder = ToPlatformString(initParams->UserDataFolder);
     options_.userAgent = ToPlatformString(initParams->UserAgent);
     options_.browserControlInitParameters = ToPlatformString(initParams->BrowserControlInitParameters);
     options_.notificationRegistrationId = ToPlatformString(initParams->NotificationRegistrationId);

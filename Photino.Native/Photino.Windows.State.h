@@ -3,6 +3,7 @@
 #ifdef _WIN32
 
 #include "Photino.Geometry.h"
+#include "Photino.Windows.WebView2Environment.h"
 
 #include <WebView2.h>
 #include <Windows.h>
@@ -21,6 +22,9 @@ namespace PhotinoX::Native
         wil::com_ptr<ICoreWebView2Environment> webViewEnvironment;
         wil::com_ptr<ICoreWebView2Controller> webViewController;
         wil::com_ptr<ICoreWebView2> webViewWindow;
+
+        WebView2EnvironmentSharingKey webView2EnvironmentSharingKey;
+        WebView2EnvironmentKey webView2EnvironmentKey;
 
         PlatformString scriptId;
 
