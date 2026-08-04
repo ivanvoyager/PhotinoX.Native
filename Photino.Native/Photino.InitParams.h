@@ -23,7 +23,7 @@ namespace PhotinoX::Native
         Utf8String StartUrl;                                    // #4
         Utf8String Title;                                       // #5
         Utf8String WindowIconFile;                              // #6
-        Utf8String TemporaryFilesPath;                          // #7
+        Utf8String UserDataFolder;                              // #7
         Utf8String UserAgent;                                   // #8
         Utf8String BrowserControlInitParameters;                // #9
         Utf8String NotificationRegistrationId;                  // #10

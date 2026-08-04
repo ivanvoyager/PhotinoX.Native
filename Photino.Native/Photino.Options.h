@@ -13,7 +13,7 @@ struct PhotinoOptions
     PlatformString startString;
     PlatformString startUrl;
 
-    PlatformString temporaryFilesPath; // TODO: Currently supported only on Windows.
+    PlatformString userDataFolder; // Currently supported only on Windows.
     PlatformString userAgent;
     PlatformString browserControlInitParameters;
     PlatformString notificationRegistrationId; // TODO: Currently supported only on Windows.

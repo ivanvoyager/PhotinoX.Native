@@ -2,6 +2,7 @@
 #include "Photino.Memory.h"
 #include "Photino.Strings.h"
 #include "Photino.Windows.State.h"
+#include "Photino.Windows.WebView2Environment.h"
 
 #include <WebView2.h>
 #include <Shlwapi.h>
@@ -12,6 +13,8 @@
 
 #include <algorithm>
 #include <cassert>
+#include <string>
+#include <vector>
 
 #pragma comment(lib, "Urlmon.lib")
 
@@ -19,6 +22,46 @@ using namespace Microsoft::WRL;
 using namespace PhotinoX::Native;
 
 PlatformString g_webview2RuntimePath;
+
+namespace
+{
+    WebView2EnvironmentSharingKey BuildWebView2EnvironmentSharingKey(
+        const PlatformString& runtimePath,
+        const PlatformString& userDataFolder)
+    {
+        WebView2EnvironmentSharingKey key;
+        key.runtimePath = runtimePath;
+        key.userDataFolder = userDataFolder;
+        return key;
+    }
+
+    WebView2EnvironmentKey BuildWebView2EnvironmentKey(
+        const PlatformString& additionalBrowserArguments,
+        const std::vector<PlatformString>& customSchemeNames)
+    {
+        WebView2EnvironmentKey key;
+
+        key.additionalBrowserArguments = additionalBrowserArguments;
+        key.customSchemes.reserve(customSchemeNames.size());
+
+        for (const auto& scheme : customSchemeNames)
+        {
+            if (scheme.empty())
+                continue;
+
+            WebView2CustomSchemeKey schemeKey;
+            schemeKey.name = scheme;
+            schemeKey.hasAuthorityComponent = true;
+            schemeKey.treatAsSecure = true;
+
+            key.customSchemes.push_back(std::move(schemeKey));
+        }
+
+        Normalize(key);
+        return key;
+    }
+}
+
 
 void Photino::GetTransparentEnabled(bool* enabled) const
 {
@@ -627,8 +670,13 @@ HRESULT Photino::HandlePermissionRequested(ICoreWebView2* webview, ICoreWebView2
 
 HRESULT Photino::HandleWebViewControllerCreated(HRESULT result, ICoreWebView2Controller* controller)
 {
-    assert(SUCCEEDED(result));
-    if (FAILED(result)) return result;
+    if (FAILED(result))
+    {
+        _com_error err(result);
+        MessageBoxW(platform_->hWnd, err.ErrorMessage(), L"Error creating webview controller", MB_OK);
+        return result;
+    }
+
     if (!controller) return E_POINTER;
 
     HRESULT hr = controller->QueryInterface(&platform_->webViewController);
@@ -722,16 +770,54 @@ HRESULT Photino::HandleWebViewControllerCreated(HRESULT result, ICoreWebView2Con
 
 HRESULT Photino::HandleWebViewEnvironmentCreated(HRESULT result, ICoreWebView2Environment* environment)
 {
-    if (FAILED(result)) return result;
-    if (!environment) return E_POINTER;
+    if (FAILED(result))
+    {
+        _com_error err(result);
+        MessageBoxW(platform_->hWnd, err.ErrorMessage(), L"Error creating webview environment", MB_OK);
+        return result;
+    }
 
-    HRESULT hr = environment->QueryInterface(&platform_->webViewEnvironment);
-    if (FAILED(hr)) return hr;
+    if (!environment)
+        return E_POINTER;
 
-    return environment->CreateCoreWebView2Controller(platform_->hWnd,
-                                                     Callback<ICoreWebView2CreateCoreWebView2ControllerCompletedHandler>(this, &Photino::HandleWebViewControllerCreated)
-                                                         .Get());
+    Microsoft::WRL::ComPtr<ICoreWebView2Environment> environmentToUse;
+
+    WebView2EnvironmentCache::Result cacheResult = WebView2EnvironmentCache::Instance().Store(
+        platform_->webView2EnvironmentSharingKey, platform_->webView2EnvironmentKey, environment, environmentToUse);
+
+    if (cacheResult == WebView2EnvironmentCache::Result::Conflict)
+    {
+        MessageBoxW(
+            platform_->hWnd,
+            L"Conflicting WebView2 environment configuration for the same runtime path and user data folder.",
+            L"Error configuring webview",
+            MB_OK);
+
+        return E_FAIL;
+    }
+
+    assert(environmentToUse);
+    if (!environmentToUse)
+        return E_POINTER;
+
+    HRESULT hr = environmentToUse->QueryInterface(&platform_->webViewEnvironment);
+    if (FAILED(hr))
+        return hr;
+
+    hr = environmentToUse->CreateCoreWebView2Controller(
+        platform_->hWnd,
+        Callback<ICoreWebView2CreateCoreWebView2ControllerCompletedHandler>(this, &Photino::HandleWebViewControllerCreated)
+            .Get());
+
+    if (FAILED(hr))
+    {
+        _com_error err(hr);
+        MessageBoxW(platform_->hWnd, err.ErrorMessage(), L"Error creating webview controller", MB_OK);
+    }
+
+    return hr;
 }
+
 //https://learn.microsoft.com/en-us/microsoft-edge/webview2/reference/winrt/microsoft_web_webview2_core/corewebview2customschemeregistration?view=webview2-winrt-1.0.4022.49
 //https://learn.microsoft.com/ru-ru/microsoft-edge/webview2/reference/win32/icorewebview2environmentoptions4?view=webview2-1.0.4078.44
 HRESULT Photino::ConfigureCustomSchemeRegistrations(ICoreWebView2EnvironmentOptions* options) const
@@ -739,7 +825,7 @@ HRESULT Photino::ConfigureCustomSchemeRegistrations(ICoreWebView2EnvironmentOpti
     if (!options)
         return E_POINTER;
 
-    if (customSchemeNames_.empty())
+    if (platform_->webView2EnvironmentKey.customSchemes.empty())
         return S_OK;
 
     ComPtr<ICoreWebView2EnvironmentOptions4> options4;
@@ -750,23 +836,23 @@ HRESULT Photino::ConfigureCustomSchemeRegistrations(ICoreWebView2EnvironmentOpti
     std::vector<ComPtr<CoreWebView2CustomSchemeRegistration>> registrations;
     std::vector<ICoreWebView2CustomSchemeRegistration*> rawRegistrations;
 
-    registrations.reserve(customSchemeNames_.size());
-    rawRegistrations.reserve(customSchemeNames_.size());
+    registrations.reserve(platform_->webView2EnvironmentKey.customSchemes.size());
+    rawRegistrations.reserve(platform_->webView2EnvironmentKey.customSchemes.size());
 
-    for (const auto& scheme : customSchemeNames_)
+    for (const auto& scheme : platform_->webView2EnvironmentKey.customSchemes)
     {
-        if (scheme.empty())
+        if (scheme.name.empty())
             continue;
 
-        auto registration = Make<CoreWebView2CustomSchemeRegistration>(scheme.c_str());
+        auto registration = Make<CoreWebView2CustomSchemeRegistration>(scheme.name.c_str());
         if (!registration)
             return E_OUTOFMEMORY;
 
-        hr = registration->put_HasAuthorityComponent(TRUE);
+        hr = registration->put_HasAuthorityComponent(scheme.hasAuthorityComponent ? TRUE : FALSE);
         if (FAILED(hr))
             return hr;
 
-        hr = registration->put_TreatAsSecure(TRUE);
+        hr = registration->put_TreatAsSecure(scheme.treatAsSecure ? TRUE : FALSE);
         if (FAILED(hr))
             return hr;
 
@@ -784,21 +870,69 @@ HRESULT Photino::ConfigureCustomSchemeRegistrations(ICoreWebView2EnvironmentOpti
 
 void Photino::AttachWebView()
 {
-    auto options = Microsoft::WRL::Make<CoreWebView2EnvironmentOptions>();
-    if (!options)
+    PlatformString startupString = BuildStartupString();
+    PlatformString userDataFolder = options_.userDataFolder;
+
+    platform_->webView2EnvironmentSharingKey = BuildWebView2EnvironmentSharingKey(g_webview2RuntimePath, userDataFolder);
+    platform_->webView2EnvironmentKey = BuildWebView2EnvironmentKey(startupString, customSchemeNames_);
+
+    Microsoft::WRL::ComPtr<ICoreWebView2Environment> cachedEnvironment;
+
+    WebView2EnvironmentCache::Result cacheResult =  WebView2EnvironmentCache::Instance().TryGet(
+        platform_->webView2EnvironmentSharingKey, platform_->webView2EnvironmentKey, cachedEnvironment);
+
+    if (cacheResult == WebView2EnvironmentCache::Result::Conflict)
     {
-        MessageBoxW(platform_->hWnd, L"Failed to allocate WebView2 environment options.", L"Error configuring webview", MB_OK);
+        MessageBoxW(
+            platform_->hWnd,
+            L"AttachWebView: Conflicting WebView2 environment configuration for the same runtime path and user data folder.",
+            L"Error configuring webview",
+            MB_OK | MB_ICONERROR);
+
         return;
     }
 
-    PlatformString startupString = BuildStartupString();
+    if (cacheResult == WebView2EnvironmentCache::Result::Hit)
+    {
+        HRESULT hr = cachedEnvironment->QueryInterface(&platform_->webViewEnvironment);
+        if (FAILED(hr))
+        {
+            _com_error err(hr);
+            MessageBoxW(platform_->hWnd, err.ErrorMessage(), L"AttachWebView: Error getting cached webview environment", MB_OK);
+            return;
+        }
+
+        hr = cachedEnvironment->CreateCoreWebView2Controller(
+            platform_->hWnd,
+            Callback<ICoreWebView2CreateCoreWebView2ControllerCompletedHandler>(this, &Photino::HandleWebViewControllerCreated)
+                .Get());
+
+        if (FAILED(hr))
+        {
+            _com_error err(hr);
+            MessageBoxW(platform_->hWnd, err.ErrorMessage(), L"AttachWebView: Error creating webview controller", MB_OK);
+        }
+
+        return;
+    }
+
+    // Existing create-new-environment path continues here.
+    assert(cacheResult == WebView2EnvironmentCache::Result::Miss);
+
+    auto options = Microsoft::WRL::Make<CoreWebView2EnvironmentOptions>();
+    if (!options)
+    {
+        MessageBoxW(platform_->hWnd, L"AttachWebView: Failed to allocate WebView2 environment options.", L"Error configuring webview", MB_OK);
+        return;
+    }
+
     if (!startupString.empty())
     {
         HRESULT hr = options->put_AdditionalBrowserArguments(startupString.c_str());
         if (FAILED(hr))
         {
             _com_error err(hr);
-            MessageBoxW(platform_->hWnd, err.ErrorMessage(), L"Error configuring webview", MB_OK);
+            MessageBoxW(platform_->hWnd, err.ErrorMessage(), L"AttachWebView: Error configuring webview", MB_OK);
             return;
         }
     }
@@ -807,22 +941,22 @@ void Photino::AttachWebView()
     if (FAILED(hr))
     {
         _com_error err(hr);
-        MessageBoxW(platform_->hWnd, err.ErrorMessage(), L"Error configuring custom schemes", MB_OK);
+        MessageBoxW(platform_->hWnd, err.ErrorMessage(), L"AttachWebView: Error configuring custom schemes", MB_OK);
         return;
     }
 
     PCWSTR runtimePath = g_webview2RuntimePath.empty() ? nullptr : g_webview2RuntimePath.c_str();
-    PCWSTR userDataFolder = options_.temporaryFilesPath.empty() ? nullptr : options_.temporaryFilesPath.c_str();
+    PCWSTR userDataFolderPath = userDataFolder.empty() ? nullptr : userDataFolder.c_str();
 
-    HRESULT envResult = CreateCoreWebView2EnvironmentWithOptions(runtimePath, userDataFolder, options.Get(),
-                                                                 Callback<ICoreWebView2CreateCoreWebView2EnvironmentCompletedHandler>(this, &Photino::HandleWebViewEnvironmentCreated)
-                                                                     .Get());
+    HRESULT envResult = CreateCoreWebView2EnvironmentWithOptions(runtimePath, userDataFolderPath, options.Get(),
+                        Callback<ICoreWebView2CreateCoreWebView2EnvironmentCompletedHandler>(this, &Photino::HandleWebViewEnvironmentCreated)
+                        .Get());
 
     if (FAILED(envResult))
     {
         _com_error err(envResult);
         LPCTSTR errMsg = err.ErrorMessage();
-        MessageBoxW(platform_->hWnd, errMsg, L"Error instantiating webview", MB_OK);
+        MessageBoxW(platform_->hWnd, errMsg, L"AttachWebView: Error instantiating webview", MB_OK);
     }
 }
 
@@ -929,46 +1063,50 @@ bool Photino::InstallWebView2()
 {
     const wchar_t* srcUrl = L"https://go.microsoft.com/fwlink/p/?LinkId=2124703";
 
-    wchar_t tempPath[MAX_PATH];
-    if (!GetTempPathW(_countof(tempPath), tempPath))
+    wchar_t tempPath[MAX_PATH]{};
+
+    DWORD tempPathLength = GetTempPathW(_countof(tempPath), tempPath);
+    if (tempPathLength == 0 || tempPathLength >= _countof(tempPath))
         return false;
 
-    wchar_t destFile[MAX_PATH];
-    if (wcscpy_s(destFile, tempPath) != 0)
+    wchar_t tempFile[MAX_PATH]{};
+    if (GetTempFileNameW(tempPath, L"wv2", 0, tempFile) == 0)
         return false;
 
-    if (wcscat_s(destFile, L"MicrosoftEdgeWebview2Setup.exe") != 0)
-        return false;
+    std::wstring destFile(tempFile);
+    destFile += L".exe";
 
-    if (URLDownloadToFileW(nullptr, srcUrl, destFile, 0, nullptr) != S_OK)
-        return false;
+    DeleteFileW(tempFile);
 
-    wchar_t command[MAX_PATH + 3];
-    if (swprintf_s(command, L"\"%s\"", destFile) < 0)
+    if (URLDownloadToFileW(nullptr, srcUrl, destFile.c_str(), 0, nullptr) != S_OK)
     {
-        DeleteFileW(destFile);
+        DeleteFileW(destFile.c_str());
         return false;
     }
+
+    std::wstring command = L"\"" + destFile + L"\"";
+    std::vector<wchar_t> commandLine(command.begin(), command.end());
+    commandLine.push_back(L'\0');
 
     STARTUPINFOW si{};
     si.cb = sizeof(si);
     PROCESS_INFORMATION pi{};
 
     BOOL success = CreateProcessW(
-        nullptr, // No module name (use command line)
-        command, // Command line
-        nullptr, // Process handle not inheritable
-        nullptr, // Thread handle not inheritable
-        FALSE,   // Set handle inheritance to FALSE
-        0,       // No creation flags
-        nullptr, // Use parent's environment block
-        nullptr, // Use parent's starting directory
-        &si,     // Pointer to STARTUPINFO structure
-        &pi);    // Pointer to PROCESS_INFORMATION structure
+        nullptr,            // No module name (use command line)
+        commandLine.data(), // Command line
+        nullptr,            // Process handle not inheritable
+        nullptr,            // Thread handle not inheritable
+        FALSE,              // Set handle inheritance to FALSE
+        0,                  // No creation flags
+        nullptr,            // Use parent's environment block
+        nullptr,            // Use parent's starting directory
+        &si,                // Pointer to STARTUPINFO structure
+        &pi);               // Pointer to PROCESS_INFORMATION structure
 
     if (!success)
     {
-        DeleteFileW(destFile);
+        DeleteFileW(destFile.c_str());
         return false;
     }
 
@@ -981,7 +1119,7 @@ bool Photino::InstallWebView2()
     CloseHandle(pi.hProcess);
     CloseHandle(pi.hThread);
 
-    DeleteFileW(destFile);
+    DeleteFileW(destFile.c_str());
 
     return gotExitCode && exitCode == 0;
 }

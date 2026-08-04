@@ -320,7 +320,7 @@ class Program
 
                 .RegisterCustomSchemeHandler("app", AppCustomSchemeUsed)
 
-                .SetTemporaryFilesPath(currentWindow.TemporaryFilesPath)
+                .SetUserDataFolder(currentWindow.UserDataFolder)
                 .SetLogVerbosity(s_logEvents ? 2 : 0);
 
             x.Show();
