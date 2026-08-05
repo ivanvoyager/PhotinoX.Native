@@ -74,6 +74,7 @@ void Photino::InitializeCallbacks(const PhotinoInitParams* initParams)
     minimizedCallback_ = initParams->MinimizedHandler;
     movedCallback_ = initParams->MovedHandler;
     webMessageReceivedCallback_ = initParams->WebMessageReceivedHandler;
+    contentLoadingCallback_ = initParams->ContentLoadingHandler;
     contentLoadedCallback_ = initParams->ContentLoadedHandler;
     navigationStartingCallback_ = initParams->NavigationStartingHandler;
     newWindowRequestedCallback_ = initParams->NewWindowRequestedHandler;

@@ -264,14 +264,23 @@ namespace
 
     void on_webview_load_changed(WebKitWebView* webView, WebKitLoadEvent loadEvent, gpointer self)
     {
-        if (loadEvent != WEBKIT_LOAD_FINISHED)
-            return;
-
         auto instance = static_cast<Photino*>(self);
         if (!instance)
             return;
 
-        instance->InvokeContentLoaded(GetCurrentWebViewUri(webView));
+        switch (loadEvent)
+        {
+        case WEBKIT_LOAD_COMMITTED:
+            instance->InvokeContentLoading(GetCurrentWebViewUri(webView));
+            break;
+
+        case WEBKIT_LOAD_FINISHED:
+            instance->InvokeContentLoaded(GetCurrentWebViewUri(webView));
+            break;
+
+        default:
+            break;
+        }
     }
 
     gboolean on_webview_context_menu(WebKitWebView* web_view, GtkWidget* default_menu, WebKitHitTestResult* hit_test_result,

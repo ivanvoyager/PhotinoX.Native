@@ -34,6 +34,7 @@ namespace PhotinoX::Native
     using WebMessageReceivedCallback = StringStringCallback; // (message, uri)
     using NavigationStartingCallback = StringBoolCallback; // returns true to cancel
     using NewWindowRequestedCallback = StringBoolCallback; // returns true when handled
+    using ContentLoadingCallback = StringCallback;
     using ContentLoadedCallback = StringCallback;
     using WebResourceRequestedCallback = ResourceCallback;
     using GetAllMonitorsCallback = MonitorCallback;
