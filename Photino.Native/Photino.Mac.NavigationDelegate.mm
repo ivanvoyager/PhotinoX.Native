@@ -54,12 +54,22 @@ using namespace PhotinoX::Native;
     NSString* uri = url.absoluteString;
     const char* uriUtf8 = uri ? [uri UTF8String] : nullptr;
 
-    bool cancel = photino->InvokeNavigationStarting(
-        uriUtf8 && *uriUtf8 ? PlatformString(uriUtf8) : PlatformString("about:blank"));
+    bool cancel = photino->InvokeNavigationStarting(uriUtf8 && *uriUtf8 ? PlatformString(uriUtf8) : PlatformString("about:blank"));
 
     decisionHandler(cancel ? WKNavigationActionPolicyCancel : WKNavigationActionPolicyAllow);
 }
 
+- (void)webView:(WKWebView*)webView
+    didCommitNavigation:(WKNavigation*)navigation
+{
+    if (!photino) return;
+
+    NSURL* url = webView.URL;
+    NSString* uri = url.absoluteString;
+    const char* uriUtf8 = uri ? [uri UTF8String] : nullptr;
+
+    photino->InvokeContentLoading(uriUtf8 && *uriUtf8 ? PlatformString(uriUtf8) : PlatformString("about:blank"));
+}
 
 - (void)webView:(WKWebView*)webView
     didFinishNavigation:(WKNavigation*)navigation
@@ -70,8 +80,7 @@ using namespace PhotinoX::Native;
     NSString* uri = url.absoluteString;
     const char* uriUtf8 = uri ? [uri UTF8String] : nullptr;
 
-    photino->InvokeContentLoaded(
-        uriUtf8 && *uriUtf8 ? PlatformString(uriUtf8) : PlatformString("about:blank"));
+    photino->InvokeContentLoaded(uriUtf8 && *uriUtf8 ? PlatformString(uriUtf8) : PlatformString("about:blank"));
 }
 
 - (void)webView:(WKWebView*)webView

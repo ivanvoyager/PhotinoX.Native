@@ -539,6 +539,20 @@ HRESULT Photino::HandleNewWindowRequested(ICoreWebView2* webview, ICoreWebView2N
     return S_OK;
 }
 
+HRESULT Photino::HandleContentLoading(ICoreWebView2* webview, ICoreWebView2ContentLoadingEventArgs* args)
+{
+    if (!webview || !args) return E_POINTER;
+
+    wil::unique_cotaskmem_string sourceUri;
+    HRESULT hr = webview->get_Source(&sourceUri);
+    if (FAILED(hr))
+        return hr;
+
+    InvokeContentLoading(sourceUri && sourceUri.get()[0] ? PlatformString(sourceUri.get()) : PlatformString(L"about:blank"));
+
+    return S_OK;
+}
+
 HRESULT Photino::HandleNavigationCompleted(ICoreWebView2* webview, ICoreWebView2NavigationCompletedEventArgs* args)
 {
     if (!webview || !args) return E_POINTER;
@@ -719,6 +733,13 @@ HRESULT Photino::HandleWebViewControllerCreated(HRESULT result, ICoreWebView2Con
         Callback<ICoreWebView2NewWindowRequestedEventHandler>(this, &Photino::HandleNewWindowRequested)
             .Get(),
         &newWindowRequestedToken);
+    if (FAILED(hr)) return hr;
+
+    EventRegistrationToken contentLoadingToken;
+    hr = platform_->webViewWindow->add_ContentLoading(
+        Callback<ICoreWebView2ContentLoadingEventHandler>(this, &Photino::HandleContentLoading)
+            .Get(),
+        &contentLoadingToken);
     if (FAILED(hr)) return hr;
 
     EventRegistrationToken navigationCompletedToken;

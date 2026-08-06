@@ -77,6 +77,15 @@ void Photino::InvokeWebMessageReceived(const PlatformString& message, const Plat
     webMessageReceivedCallback_(utf8Message.c_str(), utf8Uri.c_str());
 }
 
+void Photino::InvokeContentLoading(const PlatformString& uri) const noexcept
+{
+    if (!contentLoadingCallback_)
+        return;
+
+    std::string utf8Uri = ToUtf8String(uri);
+    contentLoadingCallback_(utf8Uri.c_str());
+}
+
 void Photino::InvokeContentLoaded(const PlatformString& uri) const noexcept
 {
     if (!contentLoadedCallback_)
@@ -101,5 +110,5 @@ bool Photino::InvokeNewWindowRequested(const PlatformString& uri) const noexcept
         return false;
 
     std::string utf8Uri = ToUtf8String(uri);
-    return newWindowRequestedCallback_(utf8Uri.c_str()); // NewWindowRequested: true = handled, false = allow/default behavior
+    return newWindowRequestedCallback_(utf8Uri.c_str()); // Reserved: NewWindowRequested: true = handled, false = allow/default behavior
 }

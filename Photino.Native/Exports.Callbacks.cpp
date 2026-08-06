@@ -99,6 +99,13 @@ extern "C"
         instance->SetNewWindowRequestedCallback(callback);
     }
 
+    PHOTINO_EXPORT void Photino_SetContentLoadingCallback(Photino* instance, const ContentLoadingCallback callback)
+    {
+        assert(instance);
+        if (!instance) return;
+        instance->SetContentLoadingCallback(callback);
+    }
+
     PHOTINO_EXPORT void Photino_SetContentLoadedCallback(Photino* instance, const ContentLoadedCallback callback)
     {
         assert(instance);
