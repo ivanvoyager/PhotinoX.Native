@@ -33,6 +33,8 @@ namespace
 
         [NSApp postEvent:event atStart:NO];
     }
+
+    NSString* const PhotinoNotificationCategoryIdentifier = @"PhotinoX.Notification";
 }
 
 PhotinoApplication::PhotinoApplication() : platform_(std::make_unique<MacApplicationState>())
@@ -148,13 +150,56 @@ bool PhotinoApplication::BeginInvoke(InvokeStateCallback callback, void* state) 
     return true;
 }
 
+bool PhotinoApplication::IsAppBundleProcess() const
+{
+    NSBundle* mainBundle = [NSBundle mainBundle];
+    if (!mainBundle)
+        return false;
+
+    NSURL* bundleURL = [mainBundle bundleURL];
+    if (!bundleURL)
+        return false;
+
+    NSString* extension = [bundleURL pathExtension];
+    return extension && [extension caseInsensitiveCompare:@"app"] == NSOrderedSame;
+}
+
 bool PhotinoApplication::InitializeNotifications()
 {
     bool expected = false;
     if (!notificationsInitialized_.compare_exchange_strong(expected, true, std::memory_order_acq_rel))
         return true;
 
-    UNUserNotificationCenter* center = [UNUserNotificationCenter currentNotificationCenter];
+    //NSBundle* mainBundle = [NSBundle mainBundle];
+    //NSLog(@"PhotinoX: macOS notification bundle id: %@", [mainBundle bundleIdentifier]);
+    //NSLog(@"PhotinoX: macOS notification bundle url: %@", [mainBundle bundleURL]);
+
+    if (!IsAppBundleProcess())
+    {
+        NSLog(@"PhotinoX: macOS native notifications require an .app bundle. Current process is not running from an application bundle.");
+        notificationsInitialized_.store(false, std::memory_order_release);
+        return false;
+    }
+
+    UNUserNotificationCenter* center = nil;
+
+    @try
+    {
+        center = [UNUserNotificationCenter currentNotificationCenter];
+    }
+    @catch (NSException* exception)
+    {
+        NSLog(@"PhotinoX: Failed to initialize macOS native notifications: %@", exception);
+        notificationsInitialized_.store(false, std::memory_order_release);
+        return false;
+    }
+
+    if (!center)
+    {
+        NSLog(@"PhotinoX: Failed to initialize macOS native notifications: current notification center is nil.");
+        notificationsInitialized_.store(false, std::memory_order_release);
+        return false;
+    }
 
     if (!platform_->notificationDelegate)
         platform_->notificationDelegate = [[NotificationDelegate alloc] init];
@@ -162,12 +207,40 @@ bool PhotinoApplication::InitializeNotifications()
     platform_->notificationDelegate->app = this;
     center.delegate = platform_->notificationDelegate;
 
+    UNNotificationCategory* category =
+        [UNNotificationCategory categoryWithIdentifier:PhotinoNotificationCategoryIdentifier
+                                               actions:@[]
+                                     intentIdentifiers:@[]
+                                               options:UNNotificationCategoryOptionCustomDismissAction];
+
+    [center setNotificationCategories:[NSSet setWithObject:category]];
+
     [center requestAuthorizationWithOptions:(UNAuthorizationOptionAlert |
                                              UNAuthorizationOptionSound |
                                              UNAuthorizationOptionBadge)
                           completionHandler:^(BOOL granted, NSError* error) {
                               if (error)
-                                  NSLog(@"Failed to request notification authorization: %@", error);
+                              {
+                                  NSLog(@"PhotinoX: macOS notification authorization request failed: %@", error);
+                                  return;
+                              }
+
+                              if (!granted)
+                              {
+                                  NSLog(@"PhotinoX: macOS notification authorization was not granted.");
+                                  return;
+                              }
+
+                              /*NSLog(@"PhotinoX: macOS notification authorization granted: %@", granted ? @"YES" : @"NO");
+
+                              [[UNUserNotificationCenter currentNotificationCenter]
+                                  getNotificationSettingsWithCompletionHandler:^(UNNotificationSettings* settings) {
+                                      NSLog(@"PhotinoX: macOS notification settings: authorizationStatus=%ld alertSetting=%ld soundSetting=%ld notificationCenterSetting=%ld",
+                                            (long)settings.authorizationStatus,
+                                            (long)settings.alertSetting,
+                                            (long)settings.soundSetting,
+                                            (long)settings.notificationCenterSetting);
+                                  }];*/
                           }];
 
     return true;
@@ -203,6 +276,12 @@ int PhotinoApplication::ShowNotificationCore(int notificationId, const PlatformS
     content.title = nsTitle;
     content.body = nsBody;
     content.sound = [UNNotificationSound defaultSound];
+    content.categoryIdentifier = PhotinoNotificationCategoryIdentifier;
+
+    if (@available(macOS 12.0, *))
+    {
+        content.interruptionLevel = UNNotificationInterruptionLevelActive;
+    }
 
     content.userInfo =
     @{
@@ -229,27 +308,36 @@ int PhotinoApplication::ShowNotificationCore(int notificationId, const PlatformS
         }
     }
 
-    UNTimeIntervalNotificationTrigger* trigger =
-        [UNTimeIntervalNotificationTrigger triggerWithTimeInterval:0.3 repeats:NO];
-
-    NSString* identifier = [NSString stringWithFormat:@"%d", notificationId];
+    NSString* identifier = [NSString stringWithFormat:@"%d-%@", notificationId, [[NSUUID UUID] UUIDString]];
 
     UNNotificationRequest* request =
         [UNNotificationRequest requestWithIdentifier:identifier
                                              content:content
-                                             trigger:trigger];
+                                             trigger:nil];
 
     const PhotinoApplication* app = this;
 
-    [[UNUserNotificationCenter currentNotificationCenter]
-        addNotificationRequest:request
-         withCompletionHandler:^(NSError* error) {
-             if (error)
-             {
-                 NSLog(@"Failed to show notification: %@", error);
-                 NotificationDispatch::ScheduleNotificationFailed(app, notificationId, callbackState);
-             }
-         }];
+    UNUserNotificationCenter* center = [UNUserNotificationCenter currentNotificationCenter];
+
+    [center getNotificationSettingsWithCompletionHandler:^(UNNotificationSettings* settings) {
+        if (!settings || settings.authorizationStatus == UNAuthorizationStatusDenied)
+        {
+            NotificationDispatch::ScheduleNotificationFailed(app, notificationId, callbackState);
+            return;
+        }
+
+        [center addNotificationRequest:request
+                 withCompletionHandler:^(NSError* error) {
+                     if (error)
+                     {
+                         NSLog(@"PhotinoX: Failed to show macOS notification: %@", error);
+                         NotificationDispatch::ScheduleNotificationFailed(app, notificationId, callbackState);
+                         return;
+                     }
+
+                     //NSLog(@"PhotinoX: macOS notification request added: notificationId=%d requestId=%@", notificationId, identifier);
+                 }];
+    }];
 
     return notificationId;
 }

@@ -56,17 +56,11 @@ namespace
        willPresentNotification:(UNNotification*)notification
          withCompletionHandler:(void (^)(UNNotificationPresentationOptions options))completionHandler
 {
-    if (@available(macOS 11.0, *))
-    {
-        completionHandler(UNNotificationPresentationOptionBanner |
-                          UNNotificationPresentationOptionList |
-                          UNNotificationPresentationOptionSound);
-    }
-    else
-    {
-        completionHandler(UNNotificationPresentationOptionAlert |
-                          UNNotificationPresentationOptionSound);
-    }
+    //NSLog(@"PhotinoX: macOS notification will present: %@", notification.request.identifier);
+
+    completionHandler(UNNotificationPresentationOptionBanner |
+                      UNNotificationPresentationOptionList |
+                      UNNotificationPresentationOptionSound);
 }
 
 - (void)userNotificationCenter:(UNUserNotificationCenter*)center

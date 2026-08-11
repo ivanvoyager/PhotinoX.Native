@@ -53,6 +53,9 @@ namespace PhotinoX::Native
         void ValidateInitParams(const PhotinoApplicationInitParams* initParams);
         void InitializeFromInitParams(const PhotinoApplicationInitParams* initParams);
 
+#ifdef __APPLE__
+        bool IsAppBundleProcess() const;
+#endif
         bool InitializeNotifications();
         void UninitializeNotifications() noexcept;
         int ShowNotificationCore(int notificationId, const PlatformString& title, const PlatformString& body, const PlatformString& iconPath, void* callbackState);
