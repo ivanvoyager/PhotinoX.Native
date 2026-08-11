@@ -11,13 +11,9 @@
 
 namespace PhotinoX::Native
 {
-    class WinToastHandler;
-
     struct WindowsState
     {
         HWND hWnd = nullptr;
-
-        WinToastHandler* toastHandler = nullptr;
 
         wil::com_ptr<ICoreWebView2Environment> webViewEnvironment;
         wil::com_ptr<ICoreWebView2Controller> webViewController;
@@ -28,14 +24,15 @@ namespace PhotinoX::Native
 
         PlatformString scriptId;
 
-        WindowSizeLimits sizeLimits;
+        HICON ownedSmallIcon = nullptr;
+        HICON ownedBigIcon = nullptr;
 
+        WindowSizeLimits sizeLimits;
+        int initialShowCommand = SW_SHOWDEFAULT;
+
+        bool isAlreadyShown = false;
         bool suppressWindowCallbacks = true;
         bool webViewInitialized = false;
-
-        int initialShowCommand = SW_SHOWDEFAULT;
-        bool isAlreadyShown = false;
-
         // Set once the first navigation has been issued. Until then there is no
         // document to reload, so the Set*Enabled methods must not reload: doing so
         // would discard a still-pending navigation.
@@ -44,9 +41,6 @@ namespace PhotinoX::Native
         LONG_PTR fullScreenStyle = 0;
         WINDOWPLACEMENT fullScreenPlacement{sizeof(WINDOWPLACEMENT)};
         bool hasFullScreenRestoreState = false;
-
-        HICON ownedSmallIcon = nullptr;
-        HICON ownedBigIcon = nullptr;
     };
 }
 

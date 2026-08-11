@@ -81,6 +81,15 @@
     <ClCompile Include="Photino.Windows.WebView2Environment.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Exports.Application.Notifications.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Exports.Application.Callbacks.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Photino.Application.Callbacks.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="Photino.Mac.AppDelegate.mm">
@@ -135,6 +144,9 @@
     <None Include="Photino.Application.Linux.cpp">
       <Filter>Source Files</Filter>
     </None>
+    <None Include="Photino.Application.Mac.NotificationDelegate.mm">
+      <Filter>Source Files</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Photino.h">
@@ -150,9 +162,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Photino.Mac.UrlSchemeHandler.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Photino.Windows.ToastHandler.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Dependencies\wintoastlib.h">
@@ -218,6 +227,9 @@
     <ClInclude Include="Photino.Application.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Photino.Application.InitParams.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="Photino.Enums.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -231,6 +243,30 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Photino.Windows.WebView2Environment.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Photino.Application.Notifications.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Photino.Application.Options.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Photino.Application.Windows.ToastHandler.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Photino.Application.Mac.NotificationDelegate.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Photino.Application.Mac.State.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Photino.Application.NotificationDispatch.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Photino.Application.Linux.State.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Photino.Application.Windows.State.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

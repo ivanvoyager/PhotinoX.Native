@@ -1,6 +1,5 @@
 #include "Photino.Export.h"
 #include "Photino.h"
-#include "Photino.Strings.h"
 
 #include <cassert>
 
@@ -34,22 +33,5 @@ extern "C"
     PHOTINO_EXPORT Photino* Photino_ctor(PhotinoInitParams* initParams)
     {
         return new Photino(initParams);
-    }
-
-    PHOTINO_EXPORT void Photino_GetNotificationsEnabled(const Photino* instance, bool* enabled)
-    {
-        assert(instance);
-        if (!instance || !enabled) return;
-
-        instance->GetNotificationsEnabled(enabled);
-    }
-
-    PHOTINO_EXPORT void Photino_ShowNotification(const Photino* instance, Utf8String title, Utf8String body)
-    {
-        assert(instance);
-        if (!instance) return;
-
-        instance->ShowNotification(ToPlatformString(title), ToPlatformString(body));
-
     }
 }

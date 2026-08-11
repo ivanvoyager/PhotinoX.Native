@@ -5,7 +5,6 @@
 #include "Photino.Windows.State.h"
 #include "Photino.Windows.Debug.h"
 
-#include "Dependencies/wintoastlib.h"
 #include <WinUser.h>
 #include <Shellscalingapi.h>
 
@@ -14,7 +13,6 @@
 
 #pragma comment(lib, "Shcore.lib")//TODO remove
 
-using namespace WinToastLib;
 using namespace PhotinoX::Native;
 
 namespace 
@@ -101,14 +99,6 @@ void Photino::SetTitle(const PlatformString& title)
         return;
 
     options_.windowTitle = title;
-
-    if (options_.notificationsEnabled)
-    {
-        WinToast::instance()->setAppName(options_.windowTitle);
-
-        if (options_.notificationRegistrationId.empty())
-            WinToast::instance()->setAppUserModelId(options_.windowTitle);
-    }
 }
 
 
@@ -499,7 +489,6 @@ bool Photino::SaveFullScreenRestoreState()
         return false;
 
     platform_->fullScreenPlacement.length = sizeof(platform_->fullScreenPlacement);
-
     if (GetWindowPlacement(platform_->hWnd, &platform_->fullScreenPlacement) == FALSE)
     {
         platform_->fullScreenStyle = 0;

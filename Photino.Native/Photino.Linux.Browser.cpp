@@ -12,6 +12,7 @@
 
 #include <cassert>
 #include <csignal>
+#include <cstdlib>
 
 using json = nlohmann::json;
 using namespace PhotinoX::Native;

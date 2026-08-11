@@ -41,7 +41,7 @@ bool Photino::AddCustomSchemeName(Utf8String scheme)
 
     if (IsCustomSchemeRegistered(nativeScheme)) return true;
 
-    if (customSchemeNames_.size() >= MaxCustomSchemeNames) return false;
+    if (customSchemeNames_.size() >= PhotinoInitParams::MaxCustomSchemeNames) return false;
 
     customSchemeNames_.emplace_back(std::move(nativeScheme));
 

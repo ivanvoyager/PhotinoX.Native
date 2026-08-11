@@ -1,15 +1,16 @@
 #include "Photino.Application.h"
+#include "Photino.Application.InitParams.h"
 #include "Photino.Export.h"
 
 using namespace PhotinoX::Native;
 
 extern "C"
 {
-    PHOTINO_EXPORT int PhotinoApplication_Run()
+    PHOTINO_EXPORT int PhotinoApplication_Run(const PhotinoApplicationInitParams* initParams)
     {
         try
         {
-            return PhotinoApplication::Instance().Run();
+            return PhotinoApplication::Instance().Run(initParams);
         }
         catch (...)
         {
