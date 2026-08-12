@@ -100,6 +100,8 @@ namespace
             return PhotinoNotificationDismissalReason::UserCanceled;
 
         case NOTIFY_CLOSED_REASON_API_REQUEST:
+            return PhotinoNotificationDismissalReason::ApplicationHidden;
+
         case NOTIFY_CLOSED_REASON_UNDEFIEND:
         default:
             return PhotinoNotificationDismissalReason::Unknown;
@@ -342,13 +344,20 @@ void PhotinoApplication::UninitializeNotifications() noexcept
 
 int PhotinoApplication::ShowNotificationCore(int notificationId, const PlatformString& title, const PlatformString& body, const PlatformString& iconPath, void* callbackState)
 {
-    NotifyNotification* notification = notify_notification_new(
-        title.c_str(),
-        body.c_str(),
-        iconPath.empty() ? nullptr : iconPath.c_str());
+    NotifyNotification* notification = notify_notification_new(title.c_str(), body.c_str(), nullptr);
 
     if (!notification)
         return -1;
+
+    if (!iconPath.empty())
+    {
+        notify_notification_set_hint_string(notification, "image-path", iconPath.c_str());
+    }
+
+    if (!options_.notificationRegistrationId.empty())
+    {
+        notify_notification_set_hint_string(notification, "desktop-entry", options_.notificationRegistrationId.c_str());
+    }
 
     auto state = new LinuxNotificationState{this, notificationId, callbackState, notification, 0, false};
 
