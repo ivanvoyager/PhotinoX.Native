@@ -9,7 +9,7 @@ namespace PhotinoX::Native
 {
     struct PhotinoApplicationInitParams
     {
-        static constexpr int NativeAbiVersion = 1;
+        static constexpr int NativeAbiVersion = 2;
 
         int Size;                                                               // #1
         int AbiVersion;                                                         // #2
@@ -19,21 +19,22 @@ namespace PhotinoX::Native
         Utf8String NotificationRegistrationId;                                  // #5
 
         StartupCallback StartupHandler;                                         // #6
-        ExitCallback ExitHandler;                                               // #7
+        ShutdownRequestedCallback ShutdownRequestedHandler;                     // #7
+        ExitCallback ExitHandler;                                               // #8
 
-        NotificationActivatedCallback NotificationActivatedHandler;             // #8
-        NotificationActionActivatedCallback NotificationActionActivatedHandler; // #9
-        NotificationInputActivatedCallback NotificationInputActivatedHandler;   // #10
-        NotificationDismissedCallback NotificationDismissedHandler;             // #11
-        NotificationFailedCallback NotificationFailedHandler;                   // #12
+        NotificationActivatedCallback NotificationActivatedHandler;             // #9
+        NotificationActionActivatedCallback NotificationActionActivatedHandler; // #10
+        NotificationInputActivatedCallback NotificationInputActivatedHandler;   // #11
+        NotificationDismissedCallback NotificationDismissedHandler;             // #12
+        NotificationFailedCallback NotificationFailedHandler;                   // #13
 
-        bool NotificationsEnabled;                                              // #13
+        bool NotificationsEnabled;                                              // #14
     };
 
     static_assert(std::is_standard_layout_v<PhotinoApplicationInitParams>,
                   "PhotinoApplicationInitParams must remain standard-layout for managed/native interop.");
 
-    static_assert(sizeof(PhotinoApplicationInitParams) == 96,
+    static_assert(sizeof(PhotinoApplicationInitParams) == 104,
                   "PhotinoApplicationInitParams size changed. Update the managed ABI layout and size validation.");
 
 } // namespace PhotinoX::Native

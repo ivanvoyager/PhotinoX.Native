@@ -7,6 +7,7 @@
 #import <UserNotifications/UserNotifications.h>
 #import <Cocoa/Cocoa.h>
 
+#import "Photino.Application.Mac.AppDelegate.h"
 #import "Photino.Application.Mac.NotificationDelegate.h"
 
 #include <cassert>
@@ -17,32 +18,29 @@ using namespace PhotinoX::Native;
 
 namespace
 {
-    void StopApplicationLoop()
-    {
-        [NSApp stop:nil];
-
-        NSEvent* event = [NSEvent otherEventWithType:NSEventTypeApplicationDefined
-                                            location:NSZeroPoint
-                                       modifierFlags:0
-                                           timestamp:0
-                                        windowNumber:0
-                                             context:nil
-                                             subtype:0
-                                               data1:0
-                                               data2:0];
-
-        [NSApp postEvent:event atStart:NO];
-    }
-
     NSString* const PhotinoNotificationCategoryIdentifier = @"PhotinoX.Notification";
 }
 
 PhotinoApplication::PhotinoApplication() : platform_(std::make_unique<MacApplicationState>())
 {
+    platform_->appDelegate = [[AppDelegate alloc] init];
+
+    NSApplication* application = [NSApplication sharedApplication];
+    [application setDelegate:platform_->appDelegate];
+    [application setActivationPolicy:NSApplicationActivationPolicyRegular];
 }
 
 PhotinoApplication::~PhotinoApplication()
 {
+    if (platform_->appDelegate)
+    {
+        if (NSApp.delegate == platform_->appDelegate)
+            NSApp.delegate = nil;
+
+        [platform_->appDelegate release];
+        platform_->appDelegate = nil;
+    }
+
     if (platform_->notificationDelegate)
     {
         UNUserNotificationCenter* center = [UNUserNotificationCenter currentNotificationCenter];
@@ -93,19 +91,42 @@ int PhotinoApplication::RunCore()
     }
 }
 
-void PhotinoApplication::ShutdownCore(int exitCode) noexcept
+void PhotinoApplication::StopApplicationLoop() noexcept
 {
-    exitCode_.store(exitCode, std::memory_order_release);
+    [NSApp stop:nil];
+
+    NSEvent* event = [NSEvent otherEventWithType:NSEventTypeApplicationDefined
+                                        location:NSZeroPoint
+                                   modifierFlags:0
+                                       timestamp:0
+                                    windowNumber:0
+                                         context:nil
+                                         subtype:0
+                                           data1:0
+                                           data2:0];
+
+    [NSApp postEvent:event atStart:NO];
+}
+
+void PhotinoApplication::ShutdownCore(int exitCode, bool force) noexcept
+{
+    auto shutdown = ^{
+        if (!force)
+        {
+            if (!HandleShutdownRequest(exitCode))
+                return;
+        }
+
+        StopApplicationLoop();
+    };
 
     if ([NSThread isMainThread])
     {
-        StopApplicationLoop();
+        shutdown();
         return;
     }
 
-    dispatch_async(dispatch_get_main_queue(), ^{
-        StopApplicationLoop();
-    });
+    dispatch_async(dispatch_get_main_queue(), shutdown);
 }
 
 bool PhotinoApplication::CheckAccess() const noexcept

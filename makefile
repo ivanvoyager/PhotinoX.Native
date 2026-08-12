@@ -56,7 +56,7 @@ build-photino-mac-universal: | $(DEST_PATH_X64)
 		$(SRC)/Photino.Application.Callbacks.cpp\
 		$(SRC)/Photino.Application.Mac.mm \
 		$(SRC)/Photino.Application.Mac.NotificationDelegate.mm \
-		$(SRC)/Photino.Mac.AppDelegate.mm \
+		$(SRC)/Photino.Application.Mac.AppDelegate.mm \
 		$(SRC)/Photino.Mac.UiDelegate.mm \
 		$(SRC)/Photino.Mac.WindowDelegate.mm \
 		$(SRC)/Photino.Mac.NavigationDelegate.mm \

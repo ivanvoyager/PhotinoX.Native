@@ -19,6 +19,7 @@ void PhotinoApplication::InitializeFromInitParams(const PhotinoApplicationInitPa
     ValidateInitParams(initParams);
 
     startupCallback_ = initParams->StartupHandler;
+    shutdownRequestedCallback_ = initParams->ShutdownRequestedHandler;
     exitCallback_ = initParams->ExitHandler;
 
     notificationActivatedCallback_ = initParams->NotificationActivatedHandler;
@@ -61,8 +62,8 @@ int PhotinoApplication::Run(const PhotinoApplicationInitParams* initParams)
     auto stopRunning = [&]
     {
         isShuttingDown_.store(true, std::memory_order_release);
-        isRunning_.store(false, std::memory_order_release);
         UninitializeNotifications();
+        isRunning_.store(false, std::memory_order_release);
     };
 
     try
@@ -96,12 +97,34 @@ int PhotinoApplication::Run(const PhotinoApplicationInitParams* initParams)
     }
 }
 
-void PhotinoApplication::Shutdown(int exitCode) noexcept
+void PhotinoApplication::NotifySessionEnding() noexcept
 {
+    isShuttingDown_.store(true, std::memory_order_release);
+}
+
+bool PhotinoApplication::HandleShutdownRequest(int exitCode, PhotinoShutdownRequestReason reason) noexcept
+{
+    if (IsShuttingDown())
+        return false;
+
+    if (InvokeShutdownRequested(reason))
+        return false;
+
     exitCode_.store(exitCode, std::memory_order_release);
     isShuttingDown_.store(true, std::memory_order_release);
 
-    ShutdownCore(exitCode);
+    return true;
+}
+
+void PhotinoApplication::Shutdown(int exitCode, bool force) noexcept
+{
+    if (force)
+    {
+        exitCode_.store(exitCode, std::memory_order_release);
+        isShuttingDown_.store(true, std::memory_order_release);
+    }
+
+    ShutdownCore(exitCode, force);
 }
 
 void PhotinoApplication::GetNotificationsEnabled(bool* enabled) const
@@ -122,6 +145,13 @@ void PhotinoApplication::SetNotificationsEnabled(bool enabled)
         InitializeNotifications();
 }
 
+/*  Contract:
+    > 0  request accepted/tracked; callbacks may follow
+      0  not shown by policy/state; no callback
+     -1  invalid request / ABI / precondition failure; no callback
+     -2  native notification backend initialization failure; no callback
+     -3  native notification show failure; no callback
+ */
 int PhotinoApplication::ShowNotification(const PhotinoNotificationShowParams* showParams)
 {
     if (!showParams)
@@ -142,7 +172,7 @@ int PhotinoApplication::ShowNotification(const PhotinoNotificationShowParams* sh
     if (!notificationsInitialized_.load(std::memory_order_acquire))
     {
         if (!InitializeNotifications())
-            return 0;
+            return -2;
     }
 
     const auto title = ToPlatformString(showParams->Title);

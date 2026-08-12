@@ -11,6 +11,11 @@ extern "C"
         PhotinoApplication::Instance().SetStartupCallback(callback);
     }
 
+    PHOTINO_EXPORT void PhotinoApplication_SetShutdownRequestedCallback(const ShutdownRequestedCallback callback)
+    {
+        PhotinoApplication::Instance().SetShutdownRequestedCallback(callback);
+    }
+
     PHOTINO_EXPORT void PhotinoApplication_SetExitCallback(const ExitCallback callback)
     {
         PhotinoApplication::Instance().SetExitCallback(callback);

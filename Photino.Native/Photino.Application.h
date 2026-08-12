@@ -23,6 +23,7 @@ namespace PhotinoX::Native
     {
       private:
         StartupCallback startupCallback_ = nullptr;
+        ShutdownRequestedCallback shutdownRequestedCallback_ = nullptr;
         ExitCallback exitCallback_ = nullptr;
 
         NotificationActivatedCallback notificationActivatedCallback_ = nullptr;
@@ -39,6 +40,8 @@ namespace PhotinoX::Native
 
         std::atomic_bool notificationsInitialized_{false};
         std::atomic_bool notificationsEnabled_{true};
+
+        mutable bool isShutdownRequested_ = false;
 
 #ifdef _WIN32
         std::unique_ptr<WindowsApplicationState> platform_;
@@ -61,7 +64,7 @@ namespace PhotinoX::Native
         int ShowNotificationCore(int notificationId, const PlatformString& title, const PlatformString& body, const PlatformString& iconPath, void* callbackState);
 
         int RunCore();
-        void ShutdownCore(int exitCode) noexcept;
+        void ShutdownCore(int exitCode, bool force) noexcept;
       public:
         static PhotinoApplication& Instance();
 
@@ -77,13 +80,16 @@ namespace PhotinoX::Native
 #elif defined(__APPLE__)
         MacApplicationState& Platform() noexcept { return *platform_; }
         const MacApplicationState& Platform() const noexcept { return *platform_; }
+        void StopApplicationLoop() noexcept;
 #endif
 
         bool IsRunning() const noexcept;
         bool IsShuttingDown() const noexcept;
 
         int Run(const PhotinoApplicationInitParams* initParams);
-        void Shutdown(int exitCode = 0) noexcept;
+        void NotifySessionEnding() noexcept;
+        bool HandleShutdownRequest(int exitCode, PhotinoShutdownRequestReason reason = PhotinoShutdownRequestReason::Application) noexcept;
+        void Shutdown(int exitCode = 0, bool force = false) noexcept;
         bool CheckAccess() const noexcept;
 
         bool Invoke(InvokeStateCallback callback, void* state) const;
@@ -96,6 +102,7 @@ namespace PhotinoX::Native
 
         // Callbacks
         void SetStartupCallback(StartupCallback callback) noexcept { startupCallback_ = callback; }
+        void SetShutdownRequestedCallback(ShutdownRequestedCallback callback) noexcept { shutdownRequestedCallback_ = callback; }
         void SetExitCallback(ExitCallback callback) noexcept { exitCallback_ = callback; }
 
         void SetNotificationActivatedCallback(NotificationActivatedCallback callback) noexcept { notificationActivatedCallback_ = callback; }
@@ -106,6 +113,7 @@ namespace PhotinoX::Native
 
         // Callback invokers
         void InvokeStartup() const;
+        bool InvokeShutdownRequested(PhotinoShutdownRequestReason reason) const;
         int InvokeExit(int exitCode) const;
 
         void InvokeNotificationActivated(int notificationId, void* state) const;

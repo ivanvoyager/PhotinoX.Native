@@ -1,8 +1,8 @@
 #include "Photino.Application.h"
 #include "Photino.Application.InitParams.h"
-#include "Photino.Application.Notifications.h"
 #include "Photino.Application.NotificationDispatch.h"
 #include "Photino.Application.Linux.State.h"
+#include "Photino.Linux.Debug.h"
 #include "Photino.Strings.h"
 
 #include <algorithm>
@@ -83,8 +83,27 @@ namespace
         delete static_cast<InvokeAsyncInfo*>(data);
     }
 
+    struct ShutdownInfo
+    {
+        PhotinoApplication* app = nullptr;
+        int exitCode = 0;
+        bool force = false;
+    };
+
+    void DestroyShutdownInfo(gpointer data)
+    {
+        delete static_cast<ShutdownInfo*>(data);
+    }
+
     gboolean ShutdownApplication(gpointer data)
     {
+        auto info = static_cast<ShutdownInfo*>(data);
+        if (!info || !info->app)
+            return G_SOURCE_REMOVE;
+
+        if (!info->force && !info->app->HandleShutdownRequest(info->exitCode))
+            return G_SOURCE_REMOVE;
+
         gtk_main_quit();
         return G_SOURCE_REMOVE;
     }
@@ -212,16 +231,16 @@ int PhotinoApplication::RunCore()
     return exitCode_.load(std::memory_order_acquire);
 }
 
-void PhotinoApplication::ShutdownCore(int exitCode) noexcept
+void PhotinoApplication::ShutdownCore(int exitCode, bool force) noexcept
 {
-    exitCode_.store(exitCode, std::memory_order_release);
+    auto info = new ShutdownInfo{this, exitCode, force};
 
     g_main_context_invoke_full(
         g_main_context_default(),
         G_PRIORITY_DEFAULT,
         ShutdownApplication,
-        nullptr,
-        nullptr);
+        info,
+        DestroyShutdownInfo);
 }
 
 bool PhotinoApplication::CheckAccess() const noexcept
@@ -297,13 +316,19 @@ bool PhotinoApplication::InitializeNotifications()
                              ? PlatformString("PhotinoX")
                              : options_.applicationName;
 
-    if (!notify_init(appName.c_str()))
-    {
-        notificationsInitialized_.store(false, std::memory_order_release);
-        return false;
-    }
+    PHOTINO_LINUX_LOG(
+        "[linux-notification] initialize: appName=%s registrationId=%s\n",
+        appName.c_str(),
+        options_.notificationRegistrationId.c_str());
 
-    return true;
+    auto result = notify_init(appName.c_str());
+
+    PHOTINO_LINUX_LOG("[linux-notification] notify_init %s\n", result ? "succeeded" : "failed");
+
+    if (!result)
+        notificationsInitialized_.store(false, std::memory_order_release);
+
+    return result;
 }
 
 void PhotinoApplication::UninitializeNotifications() noexcept
@@ -311,10 +336,22 @@ void PhotinoApplication::UninitializeNotifications() noexcept
     std::vector<LinuxNotificationState*> notifications;
     notifications.swap(platform_->notifications);
 
+    PHOTINO_LINUX_LOG(
+        "[linux-notification] uninitialize: count=%zu initialized=%d\n",
+        notifications.size(),
+        notificationsInitialized_.load(std::memory_order_acquire));
+
     for (LinuxNotificationState* state : notifications)
     {
         if (!state)
             continue;
+
+        PHOTINO_LINUX_LOG(
+            "[linux-notification] cleanup notification: id=%d hasNotification=%d closedHandler=%lu activated=%d\n",
+            state->notificationId,
+            state->notification != nullptr,
+            static_cast<unsigned long>(state->closedHandler),
+            state->activated);
 
         state->app = nullptr;
 
@@ -329,7 +366,14 @@ void PhotinoApplication::UninitializeNotifications() noexcept
             GError* error = nullptr;
             notify_notification_close(state->notification, &error);
             if (error)
+            {
+                PHOTINO_LINUX_LOG(
+                    "[linux-notification] cleanup close failed: id=%d error=%s\n",
+                    state->notificationId,
+                    error->message ? error->message : "");
+
                 g_error_free(error);
+            }
 
             g_object_unref(G_OBJECT(state->notification));
             state->notification = nullptr;
@@ -339,7 +383,10 @@ void PhotinoApplication::UninitializeNotifications() noexcept
     }
 
     if (notificationsInitialized_.exchange(false, std::memory_order_acq_rel))
+    {
+        PHOTINO_LINUX_LOG("[linux-notification] notify_uninit\n");
         notify_uninit();
+    }
 }
 
 int PhotinoApplication::ShowNotificationCore(int notificationId, const PlatformString& title, const PlatformString& body, const PlatformString& iconPath, void* callbackState)
@@ -373,7 +420,7 @@ int PhotinoApplication::ShowNotificationCore(int notificationId, const PlatformS
         if (error)
             g_error_free(error);
 
-        NotificationDispatch::ScheduleNotificationFailed(this, notificationId, callbackState);
+        //do not ScheduleNotificationFailed here
 
         if (state->closedHandler)
         {
@@ -383,7 +430,7 @@ int PhotinoApplication::ShowNotificationCore(int notificationId, const PlatformS
 
         DeleteNotificationState(state);
 
-        return -1;
+        return -3;
     }
 
     return notificationId;

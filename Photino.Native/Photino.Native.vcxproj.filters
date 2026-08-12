@@ -92,7 +92,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="Photino.Mac.AppDelegate.mm">
+    <None Include="Photino.Application.Mac.AppDelegate.mm">
       <Filter>Source Files</Filter>
     </None>
     <None Include="Photino.Mac.mm">
@@ -152,7 +152,7 @@
     <ClInclude Include="Photino.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Photino.Mac.AppDelegate.h">
+    <ClInclude Include="Photino.Application.Mac.AppDelegate.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Photino.Mac.UiDelegate.h">

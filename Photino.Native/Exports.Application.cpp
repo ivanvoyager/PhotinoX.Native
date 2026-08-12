@@ -18,9 +18,9 @@ extern "C"
         }
     }
 
-    PHOTINO_EXPORT void PhotinoApplication_Shutdown(const int exitCode)
+    PHOTINO_EXPORT void PhotinoApplication_Shutdown(const int exitCode, bool force)
     {
-        PhotinoApplication::Instance().Shutdown(exitCode);
+        PhotinoApplication::Instance().Shutdown(exitCode, force);
     }
 
     PHOTINO_EXPORT bool PhotinoApplication_IsRunning()

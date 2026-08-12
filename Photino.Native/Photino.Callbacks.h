@@ -43,6 +43,7 @@ namespace PhotinoX::Native
 
     // application-level callbacks
     using StartupCallback = VoidCallback;
+    using ShutdownRequestedCallback = bool (*)(PhotinoShutdownRequestReason reason);
     using ExitCallback = int (*)(int exitCode);
 
     using NotificationActivatedCallback = void (*)(int notificationId, void* state);

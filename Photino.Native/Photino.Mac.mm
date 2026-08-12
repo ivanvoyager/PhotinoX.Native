@@ -3,7 +3,6 @@
 #import <Cocoa/Cocoa.h>
 #import <WebKit/WebKit.h>
 
-#import "Photino.Mac.AppDelegate.h"
 #import "Photino.Mac.NavigationDelegate.h"
 #import "Photino.Mac.NSWindowBorderless.h"
 #import "Photino.Mac.UiDelegate.h"
@@ -37,15 +36,6 @@ void Photino::Register()
     std::call_once(flag, [] {
         @autoreleasepool
         {
-            static AppDelegate* appDelegate = nil;
-
-            if (!appDelegate)
-                appDelegate = [[AppDelegate alloc] init];
-
-            NSApplication* application = [NSApplication sharedApplication];
-            [application setDelegate:appDelegate];
-            [application setActivationPolicy:NSApplicationActivationPolicyRegular];
-
             NSString* appName = [[NSProcessInfo processInfo] processName];
 
             NSMenu* mainMenu = [[[NSMenu alloc] init] autorelease];

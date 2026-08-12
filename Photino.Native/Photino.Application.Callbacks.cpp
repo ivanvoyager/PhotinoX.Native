@@ -7,6 +7,18 @@ void PhotinoApplication::InvokeStartup() const
     if (startupCallback_) startupCallback_();
 }
 
+bool PhotinoApplication::InvokeShutdownRequested(PhotinoShutdownRequestReason reason) const
+{
+    if (!shutdownRequestedCallback_ || isShutdownRequested_)
+        return false;
+
+    isShutdownRequested_ = true;
+    bool result = shutdownRequestedCallback_(reason);
+    isShutdownRequested_ = false;
+
+    return result; // ShutdownRequested: true = cancel shutdown, false = allow shutdown
+}
+
 int PhotinoApplication::InvokeExit(int exitCode) const
 {
     if (exitCallback_)

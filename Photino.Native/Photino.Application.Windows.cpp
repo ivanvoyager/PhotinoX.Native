@@ -28,6 +28,29 @@ namespace
         switch (message)
         {
 
+        case WM_QUERYENDSESSION:
+        {
+            auto& application = PhotinoApplication::Instance();
+            if (application.IsShuttingDown())
+                return TRUE;
+
+            auto reason = (static_cast<DWORD>(lParam) & ENDSESSION_LOGOFF) != 0
+                              ? PhotinoShutdownRequestReason::SessionLogoff
+                              : PhotinoShutdownRequestReason::SystemShutdown;
+
+            return application.InvokeShutdownRequested(reason) ? FALSE : TRUE;
+        }
+
+        case WM_ENDSESSION:
+        {
+            if (wParam == TRUE)
+            {
+                // SessionEnded - SystemShutdown or Logoff
+                PhotinoApplication::Instance().NotifySessionEnding();
+            }
+            return 0;
+        }
+
         case WM_PHOTINO_INVOKE_STATE:
         {
             auto callback = reinterpret_cast<InvokeStateCallback>(wParam);
@@ -45,9 +68,20 @@ namespace
         case WM_PHOTINO_SHUTDOWN:
         {
             auto exitCode = static_cast<int>(wParam);
-            PostQuitMessage(exitCode);
+            bool force = lParam != FALSE;
+
+            if (force)
+            {
+                PostQuitMessage(exitCode);
+                return 0;
+            }
+
+            if (PhotinoApplication::Instance().HandleShutdownRequest(exitCode))
+                PostQuitMessage(exitCode);
+
             return 0;
         }
+
         }
 
         return DefWindowProcW(hwnd, message, wParam, lParam);
@@ -164,11 +198,11 @@ int PhotinoApplication::RunCore()
     return exitCode;
 }
 
-void PhotinoApplication::ShutdownCore(int exitCode) noexcept
+void PhotinoApplication::ShutdownCore(int exitCode, bool force) noexcept
 {
     HWND messageWindow = g_messageWindow.load(std::memory_order_acquire);
     if (messageWindow && IsWindow(messageWindow))
-        PostMessageW(messageWindow, WM_PHOTINO_SHUTDOWN, static_cast<WPARAM>(exitCode), 0);
+        PostMessageW(messageWindow, WM_PHOTINO_SHUTDOWN, static_cast<WPARAM>(exitCode), force ? TRUE : FALSE);
 }
 
 bool PhotinoApplication::CheckAccess() const noexcept
@@ -276,5 +310,5 @@ int PhotinoApplication::ShowNotificationCore(int notificationId, const PlatformS
     WinToast::WinToastError error;
     auto toastId = WinToast::instance()->showToast(templ, new WinToastHandler(this, notificationId, callbackState), &error);
 
-    return toastId < 0 ? -1 : notificationId;
+    return toastId < 0 ? -3 : notificationId;
 }
