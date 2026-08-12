@@ -46,7 +46,7 @@ namespace PhotinoX::Native
                   "PhotinoWindowState must remain int-sized for managed/native interop.");
 
     // Notification dismissal reason. The numeric values are the ABI contract with
-    // the managed PhotinoNotificationDismissalReason enum and must stay in sync.
+    // the managed NotificationDismissalReason enum and must stay in sync.
     enum class PhotinoNotificationDismissalReason : int
     {
         Unknown = 0,
