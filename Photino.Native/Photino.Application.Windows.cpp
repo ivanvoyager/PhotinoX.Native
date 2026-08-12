@@ -1,4 +1,10 @@
 #include "Photino.Application.h"
+#include "Photino.Application.InitParams.h"
+#include "Photino.Application.Windows.State.h"
+#include "Photino.Application.Windows.ToastHandler.h"
+#include "Photino.Strings.h"
+
+#include "Dependencies/wintoastlib.h"
 
 #include <atomic>
 #include <cassert>
@@ -6,6 +12,7 @@
 #include <Windows.h>
 
 using namespace PhotinoX::Native;
+using namespace WinToastLib;
 
 namespace
 {
@@ -77,6 +84,37 @@ namespace
             );
     }
 } // namespace
+
+PhotinoApplication::PhotinoApplication() : platform_(std::make_unique<WindowsApplicationState>())
+{
+}
+
+PhotinoApplication::~PhotinoApplication() = default;
+
+void PhotinoApplication::ValidateInitParams(const PhotinoApplicationInitParams* initParams)
+{
+    assert(initParams);
+    if (!initParams)
+        std::abort();
+
+    if (initParams->Size != sizeof(PhotinoApplicationInitParams) ||
+        initParams->AbiVersion != PhotinoApplicationInitParams::NativeAbiVersion)
+    {
+        wchar_t msg[256];
+
+        swprintf(
+            msg,
+            256,
+            L"Application initial parameters ABI mismatch. Passed size: %i bytes, expected size: %I64i bytes. Passed ABI version: %i, expected ABI version: %i.",
+            initParams->Size,
+            sizeof(PhotinoApplicationInitParams),
+            initParams->AbiVersion,
+            PhotinoApplicationInitParams::NativeAbiVersion);
+
+        MessageBoxW(nullptr, msg, L"Native Initialization Failed", MB_OK);
+        std::abort();
+    }
+}
 
 int PhotinoApplication::RunCore()
 {
@@ -183,4 +221,60 @@ bool PhotinoApplication::BeginInvoke(InvokeStateCallback callback, void* state) 
                WM_PHOTINO_INVOKE_STATE,
                reinterpret_cast<WPARAM>(callback),
                reinterpret_cast<LPARAM>(state)) != FALSE;
+}
+
+bool PhotinoApplication::InitializeNotifications()
+{
+    bool expected = false;
+    if (!notificationsInitialized_.compare_exchange_strong(expected, true, std::memory_order_acq_rel))
+        return true;
+
+    if (!WinToast::isCompatible())
+    {
+        notificationsInitialized_.store(false, std::memory_order_release);
+        return false;
+    }
+
+    auto instance = WinToast::instance();
+
+    const auto appName = options_.applicationName.empty()
+                             ? PlatformString(L"PhotinoX")
+                             : options_.applicationName;
+
+    instance->setAppName(appName);
+
+    const auto appUserModelId = !options_.notificationRegistrationId.empty()
+                                    ? options_.notificationRegistrationId
+                                    : appName;
+
+    instance->setAppUserModelId(appUserModelId);
+
+    WinToastLib::WinToast::WinToastError error;
+    if (!instance->initialize(&error))
+    {
+        notificationsInitialized_.store(false, std::memory_order_release);
+        return false;
+    }
+
+    return true;
+}
+
+void PhotinoApplication::UninitializeNotifications() noexcept
+{
+    notificationsInitialized_.store(false, std::memory_order_release);
+}
+
+int PhotinoApplication::ShowNotificationCore(int notificationId, const PlatformString& title, const PlatformString& body, const PlatformString& iconPath, void* callbackState)
+{
+    WinToastTemplate templ(!iconPath.empty() ? WinToastTemplate::ImageAndText02 : WinToastTemplate::Text02);
+    templ.setTextField(title, WinToastTemplate::FirstLine);
+    templ.setTextField(body, WinToastTemplate::SecondLine);
+
+    if (!iconPath.empty())
+        templ.setImagePath(iconPath);
+
+    WinToast::WinToastError error;
+    auto toastId = WinToast::instance()->showToast(templ, new WinToastHandler(this, notificationId, callbackState), &error);
+
+    return toastId < 0 ? -1 : notificationId;
 }

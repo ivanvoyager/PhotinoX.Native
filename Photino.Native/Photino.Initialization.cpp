@@ -13,7 +13,7 @@ void Photino::InitializeFromInitParams(const PhotinoInitParams* initParams)
         std::abort();
 
     if (initParams->Size != sizeof(PhotinoInitParams) ||
-        initParams->AbiVersion != PhotinoNativeAbiVersion)
+        initParams->AbiVersion != PhotinoInitParams::NativeAbiVersion)
     {
         std::abort();
     }
@@ -36,7 +36,6 @@ void Photino::InitializeOptions(const PhotinoInitParams* initParams)
     options_.userDataFolder = ToPlatformString(initParams->UserDataFolder);
     options_.userAgent = ToPlatformString(initParams->UserAgent);
     options_.browserControlInitParameters = ToPlatformString(initParams->BrowserControlInitParameters);
-    options_.notificationRegistrationId = ToPlatformString(initParams->NotificationRegistrationId);
 
     options_.zoom = initParams->Zoom;
     options_.chromeless = initParams->Chromeless;
@@ -59,7 +58,6 @@ void Photino::InitializeOptions(const PhotinoInitParams* initParams)
     options_.smoothScrollingEnabled = initParams->SmoothScrollingEnabled;
 #endif
     options_.ignoreCertificateErrorsEnabled = initParams->IgnoreCertificateErrorsEnabled;
-    options_.notificationsEnabled = initParams->NotificationsEnabled;
     options_.useNativeWindowOwner = initParams->UseNativeWindowOwner;
 }
 

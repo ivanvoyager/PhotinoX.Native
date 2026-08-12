@@ -8,12 +8,10 @@
 - (void)applicationDidFinishLaunching:(NSNotification*)notification
 {
     [NSApp activateIgnoringOtherApps:YES];
-    // NSLog(@"applicationDidFinishLaunching fired!");
 }
 
 - (BOOL)applicationShouldTerminateAfterLastWindowClosed:(NSApplication*)sender
 {
-    //NSLog(@"applicationShouldTerminateAfterLastWindowClosed fired!");
     return NO;
 }
 

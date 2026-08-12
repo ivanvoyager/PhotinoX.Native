@@ -10,12 +10,11 @@ namespace PhotinoX::Native
 {
     class Photino;
 
-    inline constexpr int PhotinoNativeAbiVersion = 2;
-    
-    inline constexpr int MaxCustomSchemeNames = 16;
-
     struct PhotinoInitParams
     {
+        static constexpr int NativeAbiVersion = 3;
+        static constexpr int MaxCustomSchemeNames = 16;
+
         int Size;                                               // #1
         int AbiVersion;                                         // #2
 
@@ -26,7 +25,7 @@ namespace PhotinoX::Native
         Utf8String UserDataFolder;                              // #7
         Utf8String UserAgent;                                   // #8
         Utf8String BrowserControlInitParameters;                // #9
-        Utf8String NotificationRegistrationId;                  // #10
+        Utf8String Reserved;                                    // #10
         Utf8String CustomSchemeNames[MaxCustomSchemeNames];     // #11
         
         Photino* ParentInstance;                                // #12
@@ -79,21 +78,17 @@ namespace PhotinoX::Native
         bool MediaStreamEnabled;                                // #55
         bool SmoothScrollingEnabled;                            // #56
         bool IgnoreCertificateErrorsEnabled;                    // #57
-        bool NotificationsEnabled;                              // #58
         
-        bool UseNativeWindowOwner;                              // #59
+        bool UseNativeWindowOwner;                              // #58
         
-        int ChromelessDragRegionHeight;                         // #60
-        int ChromelessDragRegionLeftInset;                      // #61
-        int ChromelessDragRegionRightInset;                     // #62
-        int ChromelessResizeBorderThickness;                    // #63
+        int ChromelessDragRegionHeight;                         // #59
+        int ChromelessDragRegionLeftInset;                      // #60
+        int ChromelessDragRegionRightInset;                     // #61
+        int ChromelessResizeBorderThickness;                    // #62
     };
 
     static_assert(std::is_standard_layout_v<PhotinoInitParams>,
         "PhotinoInitParams must remain standard-layout for managed/native interop.");
-
-    static_assert(sizeof(PhotinoWindowState) == sizeof(int),
-        "PhotinoWindowState must remain int-sized for managed/native interop.");
 
     static_assert(sizeof(PhotinoInitParams) == 424,
         "PhotinoInitParams size changed. Update the managed ABI layout and size validation.");

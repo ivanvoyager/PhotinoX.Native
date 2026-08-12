@@ -19,7 +19,7 @@ namespace PhotinoX::Native
 
     using InvokeStateCallback = VoidStateCallback;
 
-    //no parameters, no return value
+    // no parameters, no return value
     using MaximizedCallback = VoidCallback;
     using RestoredCallback = VoidCallback;
     using MinimizedCallback = VoidCallback;
@@ -27,7 +27,7 @@ namespace PhotinoX::Native
     using FocusOutCallback = VoidCallback;
     using ClosedCallback = VoidCallback;
 
-    //with parameters and/or return value
+    // with parameters and/or return value
     using ClosingCallback = BoolCallback;
     using ResizedCallback = IntIntCallback; //(int width, int height)
     using MovedCallback = IntIntCallback;   //(int x, int y)
@@ -40,4 +40,14 @@ namespace PhotinoX::Native
     using GetAllMonitorsCallback = MonitorCallback;
     using FullScreenChangedCallback = VoidBoolCallback;
     using StateChangedCallback = void(*)(PhotinoWindowState oldState, PhotinoWindowState newState);
+
+    // application-level callbacks
+    using StartupCallback = VoidCallback;
+    using ExitCallback = int (*)(int exitCode);
+
+    using NotificationActivatedCallback = void (*)(int notificationId, void* state);
+    using NotificationActionActivatedCallback = void (*)(int notificationId, int actionIndex, void* state);
+    using NotificationInputActivatedCallback = void (*)(int notificationId, Utf8String response, void* state);
+    using NotificationDismissedCallback = void (*)(int notificationId, PhotinoNotificationDismissalReason reason, void* state);
+    using NotificationFailedCallback = void (*)(int notificationId, void* state);
 }

@@ -19,7 +19,7 @@ class Program
     private static PhotinoWindow? s_mainWindow;
 
     [STAThread]
-    private static void Main(string[] args)
+    private static void Main()
     {
         try
         {
@@ -35,7 +35,9 @@ class Program
 
     private static void FluentStyle()
     {
-        var app = new PhotinoApplication();
+        var app = new PhotinoApplication()
+            .SetNotificationRegistrationId("8FDF1B15-3408-47A6-8EF5-2B0676B76277")  //Replaces the window title when registering toast notifications
+            .SetNotificationsEnabled(true);
 
         var iconFile = Platform.IsWindows
             ? "wwwroot/photino-logo.ico"
@@ -103,8 +105,6 @@ class Program
             //.MoveTo(20, 20)
             //.Offset(new Point(150, 150))
             //.Offset(250, 250)
-            .SetNotificationRegistrationId("8FDF1B15-3408-47A6-8EF5-2B0676B76277")  //Replaces the window title when registering toast notifications
-            .SetNotificationsEnabled(true)
 
             //Browser settings
             //.SetContextMenuEnabled(false)
@@ -154,7 +154,11 @@ class Program
 
     private static void PropertyInitStyle()
     {
-        var app = new PhotinoApplication();
+        var app = new PhotinoApplication()
+        {
+            NotificationRegistrationId = "8FDF1B15-3408-47A6-8EF5-2B0676B76277",  //Replaces the window title when registering toast notifications
+            NotificationsEnabled = true,
+        };
 
         var iconFile = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
             ? "wwwroot/photino-logo.ico"
@@ -198,8 +202,6 @@ class Program
             Location = new Point(50, 50),
             Top = 50,
             Left = 50,
-            NotificationRegistrationId = "8FDF1B15-3408-47A6-8EF5-2B0676B76277",  //Replaces the window title when registering toast notifications
-            NotificationsEnabled = false,
 
             //Browser settings
             ContextMenuEnabled = false,
@@ -445,7 +447,7 @@ class Program
         }
         else if (string.Compare(message, "toastNotification", true) == 0)
         {
-            currentWindow.SendNotification("Toast Title", " Toast message! 🤖");
+            PhotinoApplication.Current.ShowNotification("Toast Title", " Toast message! 🤖");
         }
         else if (string.Compare(message, "showOpenFile", true) == 0)
         {

@@ -3,7 +3,6 @@
 #import <Cocoa/Cocoa.h>
 #import <WebKit/WebKit.h>
 
-#import <UserNotifications/UserNotifications.h>
 #import "Photino.Mac.AppDelegate.h"
 #import "Photino.Mac.NavigationDelegate.h"
 #import "Photino.Mac.NSWindowBorderless.h"
@@ -119,17 +118,17 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Mac
             std::abort();
 
         if (initParams->Size != sizeof(PhotinoInitParams) ||
-            initParams->AbiVersion != PhotinoNativeAbiVersion)
+            initParams->AbiVersion != PhotinoInitParams::NativeAbiVersion)
         {
             NSAlert* alert = [[[NSAlert alloc] init] autorelease];
 
             [alert setMessageText:@"Native Initialization Failed"];
             [alert setInformativeText:[NSString stringWithFormat:
-                @"Initial parameters ABI mismatch. Passed size: %d bytes, expected size: %zu bytes. Passed ABI version: %d, expected ABI version: %d.",
+                @"Window initial parameters ABI mismatch. Passed size: %d bytes, expected size: %zu bytes. Passed ABI version: %d, expected ABI version: %d.",
                 initParams->Size,
                 sizeof(PhotinoInitParams),
                 initParams->AbiVersion,
-                PhotinoNativeAbiVersion]];
+                PhotinoInitParams::NativeAbiVersion]];
 
             [alert runModal];
 
@@ -317,47 +316,6 @@ Photino::~Photino()
     delete dialog_;
     dialog_ = nullptr;
     //[NSApp release];
-}
-
-void Photino::GetNotificationsEnabled(bool* enabled) const
-{
-    assert(enabled);
-    if (!enabled) return;
-
-    *enabled = options_.notificationsEnabled;
-}
-
-void Photino::ShowNotification(const PlatformString& title, const PlatformString& body) const
-{
-    if (!options_.notificationsEnabled) return;
-
-    NSString* nsTitle = ToNSString(title);
-    if (!nsTitle) return;
-
-    NSString* nsBody = ToNSString(body);
-    if (!nsBody) return;
-
-    UNMutableNotificationContent* notificationContent = [[[UNMutableNotificationContent alloc] init] autorelease];
-    notificationContent.title = nsTitle;
-    notificationContent.body = nsBody;
-    notificationContent.sound = [UNNotificationSound defaultSound];
-
-    UNTimeIntervalNotificationTrigger* trigger =
-        [UNTimeIntervalNotificationTrigger triggerWithTimeInterval:0.3 repeats:NO];
-
-    NSString* identifier = [[NSUUID UUID] UUIDString];
-
-    UNNotificationRequest* request =
-        [UNNotificationRequest requestWithIdentifier:identifier
-                                             content:notificationContent
-                                             trigger:trigger];
-
-    UNUserNotificationCenter* center = [UNUserNotificationCenter currentNotificationCenter];
-
-    [center addNotificationRequest:request withCompletionHandler:^(NSError* error) {
-        if (error)
-            NSLog(@"Failed to show notification: %@", error);
-    }];
 }
 
 #endif

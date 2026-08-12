@@ -190,6 +190,8 @@ namespace PhotinoX::Native
         const LinuxState& Platform() const noexcept { return *platform_; }
 #elif defined(__APPLE__)
         void* GetNSWindow() const noexcept;
+        MacState& Platform() noexcept { return *platform_; }
+        const MacState& Platform() const noexcept { return *platform_; }
 #endif
         // Common platform state predicates
         bool IsFullScreen() const noexcept;
@@ -289,10 +291,6 @@ namespace PhotinoX::Native
         void GetSmoothScrollingEnabled(bool* enabled) const;
         void GetIgnoreCertificateErrorsEnabled(bool* enabled) const;
 
-        // App
-        void GetNotificationsEnabled(bool* enabled) const;
-        void ShowNotification(const PlatformString& title, const PlatformString& message) const;
-
         // Callbacks
         void SetClosingCallback(ClosingCallback callback) noexcept { closingCallback_ = callback; }
         void SetClosedCallback(ClosedCallback callback) noexcept { closedCallback_ = callback; }
@@ -310,6 +308,7 @@ namespace PhotinoX::Native
         void SetNavigationStartingCallback(NavigationStartingCallback callback) noexcept { navigationStartingCallback_ = callback; }
         void SetNewWindowRequestedCallback(NewWindowRequestedCallback callback) noexcept { newWindowRequestedCallback_ = callback; }
 
+        // Callback invokers
         bool InvokeClosing() const noexcept;
         void InvokeClose() const noexcept;
         void InvokeFocusIn() const noexcept;

@@ -44,7 +44,8 @@ All files follow the standard NuGet `runtimes/<rid>/native/` layout.
 
 These repositories provide the managed .NET surface around the native binaries:
 
-- [**PhotinoX**](https://github.com/ivanvoyager/PhotinoX) - .NET wrapper around the native layer.
+- [**PhotinoX**](https://github.com/ivanvoyager/PhotinoX) - managed .NET wrapper around the native layer.
+- [**PhotinoX.App**](https://github.com/ivanvoyager/PhotinoX.App) - Application composition layer for PhotinoX desktop applications.
 - [**PhotinoX.Blazor**](https://github.com/ivanvoyager/PhotinoX.Blazor) - Blazor integration for native desktop apps.
 - [**PhotinoX.Server**](https://github.com/ivanvoyager/PhotinoX.Server) - optional local static-file server for SPA/static assets.
 - [**PhotinoX.Samples**](https://github.com/ivanvoyager/PhotinoX.Samples) - sample projects showcasing common scenarios.
@@ -64,6 +65,7 @@ This package is intended for developers building desktop applications with web-b
 | **Native memory ownership** | Uses pointer-based string conversion and implicit ownership across several native interop paths, including custom-scheme/resource responses. | Uses explicit native allocation/free helpers, owned `PlatformString` values, and non-owning `Utf8String` ABI inputs. String conversion and response buffers crossing the managed/native boundary now have predictable native ownership to reduce leak-prone paths in long-running applications. |
 | **Application / message loop model** | Uses global native wait/invoke helpers around the native window/message loop. | Introduces `PhotinoApplication` as the native application lifetime object, with explicit run/shutdown semantics, check-access support, and application-level synchronous/asynchronous dispatch. |
 | **Application dispatch API** | Uses older global invoke/wait helpers without a consistent state-carrying callback ABI. | Provides application-level `Invoke` and `BeginInvoke` entry points using a state-aware callback shape (`callback + state`). This gives wrappers a predictable synchronous/asynchronous dispatch contract and allows explicit state passing without captured callbacks in dispatcher-facing paths. |
+| **Native notifications** | Notifications are tied to the older window-oriented native model. | Moves native notifications to `PhotinoApplication` with explicit initialization, enable/disable state, and callback dispatch. |
 | **Window lifecycle callbacks** | Provides the original window callback set. | Extends native callbacks with closed, fullscreen, unified state-change, WebView navigation, and content loading notifications for more complete window and WebView state reporting. |
 | **Window state model** | Window state handling is spread across platform-specific callbacks and legacy minimized/maximized/fullscreen paths, which can produce transient or duplicate restored notifications. | Uses a unified native-driven `PhotinoWindowState` model (`Normal`, `Minimized`, `Maximized`, `FullScreen`) with `StateChanged` as the primary transition event. Legacy state callbacks are derived from actual state transitions, avoiding misleading `Restored` notifications from transient resize/native messages. |
 | **Startup window state** | Startup minimized/maximized/fullscreen handling is platform-specific and tied to older separate state flags. | Startup state is normalized through the unified `PhotinoWindowState` model and synchronized without user state callbacks during native window construction where the platform allows it. |

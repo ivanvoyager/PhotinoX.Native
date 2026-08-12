@@ -1,5 +1,7 @@
 #pragma once
 
+#ifdef _WIN32
+
 #include <Windows.h>
 
 namespace PhotinoX::Native {
@@ -61,3 +63,5 @@ namespace PhotinoX::Native {
     };
 
 } // namespace PhotinoX::Native
+
+#endif

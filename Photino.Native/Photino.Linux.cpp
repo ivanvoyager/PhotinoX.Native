@@ -13,52 +13,11 @@
 
 #include <X11/Xlib.h>
 #include <gtk/gtk.h>
-#include <libnotify/notify.h>
 
 using namespace PhotinoX::Native;
 
 namespace
 {
-    std::mutex g_notifyMutex;
-    int g_notifyRefCount = 0;
-    bool g_notifyInitialized = false;
-
-    bool AcquireNotifications(const PlatformString& appName)
-    {
-        std::lock_guard lock(g_notifyMutex);
-
-        if (g_notifyInitialized)
-        {
-            g_notifyRefCount++;
-            return true;
-        }
-
-        const char* name = appName.empty() ? "PhotinoX" : appName.c_str();
-
-        if (!notify_init(name))
-            return false;
-
-        g_notifyInitialized = true;
-        g_notifyRefCount = 1;
-        return true;
-    }
-
-    void ReleaseNotifications()
-    {
-        std::lock_guard lock(g_notifyMutex);
-
-        if (!g_notifyInitialized || g_notifyRefCount <= 0)
-            return;
-
-        g_notifyRefCount--;
-
-        if (g_notifyRefCount == 0)
-        {
-            notify_uninit();
-            g_notifyInitialized = false;
-        }
-    }
-
     gboolean on_configure_event(GtkWidget* widget, GdkEvent* event, gpointer self)
     {
         if (!event) return FALSE;
@@ -363,18 +322,18 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Lin
         std::abort();
 
     if (initParams->Size != sizeof(PhotinoInitParams) ||
-        initParams->AbiVersion != PhotinoNativeAbiVersion)
+        initParams->AbiVersion != PhotinoInitParams::NativeAbiVersion)
     {
         GtkWidget* dialog = gtk_message_dialog_new(
             nullptr,
             GTK_DIALOG_DESTROY_WITH_PARENT,
             GTK_MESSAGE_ERROR,
             GTK_BUTTONS_CLOSE,
-            "Initial parameters ABI mismatch. Passed size: %i bytes, expected size: %zu bytes. Passed ABI version: %i, expected ABI version: %i.",
+            "Window initial parameters ABI mismatch. Passed size: %i bytes, expected size: %zu bytes. Passed ABI version: %i, expected ABI version: %i.",
             initParams->Size,
             sizeof(PhotinoInitParams),
             initParams->AbiVersion,
-            PhotinoNativeAbiVersion);
+            PhotinoInitParams::NativeAbiVersion);
 
         gtk_dialog_run(GTK_DIALOG(dialog));
         gtk_widget_destroy(dialog);
@@ -400,8 +359,6 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Lin
         std::abort();
 
     dialog_ = new PhotinoDialog();
-
-    platform_->notifyInitialized = options_.notificationsEnabled && AcquireNotifications(options_.windowTitle);
 
     if (initParams->UseOsDefaultSize)
     {
@@ -513,51 +470,10 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Lin
 
     if (options_.zoom != 100.0)
         SetZoom(options_.zoom);
-
-    // gchar* webkitVer = g_strconcat(g_strdup_printf("%d", webkit_get_major_version()), ".", g_strdup_printf("%d", webkit_get_minor_version()), ".", g_strdup_printf("%d", webkit_get_micro_version()), NULL);
-    // Photino::ShowNotification("Web Kit Version", webkitVer);
 }
 
 Photino::~Photino()
 {
-    if (platform_->notifyInitialized)
-    {
-        ReleaseNotifications();
-        platform_->notifyInitialized = false;
-    }
-
     delete dialog_;
     dialog_ = nullptr;
-}
-
-void Photino::GetNotificationsEnabled(bool* enabled) const
-{
-    assert(enabled);
-    if (!enabled) return;
-
-    *enabled = platform_->notifyInitialized;
-}
-
-void Photino::ShowNotification(const PlatformString& title, const PlatformString& message) const
-{
-    if (!platform_->notifyInitialized) return;
-
-    NotifyNotification* notification = notify_notification_new(title.c_str(), message.c_str(), nullptr);
-    if (!notification)
-        return;
-
-    if (platform_->window)
-    {
-        GdkPixbuf* icon = gtk_window_get_icon(GTK_WINDOW(platform_->window));
-        if (icon)
-            notify_notification_set_icon_from_pixbuf(notification, icon);
-    }
-
-    GError* error = nullptr;
-    notify_notification_show(notification, &error);
-
-    if (error)
-        g_error_free(error);
-
-    g_object_unref(G_OBJECT(notification));
 }

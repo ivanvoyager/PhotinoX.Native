@@ -34,27 +34,34 @@
     <Compile Include="$(PhotinoNetSourceDir)\NativeMethods.Browser.cs" Link="NativeMethods.Browser.cs" />
     <Compile Include="$(PhotinoNetSourceDir)\NativeMethods.Dialogs.cs" Link="NativeMethods.Dialogs.cs" />
     <Compile Include="$(PhotinoNetSourceDir)\NativeMethods.Memory.cs" Link="NativeMethods.Memory.cs" />
+    <Compile Include="$(PhotinoNetSourceDir)\NativeMethods.Notifications.cs" Link="NativeMethods.Notifications.cs" />
     <Compile Include="$(PhotinoNetSourceDir)\NativeMethods.Window.cs" Link="NativeMethods.Window.cs" />
     <Compile Include="$(PhotinoNetSourceDir)\PhotinoMonitorStruct.cs" Link="PhotinoMonitorStruct.cs" />
     <Compile Include="$(PhotinoNetSourceDir)\NativeDelegates.cs" Link="NativeDelegates.cs" />
     <Compile Include="$(PhotinoNetSourceDir)\PhotinoApplication.cs" Link="PhotinoApplication.cs" />
+    <Compile Include="$(PhotinoNetSourceDir)\PhotinoApplication.Enums.cs" Link="PhotinoApplication.Enums.cs" />
+    <Compile Include="$(PhotinoNetSourceDir)\PhotinoApplication.EventArgs.cs" Link="PhotinoApplication.EventArgs.cs" />
+    <Compile Include="$(PhotinoNetSourceDir)\PhotinoApplication.Events.cs" Link="PhotinoApplication.Events.cs" />
+    <Compile Include="$(PhotinoNetSourceDir)\PhotinoApplication.Fluent.cs" Link="PhotinoApplication.Fluent.cs" />
+    <Compile Include="$(PhotinoNetSourceDir)\PhotinoApplication.Helpers.cs" Link="PhotinoApplication.Helpers.cs" />
+    <Compile Include="$(PhotinoNetSourceDir)\PhotinoApplication.NativeParameters.cs" Link="PhotinoApplication.NativeParameters.cs" />
+    <Compile Include="$(PhotinoNetSourceDir)\PhotinoApplication.Notifications.cs" Link="PhotinoApplication.Notifications.cs" />
     <Compile Include="$(PhotinoNetSourceDir)\PhotinoBootstrap.cs" Link="PhotinoBootstrap.cs" />
     <Compile Include="$(PhotinoNetSourceDir)\PhotinoDispatcher.cs" Link="PhotinoDispatcher.cs" />
     <Compile Include="$(PhotinoNetSourceDir)\PhotinoDispatcher.States.cs" Link="PhotinoDispatcher.States.cs" />
-    <Compile Include="$(PhotinoNetSourceDir)\PhotinoNativeParameters.cs" Link="PhotinoNativeParameters.cs" />
-    <Compile Include="$(PhotinoNetSourceDir)\PhotinoShutdownMode.cs" Link="PhotinoShutdownMode.cs" />
     <Compile Include="$(PhotinoNetSourceDir)\PhotinoWindow.CustomSchemes.cs" Link="PhotinoWindow.CustomSchemes.cs" />
     <Compile Include="$(PhotinoNetSourceDir)\PhotinoWindow.Dialogs.cs" Link="PhotinoWindow.Dialogs.cs" />
     <Compile Include="$(PhotinoNetSourceDir)\PhotinoWindow.Events.cs" Link="PhotinoWindow.Events.cs" />
     <Compile Include="$(PhotinoNetSourceDir)\PhotinoWindow.Extensions.cs" Link="PhotinoWindow.Extensions.cs" />
     <Compile Include="$(PhotinoNetSourceDir)\PhotinoWindow.Fluent.cs" Link="PhotinoWindow.Fluent.cs" />
     <Compile Include="$(PhotinoNetSourceDir)\PhotinoWindow.Fluent.Handlers.cs" Link="PhotinoWindow.Fluent.Handlers.cs" />
+    <Compile Include="$(PhotinoNetSourceDir)\PhotinoWindow.NativeParameters.cs" Link="PhotinoNativeWindow.Parameters.cs" />
     <Compile Include="$(PhotinoNetSourceDir)\PhotinoWindow.Helpers.cs" Link="PhotinoWindow.Helpers.cs" />
     <Compile Include="$(PhotinoNetSourceDir)\PhotinoWindow.States.cs" Link="PhotinoWindow.States.cs" />
     <Compile Include="$(PhotinoNetSourceDir)\PhotinoWindow.cs" Link="PhotinoWindow.cs" />
     <Compile Include="$(PhotinoNetSourceDir)\PhotinoWindowCollection.cs" Link="PhotinoWindowCollection.cs" />
-    <Compile Include="$(PhotinoNetSourceDir)\PhotinoWindowEnums.cs" Link="PhotinoWindowEnums.cs" />
-    <Compile Include="$(PhotinoNetSourceDir)\PhotinoWindowEventArgs.cs" Link="PhotinoWindowEventArgs.cs" />
+    <Compile Include="$(PhotinoNetSourceDir)\PhotinoWindow.Enums.cs" Link="PhotinoWindow.Enums.cs" />
+    <Compile Include="$(PhotinoNetSourceDir)\PhotinoWindow.EventArgs.cs" Link="PhotinoWindow.EventArgs.cs" />
   </ItemGroup>
 
   <ItemGroup>

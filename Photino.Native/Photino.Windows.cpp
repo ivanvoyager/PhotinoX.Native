@@ -4,7 +4,6 @@
 #include "Photino.Strings.h"
 #include "Photino.Windows.DarkMode.h"
 #include "Photino.Windows.State.h"
-#include "Photino.Windows.ToastHandler.h"
 #include "Photino.Application.h"
 
 #include <algorithm>
@@ -13,7 +12,6 @@
 
 #include <Windows.h>
 
-using namespace WinToastLib;
 using namespace PhotinoX::Native;
 
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
@@ -45,7 +43,7 @@ void Photino::Register(const HINSTANCE hInstance)
     assert(g_hInstance == GetModuleHandleW(nullptr));
 
     // Register the window class
-    WNDCLASSEX wcx;
+    WNDCLASSEX wcx{};
     wcx.cbSize = sizeof(WNDCLASSEX);
     wcx.style = CS_HREDRAW | CS_VREDRAW;
     wcx.lpfnWndProc = WindowProc;
@@ -75,27 +73,19 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Win
     if (!initParams)
         std::abort();
 
-    //wchar_t msg[50];
-    //swprintf(msg, 50, L"Size: %i", initParams->Size);
-    //MessageBox(nullptr, msg, L"", MB_OK);
-
-    //wchar_t msg[50];
-    //swprintf(msg, 50, L"MaxWidth: %i", initParams->MaxWidth);
-    //MessageBox(nullptr, msg, L"", MB_OK);
-
     if (initParams->Size != sizeof(PhotinoInitParams) ||
-        initParams->AbiVersion != PhotinoNativeAbiVersion)
+        initParams->AbiVersion != PhotinoInitParams::NativeAbiVersion)
     {
         wchar_t msg[256];
 
         swprintf(
             msg,
             256,
-            L"Initial parameters ABI mismatch. Passed size: %i bytes, expected size: %I64i bytes. Passed ABI version: %i, expected ABI version: %i.",
+            L"Window initial parameters ABI mismatch. Passed size: %i bytes, expected size: %I64i bytes. Passed ABI version: %i, expected ABI version: %i.",
             initParams->Size,
             sizeof(PhotinoInitParams),
             initParams->AbiVersion,
-            PhotinoNativeAbiVersion);
+            PhotinoInitParams::NativeAbiVersion);
 
         MessageBoxW(nullptr, msg, L"Native Initialization Failed", MB_OK);
         std::abort();
@@ -114,10 +104,6 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Win
 
     if (platform_->sizeLimits.maxWidth > 0 && platform_->sizeLimits.minWidth > platform_->sizeLimits.maxWidth)    platform_->sizeLimits.maxWidth = platform_->sizeLimits.minWidth;
     if (platform_->sizeLimits.maxHeight > 0 && platform_->sizeLimits.minHeight > platform_->sizeLimits.maxHeight) platform_->sizeLimits.maxHeight = platform_->sizeLimits.minHeight;
-
-    //wchar_t msg[50];
-    //swprintf(msg, 50, L"Height: %i  Width: %i  Left: %d  Top: %d", initParams->Height, initParams->Width, initParams->Left, initParams->Top);
-    //MessageBox(nullptr, msg, L"", MB_OK);
 
     if (initParams->UseOsDefaultSize)
     {
@@ -198,18 +184,6 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Win
     if (initParams->Topmost)
         SetTopmost(true);
 
-    if (options_.notificationsEnabled)
-    {
-        WinToast::instance()->setAppName(options_.windowTitle);
-        if (!options_.notificationRegistrationId.empty())
-            WinToast::instance()->setAppUserModelId(options_.notificationRegistrationId);
-        else
-            WinToast::instance()->setAppUserModelId(options_.windowTitle);
-
-        platform_->toastHandler = new WinToastHandler(this);
-        WinToast::instance()->initialize();
-    }
-
     dialog_ = new PhotinoDialog(this);
 
     suppressWindowStateCallbacks_ = true;
@@ -234,9 +208,6 @@ Photino::~Photino()
 {
     delete dialog_;
     dialog_ = nullptr;
-
-    delete platform_->toastHandler;
-    platform_->toastHandler = nullptr;
 
     if (platform_->ownedSmallIcon)
     {
@@ -468,29 +439,4 @@ LRESULT CALLBACK WindowProc(const HWND hwnd, const UINT uMsg, const WPARAM wPara
     }
 
     return DefWindowProc(hwnd, uMsg, wParam, lParam);
-}
-
-void Photino::GetNotificationsEnabled(bool* enabled) const
-{
-    assert(enabled);
-    if (!enabled) return;
-
-    *enabled = options_.notificationsEnabled;
-}
-
-
-void Photino::ShowNotification(const PlatformString& title, const PlatformString& message) const
-{
-    if (!options_.notificationsEnabled || !platform_->toastHandler || !WinToast::isCompatible())
-        return;
-
-    WinToastTemplate toast = WinToastTemplate(WinToastTemplate::ImageAndText02);
-    toast.setTextField(title, WinToastTemplate::FirstLine);
-    toast.setTextField(message, WinToastTemplate::SecondLine);
-
-    if (!options_.iconFileName.empty())
-        toast.setImagePath(options_.iconFileName);
-
-    INT64 result = WinToast::instance()->showToast(toast, platform_->toastHandler);
-    assert(result >= 0);
 }
