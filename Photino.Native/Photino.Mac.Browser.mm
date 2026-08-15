@@ -453,3 +453,28 @@ void Photino::AttachWebView()
         std::abort();
     }
 }
+
+const char* Photino::GetWebKitVersion()
+{
+    static std::string version;
+
+    @autoreleasepool
+    {
+        NSBundle* bundle = [NSBundle bundleForClass:[WKWebView class]];
+        if (!bundle)
+        {
+            version.clear();
+            return nullptr;
+        }
+
+        id value = [bundle objectForInfoDictionaryKey:@"CFBundleVersion"];
+        if (![value isKindOfClass:[NSString class]] || [value length] == 0)
+        {
+            version.clear();
+            return nullptr;
+        }
+
+        version = [static_cast<NSString*>(value) UTF8String];
+        return version.empty() ? nullptr : version.c_str();
+    }
+}

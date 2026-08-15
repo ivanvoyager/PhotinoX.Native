@@ -1066,6 +1066,27 @@ void Photino::SetWebView2RuntimePath(const PlatformString& pathToWebView2)
     g_webview2RuntimePath = pathToWebView2;
 }
 
+const char* Photino::GetWebView2RuntimeVersion()
+{
+    thread_local std::string version;
+
+    PCWSTR runtimePath = g_webview2RuntimePath.empty() ? nullptr: g_webview2RuntimePath.c_str();
+
+    LPWSTR versionInfo = nullptr;
+    HRESULT hr = GetAvailableCoreWebView2BrowserVersionString(runtimePath, &versionInfo);
+
+    if (FAILED(hr) || !versionInfo)
+    {
+        version.clear();
+        return nullptr;
+    }
+
+    version = ToUtf8String(PlatformString(versionInfo));
+    CoTaskMemFree(versionInfo);
+
+    return version.empty() ? nullptr : version.c_str();
+}
+
 bool Photino::EnsureWebViewIsInstalled()
 {
     LPWSTR versionInfo = nullptr;
@@ -1106,7 +1127,7 @@ bool Photino::InstallWebView2()
     }
 
     std::wstring command = L"\"" + destFile + L"\"";
-    std::vector<wchar_t> commandLine(command.begin(), command.end());
+    std::vector commandLine(command.begin(), command.end());
     commandLine.push_back(L'\0');
 
     STARTUPINFOW si{};

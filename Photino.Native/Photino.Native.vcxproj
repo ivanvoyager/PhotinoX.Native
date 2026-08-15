@@ -343,6 +343,7 @@
     <ClInclude Include="Photino.Monitor.h" />
     <ClInclude Include="Photino.Application.Notifications.h" />
     <ClInclude Include="Photino.Options.h" />
+    <ClInclude Include="Photino.RuntimeInfo.h" />
     <ClInclude Include="Photino.Strings.h" />
     <ClInclude Include="Photino.Windows.Debug.h" />
     <ClInclude Include="Photino.Windows.State.h" />

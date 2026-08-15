@@ -477,3 +477,13 @@ Photino::~Photino()
     delete dialog_;
     dialog_ = nullptr;
 }
+
+const char* Photino::GetGtkVersion()
+{
+    static const std::string version =
+        std::to_string(gtk_get_major_version()) + "." +
+        std::to_string(gtk_get_minor_version()) + "." +
+        std::to_string(gtk_get_micro_version());
+
+    return version.c_str();
+}
