@@ -797,3 +797,13 @@ bool Photino::EnsureWebViewAttached()
 
     return true;
 }
+
+const char* Photino::GetWebKitGtkRuntimeVersion()
+{
+    static const std::string version =
+        std::to_string(webkit_get_major_version()) + "." +
+        std::to_string(webkit_get_minor_version()) + "." +
+        std::to_string(webkit_get_micro_version());
+
+    return version.c_str();
+}

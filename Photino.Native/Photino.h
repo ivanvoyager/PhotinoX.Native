@@ -174,10 +174,14 @@ namespace PhotinoX::Native
 #ifdef _WIN32
         static void Register(HINSTANCE hInstance);
         static void SetWebView2RuntimePath(const PlatformString& pathToWebView2);
+        static const char* GetWebView2RuntimeVersion();
 #elif defined(__linux__)
         static void Register();
+        static const char* GetGtkVersion();
+        static const char* GetWebKitGtkRuntimeVersion();
 #elif defined(__APPLE__)
         static void Register();
+        static const char* GetWebKitVersion();
 #endif
         // Platform handles
 #ifdef _WIN32
