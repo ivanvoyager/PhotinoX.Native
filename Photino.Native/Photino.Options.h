@@ -34,6 +34,7 @@ namespace PhotinoX::Native
         bool ignoreCertificateErrorsEnabled = false;
         bool contextMenuEnabled = true;                 // TODO: Currently supported only on Windows & Linux.
         bool zoomEnabled = true;                        // TODO: Currently supported only on Windows
+        bool statusBarEnabled = true;                   // TODO: Currently supported only on Windows
 
         int zoom = 100;
         bool chromeless = false;

@@ -101,6 +101,22 @@ extern "C"
         instance->SetZoomEnabled(enabled);
     }
 
+    PHOTINO_EXPORT void Photino_GetStatusBarEnabled(const Photino* instance, bool* enabled)
+    {
+        assert(instance);
+        if (!instance || !enabled) return;
+
+        instance->GetStatusBarEnabled(enabled);
+    }
+
+    PHOTINO_EXPORT void Photino_SetStatusBarEnabled(Photino* instance, const bool enabled)
+    {
+        assert(instance);
+        if (!instance) return;
+
+        instance->SetStatusBarEnabled(enabled);
+    }
+
 
     PHOTINO_EXPORT void Photino_GetZoom(const Photino* instance, int* zoom)
     {

@@ -92,17 +92,14 @@ void Photino::SetTransparentEnabled(const bool enabled)
 
     COREWEBVIEW2_COLOR backgroundColor{};
     HRESULT hr = controller2->get_DefaultBackgroundColor(&backgroundColor);
-    if (SUCCEEDED(hr))
-    {
-        backgroundColor.A = enabled ? 0 : 255;
-        hr = controller2->put_DefaultBackgroundColor(backgroundColor);
-        assert(SUCCEEDED(hr));
-    }
+    if (FAILED(hr)) return;
 
-    if (!platform_->initialNavigationIssued) return;
+    backgroundColor.A = enabled ? 0 : 255;
 
-    hr = platform_->webViewWindow->Reload();
-    assert(SUCCEEDED(hr));
+    hr = controller2->put_DefaultBackgroundColor(backgroundColor);
+    if (FAILED(hr)) return;
+
+    ReloadWebView();
 }
 
 void Photino::ClearBrowserAutoFill() const
@@ -193,12 +190,9 @@ void Photino::SetContextMenuEnabled(const bool enabled)
     if (FAILED(platform_->webViewWindow->get_Settings(&settings)) || !settings) return;
 
     HRESULT hr = settings->put_AreDefaultContextMenusEnabled(enabled ? TRUE : FALSE);
-    assert(SUCCEEDED(hr));
+    if (FAILED(hr)) return;
 
-    if (!platform_->initialNavigationIssued) return;
-
-    hr = platform_->webViewWindow->Reload();
-    assert(SUCCEEDED(hr));
+    ReloadWebView();
 }
 
 void Photino::GetZoomEnabled(bool* enabled) const
@@ -229,12 +223,9 @@ void Photino::SetZoomEnabled(const bool enabled)
     if (FAILED(platform_->webViewWindow->get_Settings(&settings)) || !settings) return;
 
     HRESULT hr = settings->put_IsZoomControlEnabled(enabled ? TRUE : FALSE);
-    assert(SUCCEEDED(hr));
+    if (FAILED(hr)) return;
 
-    if (!platform_->initialNavigationIssued) return;
-
-    hr = platform_->webViewWindow->Reload();
-    assert(SUCCEEDED(hr));
+    ReloadWebView();
 }
 
 void Photino::GetZoom(int* zoom) const
@@ -299,10 +290,39 @@ void Photino::SetDevToolsEnabled(const bool enabled)
     HRESULT hr = settings->put_AreDevToolsEnabled(enabled ? TRUE : FALSE);
     if (FAILED(hr)) return;
 
-    if (!platform_->initialNavigationIssued) return;
+    ReloadWebView();
+}
 
-    hr = platform_->webViewWindow->Reload();
-    assert(SUCCEEDED(hr));
+void Photino::GetStatusBarEnabled(bool* enabled) const
+{
+    assert(enabled);
+    if (!enabled) return;
+
+    *enabled = options_.statusBarEnabled;
+
+    if (!platform_->webViewWindow) return;
+
+    wil::com_ptr<ICoreWebView2Settings> settings;
+    if (FAILED(platform_->webViewWindow->get_Settings(&settings)) || !settings) return;
+
+    BOOL value = FALSE;
+    if (SUCCEEDED(settings->get_IsStatusBarEnabled(&value)))
+        *enabled = (value == TRUE);
+}
+
+void Photino::SetStatusBarEnabled(const bool enabled)
+{
+    options_.statusBarEnabled = enabled;
+
+    if (!platform_->webViewWindow) return;
+
+    wil::com_ptr<ICoreWebView2Settings> settings;
+    if (FAILED(platform_->webViewWindow->get_Settings(&settings)) || !settings) return;
+
+    HRESULT hr = settings->put_IsStatusBarEnabled(enabled ? TRUE : FALSE);
+    if (FAILED(hr)) return;
+
+    ReloadWebView();
 }
 
 void Photino::GetGrantBrowserPermissions(bool* grant) const
@@ -443,6 +463,9 @@ HRESULT Photino::CompleteWebViewInitialization()
 
     if (options_.zoom != 100)
         SetZoom(options_.zoom);
+
+    if (options_.statusBarEnabled == false)
+        SetStatusBarEnabled(false);
 
     if (!options_.startUrl.empty())
     {
@@ -1009,6 +1032,19 @@ void Photino::NotifyWebView2WindowMove() const
         // MessageBox(nullptr, L"NotifyWebView2WindowMove() was called!", L"", MB_OK);
         platform_->webViewController->NotifyParentWindowPositionChanged();
     }
+}
+
+void Photino::ReloadWebView() const
+{
+    if (!platform_->initialNavigationIssued)
+        return;
+
+    assert(platform_->webViewWindow);
+    if (!platform_->webViewWindow)
+        return;
+
+    HRESULT hr = platform_->webViewWindow->Reload();
+    assert(SUCCEEDED(hr));
 }
 
 void Photino::CloseWebView()

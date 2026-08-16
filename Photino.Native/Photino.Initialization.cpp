@@ -45,6 +45,7 @@ void Photino::InitializeOptions(const PhotinoInitParams* initParams)
     options_.transparentEnabled = initParams->Transparent;
     options_.contextMenuEnabled = initParams->ContextMenuEnabled;
     options_.zoomEnabled = initParams->ZoomEnabled;
+    options_.statusBarEnabled = initParams->StatusBarEnabled;
     options_.devToolsEnabled = initParams->DevToolsEnabled;
     options_.grantBrowserPermissions = initParams->GrantBrowserPermissions;
 #if defined(_WIN32) || defined(__linux__)
