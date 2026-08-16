@@ -12,7 +12,7 @@ namespace PhotinoX::Native
 
     struct PhotinoInitParams
     {
-        static constexpr int NativeAbiVersion = 3;
+        static constexpr int NativeAbiVersion = 4;
         static constexpr int MaxCustomSchemeNames = 16;
 
         int Size;                                               // #1
@@ -27,9 +27,9 @@ namespace PhotinoX::Native
         Utf8String BrowserControlInitParameters;                // #9
         Utf8String Reserved;                                    // #10
         Utf8String CustomSchemeNames[MaxCustomSchemeNames];     // #11
-        
+
         Photino* ParentInstance;                                // #12
-        
+
         ClosingCallback ClosingHandler;                         // #13
         FocusInCallback FocusInHandler;                         // #14
         FocusOutCallback FocusOutHandler;                       // #15
@@ -47,7 +47,7 @@ namespace PhotinoX::Native
         ClosedCallback ClosedHandler;                           // #27
         FullScreenChangedCallback FullScreenChangedHandler;     // #28
         StateChangedCallback StateChangedHandler;               // #29
-        
+
         int Left;                                               // #30
         int Top;                                                // #31
         int Width;                                              // #32
@@ -57,34 +57,35 @@ namespace PhotinoX::Native
         int MinHeight;                                          // #36
         int MaxWidth;                                           // #37
         int MaxHeight;                                          // #38
-        
+
         PhotinoWindowState WindowState;                         // #39
-        
+
         bool CenterOnInitialize;                                // #40
         bool Chromeless;                                        // #41
         bool Transparent;                                       // #42
         bool ContextMenuEnabled;                                // #43
         bool ZoomEnabled;                                       // #44
-        bool DevToolsEnabled;                                   // #45
-        bool Resizable;                                         // #46
-        bool Topmost;                                           // #47
-        bool UseOsDefaultLocation;                              // #48
-        bool UseOsDefaultSize;                                  // #49
-        bool GrantBrowserPermissions;                           // #50
-        bool MediaAutoplayEnabled;                              // #51
-        bool FileSystemAccessEnabled;                           // #52
-        bool WebSecurityEnabled;                                // #53
-        bool JavascriptClipboardAccessEnabled;                  // #54
-        bool MediaStreamEnabled;                                // #55
-        bool SmoothScrollingEnabled;                            // #56
-        bool IgnoreCertificateErrorsEnabled;                    // #57
-        
-        bool UseNativeWindowOwner;                              // #58
-        
-        int ChromelessDragRegionHeight;                         // #59
-        int ChromelessDragRegionLeftInset;                      // #60
-        int ChromelessDragRegionRightInset;                     // #61
-        int ChromelessResizeBorderThickness;                    // #62
+        bool StatusBarEnabled;                                  // #45
+        bool DevToolsEnabled;                                   // #46
+        bool Resizable;                                         // #47
+        bool Topmost;                                           // #48
+        bool UseOsDefaultLocation;                              // #49
+        bool UseOsDefaultSize;                                  // #50
+        bool GrantBrowserPermissions;                           // #51
+        bool MediaAutoplayEnabled;                              // #52
+        bool FileSystemAccessEnabled;                           // #53
+        bool WebSecurityEnabled;                                // #54
+        bool JavascriptClipboardAccessEnabled;                  // #55
+        bool MediaStreamEnabled;                                // #56
+        bool SmoothScrollingEnabled;                            // #57
+        bool IgnoreCertificateErrorsEnabled;                    // #58
+
+        bool UseNativeWindowOwner;                              // #59
+
+        int ChromelessDragRegionHeight;                         // #60
+        int ChromelessDragRegionLeftInset;                      // #61
+        int ChromelessDragRegionRightInset;                     // #62
+        int ChromelessResizeBorderThickness;                    // #63
     };
 
     static_assert(std::is_standard_layout_v<PhotinoInitParams>,

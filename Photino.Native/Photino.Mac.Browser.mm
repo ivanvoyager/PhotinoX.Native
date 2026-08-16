@@ -242,11 +242,24 @@ void Photino::GetDevToolsEnabled(bool* enabled) const
     *enabled = options_.devToolsEnabled;
 }
 
-void Photino::SetDevToolsEnabled(bool enabled)
+void Photino::SetDevToolsEnabled(const bool enabled)
 {
     options_.devToolsEnabled = enabled;
 
     SetPreference(platform_->webViewConfiguration, @"developerExtrasEnabled", enabled ? @YES : @NO);
+}
+
+void Photino::GetStatusBarEnabled(bool* enabled) const
+{
+    assert(enabled);
+    if (!enabled) return;
+
+    *enabled = options_.statusBarEnabled;
+}
+
+void Photino::SetStatusBarEnabled(const bool enabled)
+{
+    options_.statusBarEnabled = enabled;
 }
 
 void Photino::GetGrantBrowserPermissions(bool* grant) const

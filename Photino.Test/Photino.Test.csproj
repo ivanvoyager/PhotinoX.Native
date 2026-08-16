@@ -50,6 +50,7 @@
     <Compile Include="$(PhotinoNetSourceDir)\PhotinoBootstrap.cs" Link="src/PhotinoBootstrap.cs" />
     <Compile Include="$(PhotinoNetSourceDir)\PhotinoDispatcher.cs" Link="src/PhotinoDispatcher.cs" />
     <Compile Include="$(PhotinoNetSourceDir)\PhotinoDispatcher.States.cs" Link="src/PhotinoDispatcher.States.cs" />
+    <Compile Include="$(PhotinoNetSourceDir)\PhotinoWindow.Browser.cs" Link="src/PhotinoWindow.Browser.cs" />
     <Compile Include="$(PhotinoNetSourceDir)\PhotinoWindow.CustomSchemes.cs" Link="src/PhotinoWindow.CustomSchemes.cs" />
     <Compile Include="$(PhotinoNetSourceDir)\PhotinoWindow.Dialogs.cs" Link="src/PhotinoWindow.Dialogs.cs" />
     <Compile Include="$(PhotinoNetSourceDir)\PhotinoWindow.Events.cs" Link="src/PhotinoWindow.Events.cs" />

@@ -496,7 +496,7 @@ void Photino::GetDevToolsEnabled(bool* enabled) const
     *enabled = webkit_settings_get_enable_developer_extras(settings) ? true : false;
 }
 
-void Photino::SetDevToolsEnabled(bool enabled)
+void Photino::SetDevToolsEnabled(const bool enabled)
 {
     options_.devToolsEnabled = enabled;
 
@@ -506,6 +506,19 @@ void Photino::SetDevToolsEnabled(bool enabled)
     if (!settings) return;
 
     webkit_settings_set_enable_developer_extras(settings, enabled);
+}
+
+void Photino::GetStatusBarEnabled(bool* enabled) const
+{
+    assert(enabled);
+    if (!enabled) return;
+
+    *enabled = options_.statusBarEnabled;
+}
+
+void Photino::SetStatusBarEnabled(const bool enabled)
+{
+    options_.statusBarEnabled = enabled;
 }
 
 void Photino::GetGrantBrowserPermissions(bool* grant) const

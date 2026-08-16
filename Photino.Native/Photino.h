@@ -111,6 +111,7 @@ namespace PhotinoX::Native
         static bool EnsureWebViewIsInstalled();
         static bool InstallWebView2();
         void NotifyWebView2WindowMove() const;
+        void ReloadWebView() const;
 
         bool SaveFullScreenRestoreState();
         bool RestoreFullScreenRestoreState();
@@ -284,7 +285,10 @@ namespace PhotinoX::Native
 
         void GetDevToolsEnabled(bool* enabled) const;
         void SetDevToolsEnabled(bool enabled);
-        
+
+        void GetStatusBarEnabled(bool* enabled) const;
+        void SetStatusBarEnabled(bool enabled);
+
         void GetGrantBrowserPermissions(bool* grant) const;
         const PlatformString& GetUserAgent() const noexcept { return options_.userAgent; }
         void GetMediaAutoplayEnabled(bool* enabled) const;
