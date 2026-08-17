@@ -81,7 +81,7 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Win
         swprintf(
             msg,
             256,
-            L"Window initial parameters ABI mismatch. Passed size: %i bytes, expected size: %I64i bytes. Passed ABI version: %i, expected ABI version: %i.",
+            L"Window initial parameters ABI mismatch. Passed size: %i bytes, expected size: %zu bytes. Passed ABI version: %i, expected ABI version: %i.",
             initParams->Size,
             sizeof(PhotinoInitParams),
             initParams->AbiVersion,
@@ -97,47 +97,47 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Win
     options_.windowState = PhotinoWindowState::Normal;
     const bool startFullScreen = startupWindowState == PhotinoWindowState::FullScreen;
 
-    platform_->sizeLimits.minWidth = (std::max)(0, initParams->MinWidth);
-    platform_->sizeLimits.minHeight = (std::max)(0, initParams->MinHeight);
-    platform_->sizeLimits.maxWidth = (std::max)(0, initParams->MaxWidth);
-    platform_->sizeLimits.maxHeight = (std::max)(0, initParams->MaxHeight);
+    platform_->sizeLimits.minWidth = (std::max)(0, initParams->Geometry.MinWidth);
+    platform_->sizeLimits.minHeight = (std::max)(0, initParams->Geometry.MinHeight);
+    platform_->sizeLimits.maxWidth = (std::max)(0, initParams->Geometry.MaxWidth);
+    platform_->sizeLimits.maxHeight = (std::max)(0, initParams->Geometry.MaxHeight);
 
     if (platform_->sizeLimits.maxWidth > 0 && platform_->sizeLimits.minWidth > platform_->sizeLimits.maxWidth)    platform_->sizeLimits.maxWidth = platform_->sizeLimits.minWidth;
     if (platform_->sizeLimits.maxHeight > 0 && platform_->sizeLimits.minHeight > platform_->sizeLimits.maxHeight) platform_->sizeLimits.maxHeight = platform_->sizeLimits.minHeight;
 
-    if (initParams->UseOsDefaultSize)
+    if (initParams->Geometry.UseOsDefaultSize)
     {
-        initParams->Width = CW_USEDEFAULT;
-        initParams->Height = CW_USEDEFAULT;
+        initParams->Geometry.Width = CW_USEDEFAULT;
+        initParams->Geometry.Height = CW_USEDEFAULT;
     }
     else
     {
-        if (initParams->Width < 0) initParams->Width = CW_USEDEFAULT;
-        if (initParams->Height < 0) initParams->Height = CW_USEDEFAULT;
+        if (initParams->Geometry.Width < 0) initParams->Geometry.Width = CW_USEDEFAULT;
+        if (initParams->Geometry.Height < 0) initParams->Geometry.Height = CW_USEDEFAULT;
     }
 
-    if (initParams->UseOsDefaultLocation)
+    if (initParams->Geometry.UseOsDefaultLocation)
     {
-        initParams->Left = CW_USEDEFAULT;
-        initParams->Top = CW_USEDEFAULT;
+        initParams->Geometry.Left = CW_USEDEFAULT;
+        initParams->Geometry.Top = CW_USEDEFAULT;
     }
 
     if (options_.chromeless)
     {
         //CW_USEDEFAULT CAN NOT BE USED ON POPUP WINDOWS
-        if (initParams->Left == CW_USEDEFAULT && initParams->Top == CW_USEDEFAULT) initParams->CenterOnInitialize = true;
-        if (initParams->Left == CW_USEDEFAULT) initParams->Left = 0;
-        if (initParams->Top == CW_USEDEFAULT) initParams->Top = 0;
-        if (initParams->Height == CW_USEDEFAULT) initParams->Height = 600;
-        if (initParams->Width == CW_USEDEFAULT) initParams->Width = 800;
+        if (initParams->Geometry.Left == CW_USEDEFAULT && initParams->Geometry.Top == CW_USEDEFAULT) initParams->Geometry.CenterOnInitialize = true;
+        if (initParams->Geometry.Left == CW_USEDEFAULT) initParams->Geometry.Left = 0;
+        if (initParams->Geometry.Top == CW_USEDEFAULT) initParams->Geometry.Top = 0;
+        if (initParams->Geometry.Height == CW_USEDEFAULT) initParams->Geometry.Height = 600;
+        if (initParams->Geometry.Width == CW_USEDEFAULT) initParams->Geometry.Width = 800;
     }
 
-    if (initParams->Height > initParams->MaxHeight && initParams->MaxHeight > 0)    initParams->Height = initParams->MaxHeight;
-    if (initParams->Height < initParams->MinHeight && initParams->MinHeight > 0)    initParams->Height = initParams->MinHeight;
-    if (initParams->Width > initParams->MaxWidth && initParams->MaxWidth > 0)       initParams->Width = initParams->MaxWidth;
-    if (initParams->Width < initParams->MinWidth && initParams->MinWidth > 0)       initParams->Width = initParams->MinWidth;
+    if (initParams->Geometry.Height > initParams->Geometry.MaxHeight && initParams->Geometry.MaxHeight > 0) initParams->Geometry.Height = initParams->Geometry.MaxHeight;
+    if (initParams->Geometry.Height < initParams->Geometry.MinHeight && initParams->Geometry.MinHeight > 0) initParams->Geometry.Height = initParams->Geometry.MinHeight;
+    if (initParams->Geometry.Width > initParams->Geometry.MaxWidth && initParams->Geometry.MaxWidth > 0) initParams->Geometry.Width = initParams->Geometry.MaxWidth;
+    if (initParams->Geometry.Width < initParams->Geometry.MinWidth && initParams->Geometry.MinWidth > 0) initParams->Geometry.Width = initParams->Geometry.MinWidth;
 
-    HWND ownerHwnd = options_.useNativeWindowOwner && parent_ ? parent_->GetHwnd() : nullptr;
+    HWND ownerHwnd = initParams->Window.UseNativeWindowOwner && parent_ ? parent_->GetHwnd() : nullptr;
 
     //Create the window
     HWND hWnd = CreateWindowExW(
@@ -147,7 +147,7 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Win
         options_.chromeless ? WS_POPUP : WS_OVERLAPPEDWINDOW,   // Window style
 
         // Size and position
-        initParams->Left, initParams->Top, initParams->Width, initParams->Height,
+        initParams->Geometry.Left, initParams->Geometry.Top, initParams->Geometry.Width, initParams->Geometry.Height,
 
         ownerHwnd,  // Parent window handle
         nullptr,    // Menu
@@ -155,15 +155,15 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Win
         this        // Additional application data
     );
 
+    if (!hWnd)
+        std::abort();
+
     assert(platform_->hWnd == hWnd);
     platform_->hWnd = hWnd;
 
-    if (!platform_->hWnd)
-        std::abort();
-
     RefreshWindowIconsForDpi(0);
 
-    if (initParams->CenterOnInitialize)
+    if (initParams->Geometry.CenterOnInitialize)
         Center();
 
     switch (startupWindowState)
@@ -179,9 +179,9 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Win
         break;
     }
 
-    SetResizable(initParams->Resizable);
+    SetResizable(initParams->Geometry.Resizable);
 
-    if (initParams->Topmost)
+    if (initParams->Geometry.Topmost)
         SetTopmost(true);
 
     dialog_ = new PhotinoDialog(this);
@@ -351,7 +351,7 @@ LRESULT CALLBACK WindowProc(const HWND hwnd, const UINT uMsg, const WPARAM wPara
 
         if (!PhotinoApplication::Instance().IsShuttingDown())
         {
-            if (photino && photino->InvokeClosing())
+            if (photino->InvokeClosing())
                 return 0;
         }
 

@@ -1,6 +1,5 @@
 #include "Photino.h"
 #include "Photino.Dialog.h"
-#include "Photino.Strings.h"
 #include "Photino.Application.h"
 #include "Photino.Linux.State.h"
 #include "Photino.Linux.Debug.h"
@@ -10,6 +9,7 @@
 #include <cstdlib>
 #include <memory>
 #include <mutex>
+#include <string>
 
 #include <X11/Xlib.h>
 #include <gtk/gtk.h>
@@ -349,10 +349,10 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Lin
     const auto startupWindowState = options_.windowState;
     options_.windowState = PhotinoWindowState::Normal;
 
-    platform_->sizeLimits.minWidth = (std::max)(0, initParams->MinWidth);
-    platform_->sizeLimits.minHeight = (std::max)(0, initParams->MinHeight);
-    platform_->sizeLimits.maxWidth = (std::max)(0, initParams->MaxWidth);
-    platform_->sizeLimits.maxHeight = (std::max)(0, initParams->MaxHeight);
+    platform_->sizeLimits.minWidth = (std::max)(0, initParams->Geometry.MinWidth);
+    platform_->sizeLimits.minHeight = (std::max)(0, initParams->Geometry.MinHeight);
+    platform_->sizeLimits.maxWidth = (std::max)(0, initParams->Geometry.MaxWidth);
+    platform_->sizeLimits.maxHeight = (std::max)(0, initParams->Geometry.MaxHeight);
 
     if (platform_->sizeLimits.maxWidth > 0 && platform_->sizeLimits.minWidth > platform_->sizeLimits.maxWidth)    platform_->sizeLimits.maxWidth = platform_->sizeLimits.minWidth;
     if (platform_->sizeLimits.maxHeight > 0 && platform_->sizeLimits.minHeight > platform_->sizeLimits.maxHeight) platform_->sizeLimits.maxHeight = platform_->sizeLimits.minHeight;
@@ -364,36 +364,36 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Lin
 
     dialog_ = new PhotinoDialog();
 
-    if (initParams->UseOsDefaultSize)
+    if (initParams->Geometry.UseOsDefaultSize)
     {
         gtk_window_set_default_size(GTK_WINDOW(platform_->window), -1, -1);
     }
     else
     {
         // Ensure that the default size does not exceed any set min/max dimension
-        if (platform_->sizeLimits.maxWidth > 0 && initParams->Width > platform_->sizeLimits.maxWidth)
-            initParams->Width = platform_->sizeLimits.maxWidth;
-        if (platform_->sizeLimits.maxHeight > 0 && initParams->Height > platform_->sizeLimits.maxHeight)
-            initParams->Height = platform_->sizeLimits.maxHeight;
-        if (platform_->sizeLimits.minWidth > 0 && initParams->Width < platform_->sizeLimits.minWidth)
-            initParams->Width = platform_->sizeLimits.minWidth;
-        if (platform_->sizeLimits.minHeight > 0 && initParams->Height < platform_->sizeLimits.minHeight)
-            initParams->Height = platform_->sizeLimits.minHeight;
+        if (platform_->sizeLimits.maxWidth > 0 && initParams->Geometry.Width > platform_->sizeLimits.maxWidth)
+            initParams->Geometry.Width = platform_->sizeLimits.maxWidth;
+        if (platform_->sizeLimits.maxHeight > 0 && initParams->Geometry.Height > platform_->sizeLimits.maxHeight)
+            initParams->Geometry.Height = platform_->sizeLimits.maxHeight;
+        if (platform_->sizeLimits.minWidth > 0 && initParams->Geometry.Width < platform_->sizeLimits.minWidth)
+            initParams->Geometry.Width = platform_->sizeLimits.minWidth;
+        if (platform_->sizeLimits.minHeight > 0 && initParams->Geometry.Height < platform_->sizeLimits.minHeight)
+            initParams->Geometry.Height = platform_->sizeLimits.minHeight;
 
-        if (initParams->Width < 0) initParams->Width = -1;
-        if (initParams->Height < 0) initParams->Height = -1;
-        gtk_window_set_default_size(GTK_WINDOW(platform_->window), initParams->Width, initParams->Height);
+        if (initParams->Geometry.Width < 0) initParams->Geometry.Width = -1;
+        if (initParams->Geometry.Height < 0) initParams->Geometry.Height = -1;
+        gtk_window_set_default_size(GTK_WINDOW(platform_->window), initParams->Geometry.Width, initParams->Geometry.Height);
     }
 
     SetMinSize(platform_->sizeLimits.minWidth, platform_->sizeLimits.minHeight);
     SetMaxSize(platform_->sizeLimits.maxWidth, platform_->sizeLimits.maxHeight);
 
-    if (initParams->UseOsDefaultLocation)
+    if (initParams->Geometry.UseOsDefaultLocation)
         gtk_window_set_position(GTK_WINDOW(platform_->window), GTK_WIN_POS_NONE);
-    else if (initParams->CenterOnInitialize)
+    else if (initParams->Geometry.CenterOnInitialize)
         gtk_window_set_position(GTK_WINDOW(platform_->window), GTK_WIN_POS_CENTER);
     else
-        gtk_window_move(GTK_WINDOW(platform_->window), initParams->Left, initParams->Top);
+        gtk_window_move(GTK_WINDOW(platform_->window), initParams->Geometry.Left, initParams->Geometry.Top);
 
     SetTitle(options_.windowTitle);
 
@@ -401,18 +401,18 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Lin
     {
         gtk_window_set_decorated(GTK_WINDOW(platform_->window), FALSE);
 
-        platform_->chromelessSettings.DragRegionHeight = initParams->ChromelessDragRegionHeight;
-        platform_->chromelessSettings.DragRegionLeftInset = initParams->ChromelessDragRegionLeftInset;
-        platform_->chromelessSettings.DragRegionRightInset = initParams->ChromelessDragRegionRightInset;
-        platform_->chromelessSettings.ResizeBorderThickness = initParams->ChromelessResizeBorderThickness;
+        platform_->chromelessSettings.DragRegionHeight = initParams->LinuxChromeless.DragRegionHeight;
+        platform_->chromelessSettings.DragRegionLeftInset = initParams->LinuxChromeless.DragRegionLeftInset;
+        platform_->chromelessSettings.DragRegionRightInset = initParams->LinuxChromeless.DragRegionRightInset;
+        platform_->chromelessSettings.ResizeBorderThickness = initParams->LinuxChromeless.ResizeBorderThickness;
     }
 
     SetIconFile(options_.iconFileName);
 
-    if (!initParams->Resizable)
+    if (!initParams->Geometry.Resizable)
         SetResizable(false);
 
-    if (initParams->Topmost)
+    if (initParams->Geometry.Topmost)
         SetTopmost(true);
 
     // g_signal_connect(platform_->window, "size-allocate",

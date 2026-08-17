@@ -27,65 +27,69 @@ void Photino::InitializeFromInitParams(const PhotinoInitParams* initParams)
 
 void Photino::InitializeOptions(const PhotinoInitParams* initParams)
 {
-    options_.windowTitle = ToPlatformString(initParams->Title);
-    options_.iconFileName = ToPlatformString(initParams->WindowIconFile);
+    // Window
+    options_.windowTitle = ToPlatformString(initParams->Window.Title);
+    options_.iconFileName = ToPlatformString(initParams->Window.IconFile);
 
-    options_.startString = ToPlatformString(initParams->StartString);
-    options_.startUrl = ToPlatformString(initParams->StartUrl);
-    
-    options_.userDataFolder = ToPlatformString(initParams->UserDataFolder);
-    options_.userAgent = ToPlatformString(initParams->UserAgent);
-    options_.browserControlInitParameters = ToPlatformString(initParams->BrowserControlInitParameters);
+    options_.chromeless = initParams->Window.Chromeless;
+    options_.transparentEnabled = initParams->Window.Transparent;
 
-    options_.zoom = initParams->Zoom;
-    options_.chromeless = initParams->Chromeless;
-    options_.resizable = initParams->Resizable;
-    options_.windowState = initParams->WindowState;
+    // Geometry
+    options_.windowState = initParams->Geometry.WindowState;
+    options_.resizable = initParams->Geometry.Resizable;
 
-    options_.transparentEnabled = initParams->Transparent;
-    options_.contextMenuEnabled = initParams->ContextMenuEnabled;
-    options_.zoomEnabled = initParams->ZoomEnabled;
-    options_.statusBarEnabled = initParams->StatusBarEnabled;
-    options_.devToolsEnabled = initParams->DevToolsEnabled;
-    options_.grantBrowserPermissions = initParams->GrantBrowserPermissions;
+    // Browser
+    options_.startString = ToPlatformString(initParams->Browser.StartString);
+    options_.startUrl = ToPlatformString(initParams->Browser.StartUrl);
+
+    options_.userAgent = ToPlatformString(initParams->Browser.UserAgent);
+    options_.browserControlInitParameters = ToPlatformString(initParams->Browser.ControlInitParameters);
+    options_.userDataFolder = ToPlatformString(initParams->Browser.UserDataFolder);
+
+    options_.zoom = initParams->Browser.Zoom;
+    options_.zoomEnabled = initParams->Browser.ZoomEnabled;
+    options_.contextMenuEnabled = initParams->Browser.ContextMenuEnabled;
+    options_.statusBarEnabled = initParams->Browser.StatusBarEnabled;
+    options_.devToolsEnabled = initParams->Browser.DevToolsEnabled;
+
+    options_.grantBrowserPermissions = initParams->Browser.GrantBrowserPermissions;
 #if defined(_WIN32) || defined(__linux__)
-    options_.mediaAutoplayEnabled = initParams->MediaAutoplayEnabled;
+    options_.mediaAutoplayEnabled = initParams->Browser.MediaAutoplayEnabled;
 #endif
-    options_.fileSystemAccessEnabled = initParams->FileSystemAccessEnabled;
-    options_.webSecurityEnabled = initParams->WebSecurityEnabled;
-    options_.javascriptClipboardAccessEnabled = initParams->JavascriptClipboardAccessEnabled;
-    options_.mediaStreamEnabled = initParams->MediaStreamEnabled;
+    options_.fileSystemAccessEnabled = initParams->Browser.FileSystemAccessEnabled;
+    options_.webSecurityEnabled = initParams->Browser.WebSecurityEnabled;
+    options_.javascriptClipboardAccessEnabled = initParams->Browser.JavascriptClipboardAccessEnabled;
+    options_.mediaStreamEnabled = initParams->Browser.MediaStreamEnabled;
 #if defined(_WIN32) || defined(__linux__)
-    options_.smoothScrollingEnabled = initParams->SmoothScrollingEnabled;
+    options_.smoothScrollingEnabled = initParams->Browser.SmoothScrollingEnabled;
 #endif
-    options_.ignoreCertificateErrorsEnabled = initParams->IgnoreCertificateErrorsEnabled;
-    options_.useNativeWindowOwner = initParams->UseNativeWindowOwner;
+    options_.ignoreCertificateErrorsEnabled = initParams->Browser.IgnoreCertificateErrorsEnabled;
 }
 
 void Photino::InitializeCallbacks(const PhotinoInitParams* initParams)
 {
-    closingCallback_ = initParams->ClosingHandler;
-    focusInCallback_ = initParams->FocusInHandler;
-    focusOutCallback_ = initParams->FocusOutHandler;
-    resizedCallback_ = initParams->ResizedHandler;
-    maximizedCallback_ = initParams->MaximizedHandler;
-    restoredCallback_ = initParams->RestoredHandler;
-    minimizedCallback_ = initParams->MinimizedHandler;
-    movedCallback_ = initParams->MovedHandler;
-    webMessageReceivedCallback_ = initParams->WebMessageReceivedHandler;
-    contentLoadingCallback_ = initParams->ContentLoadingHandler;
-    contentLoadedCallback_ = initParams->ContentLoadedHandler;
-    navigationStartingCallback_ = initParams->NavigationStartingHandler;
-    newWindowRequestedCallback_ = initParams->NewWindowRequestedHandler;
-    customSchemeCallback_ = initParams->CustomSchemeHandler;
-    closedCallback_ = initParams->ClosedHandler;
-    fullScreenChangedCallback_ = initParams->FullScreenChangedHandler;
-    stateChangedCallback_ = initParams->StateChangedHandler;
+    closingCallback_ = initParams->Callbacks.ClosingHandler;
+    focusInCallback_ = initParams->Callbacks.FocusInHandler;
+    focusOutCallback_ = initParams->Callbacks.FocusOutHandler;
+    resizedCallback_ = initParams->Callbacks.ResizedHandler;
+    maximizedCallback_ = initParams->Callbacks.MaximizedHandler;
+    restoredCallback_ = initParams->Callbacks.RestoredHandler;
+    minimizedCallback_ = initParams->Callbacks.MinimizedHandler;
+    movedCallback_ = initParams->Callbacks.MovedHandler;
+    webMessageReceivedCallback_ = initParams->Callbacks.WebMessageReceivedHandler;
+    contentLoadingCallback_ = initParams->Callbacks.ContentLoadingHandler;
+    contentLoadedCallback_ = initParams->Callbacks.ContentLoadedHandler;
+    navigationStartingCallback_ = initParams->Callbacks.NavigationStartingHandler;
+    newWindowRequestedCallback_ = initParams->Callbacks.NewWindowRequestedHandler;
+    customSchemeCallback_ = initParams->Callbacks.CustomSchemeHandler;
+    closedCallback_ = initParams->Callbacks.ClosedHandler;
+    fullScreenChangedCallback_ = initParams->Callbacks.FullScreenChangedHandler;
+    stateChangedCallback_ = initParams->Callbacks.StateChangedHandler;
 }
 
 void Photino::InitializeCustomSchemes(const PhotinoInitParams* initParams)
 {
-    for (auto& customSchemeName : initParams->CustomSchemeNames)
+    for (auto& customSchemeName : initParams->Browser.CustomSchemeNames)
     {
         AddCustomSchemeName(customSchemeName);
     }
