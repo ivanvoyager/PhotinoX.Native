@@ -10,7 +10,7 @@ on:
 jobs:
   # -------- Linux x64 --------
   build-linux-x64:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-22.04
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -43,9 +43,8 @@ jobs:
           path: linux-x64/*
 
   # -------- Linux ARM64 --------
-  # NOTE: Requires an ARM64 runner (ubuntu-24.04-arm).
   build-linux-arm64:
-    runs-on: ubuntu-24.04-arm
+    runs-on: ubuntu-22.04-arm
     steps:
       - name: Checkout
         uses: actions/checkout@v6
