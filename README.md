@@ -13,8 +13,8 @@ This project is **not affiliated** with the original Photino organization.
 
 This fork maintains and improves the native cross-platform host for:
 - **Windows x64 / ARM64**
-- **Linux x64 / ARM64**
-- **macOS x64 / ARM64 (Universal)**
+- **Linux x64 / arm64**
+- **macOS x64 / arm64 (Universal)**
 
 PhotinoX.Native is a lightweight native desktop host for WebView-based applications. It creates and manages OS-native windows, embeds the platform WebView, owns the application message loop, and provides the interop and window-state infrastructure used by higher-level frameworks.
 
@@ -34,11 +34,13 @@ Binaries included in this package:
 | Windows | x64          | `win-x64`        | `PhotinoX.Native.dll`, `WebView2Loader.dll` |
 | Windows | ARM64        | `win-arm64`      | `PhotinoX.Native.dll`, `WebView2Loader.dll` |
 | Linux   | x64          | `linux-x64`      | `PhotinoX.Native.so`                        |
-| Linux   | ARM64        | `linux-arm64`    | `PhotinoX.Native.so`                        |
+| Linux   | arm64        | `linux-arm64`    | `PhotinoX.Native.so`                        |
 | macOS   | x64          | `osx-x64`        | `PhotinoX.Native.dylib` (universal)         |
-| macOS   | ARM64        | `osx-arm64`      | `PhotinoX.Native.dylib` (universal)         |
+| macOS   | arm64        | `osx-arm64`      | `PhotinoX.Native.dylib` (universal)         |
 
 All files follow the standard NuGet `runtimes/<rid>/native/` layout.
+
+Linux native artifacts are built against the Ubuntu 22.04 / glibc 2.35 baseline to avoid requiring newer glibc symbols such as `GLIBC_2.38`. This keeps the packaged `linux-x64` and `linux-arm64` binaries compatible with Ubuntu 22.04-based distributions while still allowing them to run on newer systems with compatible GTK/WebKitGTK runtime libraries.
 
 ## Core (ecosystem)
 
@@ -71,8 +73,8 @@ This package is intended for developers building desktop applications with web-b
 | **Startup window state** | Startup minimized/maximized/fullscreen handling is platform-specific and tied to older separate state flags. | Startup state is normalized through the unified `PhotinoWindowState` model and applied during native construction without user-visible state callbacks. |
 | **Windows fullscreen handling** | Fullscreen behavior follows the older platform-specific path. | Windows fullscreen is restore-aware: the previous style and placement are saved before entering fullscreen and restored when leaving fullscreen, with fullscreen transitions integrated into the unified state machine. |
 | **Windows WebView2 environment** | WebView2 environment creation follows the older per-window initialization path. | Reuses compatible WebView2 environments and detects conflicting configuration for the same user data folder. |
-| **Linux dependency (WebKitGTK)** | Migrated to WebKitGTK 4.1 in early 2025 (makefile updated before the 4.0.22 release). | Uses WebKitGTK 4.1 consistently across CI/scripts. |
-| **Linux documentation** | Some upstream documentation still references older WebKitGTK 4.0 package. | README and build notes match the current WebKitGTK 4.1 toolchain. |
+| **Linux documentation** | README still documents Ubuntu 18.04/20.04 and WebKitGTK 4.0 build dependencies. | README and CI build notes target the current WebKitGTK 4.1 toolchain. |
+| **Linux binary compatibility** | Current Linux binaries require newer glibc symbols such as `GLIBC_2.38`, causing load failures on Ubuntu 22.04 / glibc 2.35 systems. | Linux x64 and arm64 artifacts are built against the Ubuntu 22.04 / glibc 2.35 baseline. |
 | **RID packaging** | Uses standard `runtimes/<rid>/native/` layout in NuGet packages. | Same standard RID layout; emphasis on keeping all target RIDs green in CI (win‑x64/arm64, linux‑x64/arm64, osx‑x64/arm64). |
 
 ### History
