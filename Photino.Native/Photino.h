@@ -179,6 +179,7 @@ namespace PhotinoX::Native
 #elif defined(__linux__)
         static void Register();
         static const char* GetGtkVersion();
+        static const char* GetGlibcVersion();
         static const char* GetWebKitGtkRuntimeVersion();
 #elif defined(__APPLE__)
         static void Register();

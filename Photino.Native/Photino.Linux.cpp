@@ -14,6 +14,10 @@
 #include <X11/Xlib.h>
 #include <gtk/gtk.h>
 
+#ifdef __GLIBC__
+#include <gnu/libc-version.h>
+#endif
+
 using namespace PhotinoX::Native;
 
 namespace
@@ -486,4 +490,13 @@ const char* Photino::GetGtkVersion()
         std::to_string(gtk_get_micro_version());
 
     return version.c_str();
+}
+
+const char* Photino::GetGlibcVersion()
+{
+#ifdef __GLIBC__
+    return gnu_get_libc_version();
+#else
+    return nullptr;
+#endif
 }

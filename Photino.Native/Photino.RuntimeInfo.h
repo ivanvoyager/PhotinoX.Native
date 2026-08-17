@@ -1,5 +1,7 @@
 #pragma once
 
+#include <type_traits>
+
 namespace PhotinoX::Native
 {
     struct PhotinoWindowsRuntimeInfo
@@ -9,6 +11,7 @@ namespace PhotinoX::Native
 
     struct PhotinoLinuxRuntimeInfo
     {
+        const char* GlibcVersion;
         const char* GtkVersion;
         const char* WebKitGtkApiTarget;
         const char* WebKitGtkRuntimeVersion;
@@ -21,7 +24,7 @@ namespace PhotinoX::Native
 
     struct PhotinoRuntimeInfo
     {
-        static constexpr int NativeAbiVersion = 1;
+        static constexpr int NativeAbiVersion = 2;
 
         int Size;                               // #1
         int AbiVersion;                         // #2
@@ -38,4 +41,10 @@ namespace PhotinoX::Native
             PhotinoMacOSRuntimeInfo MacOS;      // #6
         };
     };
-} // namespace PhotinoX::Native
+
+    static_assert(std::is_standard_layout_v<PhotinoRuntimeInfo>,
+                  "PhotinoRuntimeInfo must remain standard-layout for managed/native interop.");
+
+    static_assert(sizeof(PhotinoRuntimeInfo) == 64,
+                  "PhotinoRuntimeInfo size changed. Update the managed ABI layout and size validation.");
+    } // namespace PhotinoX::Native

@@ -53,6 +53,7 @@ extern "C"
         info.WebViewRuntimeVersion = info.Windows.WebView2RuntimeVersion = Photino::GetWebView2RuntimeVersion();
 #elif defined(__linux__)
         info.WebViewEngine = "WebKitGTK";
+        info.Linux.GlibcVersion = Photino::GetGlibcVersion();
         info.Linux.GtkVersion = Photino::GetGtkVersion();
         info.Linux.WebKitGtkApiTarget = "WebKitGTK 4.1";
         info.WebViewRuntimeVersion = info.Linux.WebKitGtkRuntimeVersion = Photino::GetWebKitGtkRuntimeVersion();

@@ -25,6 +25,26 @@ jobs:
           make linux-x64
           ls -la ./lib/x64 || true
 
+      - name: Inspect linux-x64 native dependencies
+        run: |
+          SO=./lib/x64/PhotinoX.Native.so
+
+          echo "NEEDED:"
+          readelf -d "$SO" | grep NEEDED
+
+          echo ""
+          echo "GLIBC versions:"
+          objdump -T "$SO" | grep GLIBC_ | sort -V || true
+
+          echo ""
+          echo "GLIBCXX versions:"
+          objdump -T "$SO" | grep GLIBCXX_ | sort -V || true
+
+          if objdump -T "$SO" | grep -qE 'GLIBC_2\.(3[6-9]|[4-9][0-9])'; then
+            echo "ERROR: $SO requires glibc newer than 2.35"
+            exit 1
+          fi
+
       - name: Normalize layout for .nuspec (linux-x64/)
         run: |
           mkdir -p linux-x64
@@ -58,6 +78,26 @@ jobs:
         run: |
           make linux-arm64
           ls -la ./lib/arm64 || true
+
+      - name: Inspect linux-arm64 native dependencies
+        run: |
+          SO=./lib/arm64/PhotinoX.Native.so
+
+          echo "NEEDED:"
+          readelf -d "$SO" | grep NEEDED
+
+          echo ""
+          echo "GLIBC versions:"
+          objdump -T "$SO" | grep GLIBC_ | sort -V || true
+
+          echo ""
+          echo "GLIBCXX versions:"
+          objdump -T "$SO" | grep GLIBCXX_ | sort -V || true
+
+          if objdump -T "$SO" | grep -qE 'GLIBC_2\.(3[6-9]|[4-9][0-9])'; then
+            echo "ERROR: $SO requires glibc newer than 2.35"
+            exit 1
+          fi
 
       - name: Normalize layout for .nuspec (linux-arm64/)
         run: |
