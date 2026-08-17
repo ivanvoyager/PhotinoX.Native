@@ -108,6 +108,13 @@ namespace
         return G_SOURCE_REMOVE;
     }
 
+#if !NOTIFY_CHECK_VERSION(0, 8, 0)
+#define NOTIFY_CLOSED_REASON_EXPIRED 1
+#define NOTIFY_CLOSED_REASON_DISMISSED 2
+#define NOTIFY_CLOSED_REASON_API_REQUEST 3
+#define NOTIFY_CLOSED_REASON_UNDEFIEND 4
+#endif
+
     PhotinoNotificationDismissalReason ToDismissalReason(gint reason)
     {
         switch (reason)

@@ -10,7 +10,7 @@ on:
 jobs:
   # -------- Linux x64 --------
   build-linux-x64:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-22.04
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -22,8 +22,28 @@ jobs:
 
       - name: Build linux-x64
         run: |
-          make linux-x64
+          make clean-x64 build-photino-linux-x64
           ls -la ./lib/x64 || true
+
+      - name: Inspect linux-x64 native dependencies
+        run: |
+          SO=./lib/x64/PhotinoX.Native.so
+
+          echo "NEEDED:"
+          readelf -d "$SO" | grep NEEDED
+
+          echo ""
+          echo "GLIBC versions:"
+          objdump -T "$SO" | grep -oE 'GLIBC_[0-9]+\.[0-9]+(\.[0-9]+)?' | sort -Vu || true
+
+          echo ""
+          echo "GLIBCXX versions:"
+          objdump -T "$SO" | grep -oE 'GLIBCXX_[0-9]+\.[0-9]+(\.[0-9]+)?' | sort -Vu || true
+
+          if objdump -T "$SO" | grep -qE 'GLIBC_2\.(3[6-9]|[4-9][0-9])'; then
+            echo "ERROR: $SO requires glibc newer than 2.35"
+            exit 1
+          fi
 
       - name: Normalize layout for .nuspec (linux-x64/)
         run: |
@@ -43,9 +63,8 @@ jobs:
           path: linux-x64/*
 
   # -------- Linux ARM64 --------
-  # NOTE: Requires an ARM64 runner (ubuntu-24.04-arm).
   build-linux-arm64:
-    runs-on: ubuntu-24.04-arm
+    runs-on: ubuntu-22.04-arm
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -57,8 +76,28 @@ jobs:
 
       - name: Build linux-arm64
         run: |
-          make linux-arm64
+          make clean-arm64 build-photino-linux-arm64
           ls -la ./lib/arm64 || true
+
+      - name: Inspect linux-arm64 native dependencies
+        run: |
+          SO=./lib/arm64/PhotinoX.Native.so
+
+          echo "NEEDED:"
+          readelf -d "$SO" | grep NEEDED
+
+          echo ""
+          echo "GLIBC versions:"
+          objdump -T "$SO" | grep -oE 'GLIBC_[0-9]+\.[0-9]+(\.[0-9]+)?' | sort -Vu || true
+
+          echo ""
+          echo "GLIBCXX versions:"
+          objdump -T "$SO" | grep -oE 'GLIBCXX_[0-9]+\.[0-9]+(\.[0-9]+)?' | sort -Vu || true
+
+          if objdump -T "$SO" | grep -qE 'GLIBC_2\.(3[6-9]|[4-9][0-9])'; then
+            echo "ERROR: $SO requires glibc newer than 2.35"
+            exit 1
+          fi
 
       - name: Normalize layout for .nuspec (linux-arm64/)
         run: |
