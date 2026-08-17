@@ -40,7 +40,7 @@ Binaries included in this package:
 
 All files follow the standard NuGet `runtimes/<rid>/native/` layout.
 
-Linux native artifacts are built against the Ubuntu 22.04 / glibc 2.35 baseline to avoid requiring newer glibc symbols such as `GLIBC_2.38`. This keeps the packaged `linux-x64` and `linux-arm64` binaries compatible with Ubuntu 22.04-based distributions while still allowing them to run on newer systems with compatible GTK/WebKitGTK runtime libraries.
+Linux native artifacts are built against the Ubuntu 22.04 / glibc 2.35 baseline to avoid newer glibc symbols such as `GLIBC_2.38`. This keeps packaged `linux-x64` and `linux-arm64` binaries compatible with Ubuntu 22.04-based distributions while allowing them to run on newer systems with compatible GTK/WebKitGTK runtime libraries.
 
 ## Core (ecosystem)
 
