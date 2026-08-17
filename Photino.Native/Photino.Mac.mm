@@ -130,21 +130,21 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Mac
         const auto startupWindowState = options_.windowState;
         options_.windowState = PhotinoWindowState::Normal;
 
-        if (initParams->UseOsDefaultSize)
+        if (initParams->Geometry.UseOsDefaultSize)
 	    {
-		    initParams->Width = 800; //CW_USEDEFAULT;
-		    initParams->Height = 600; //CW_USEDEFAULT;
+		    initParams->Geometry.Width = 800; //CW_USEDEFAULT;
+		    initParams->Geometry.Height = 600; //CW_USEDEFAULT;
 	    }
 	    else
 	    {
-		    if (initParams->Width < 0) initParams->Width = 800; //CW_USEDEFAULT;
-		    if (initParams->Height < 0) initParams->Height = 600; //CW_USEDEFAULT;
+		    if (initParams->Geometry.Width < 0) initParams->Geometry.Width = 800; //CW_USEDEFAULT;
+		    if (initParams->Geometry.Height < 0) initParams->Geometry.Height = 600; //CW_USEDEFAULT;
 	    }
 
-	    if (initParams->UseOsDefaultLocation)
+	    if (initParams->Geometry.UseOsDefaultLocation)
 	    {
-		    initParams->Left = 0; //CW_USEDEFAULT;
-		    initParams->Top = 0; //CW_USEDEFAULT;
+		    initParams->Geometry.Left = 0; //CW_USEDEFAULT;
+		    initParams->Geometry.Top = 0; //CW_USEDEFAULT;
 	    }
 
         // Create Window
@@ -192,20 +192,20 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Mac
         SetTitle(options_.windowTitle);
         SetIconFile(options_.iconFileName);
 
-	    SetTopmost(initParams->Topmost);
-        SetPosition(initParams->Left, initParams->Top);
+	    SetTopmost(initParams->Geometry.Topmost);
+        SetPosition(initParams->Geometry.Left, initParams->Geometry.Top);
 
         // It's important to set min/max size before setting size
         // SetSize is ensuring internally that the size is within min/max
         // but requires that min/max be set first.
-        SetMinSize(initParams->MinWidth, initParams->MinHeight); // Defaults to 0,0
-        SetMaxSize(initParams->MaxWidth, initParams->MaxHeight); // Defaults to 10000,10000
-        SetSize(initParams->Width, initParams->Height);
+        SetMinSize(initParams->Geometry.MinWidth, initParams->Geometry.MinHeight); // Defaults to 0,0
+        SetMaxSize(initParams->Geometry.MaxWidth, initParams->Geometry.MaxHeight); // Defaults to 10000,10000
+        SetSize(initParams->Geometry.Width, initParams->Geometry.Height);
 
-        SetResizable(initParams->Resizable);
+        SetResizable(initParams->Geometry.Resizable);
 
-        if (initParams->CenterOnInitialize)
-            Photino::Center();
+        if (initParams->Geometry.CenterOnInitialize)
+            Center();
   
         // Create WebView Configuration
         platform_->webViewConfiguration = [[WKWebViewConfiguration alloc] init];
