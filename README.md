@@ -8,7 +8,7 @@
 [![License](https://img.shields.io/github/license/ivanvoyager/PhotinoX.Native?label=license)](https://github.com/ivanvoyager/PhotinoX.Native/blob/master/LICENSE)
 [![NuGet Downloads](https://img.shields.io/nuget/dt/PhotinoX.Native.svg)](https://www.nuget.org/packages/PhotinoX.Native)
 
-**PhotinoX.Native** is an independent fork of [`tryphotino/photino.Native`](https://github.com/tryphotino/photino.Native) licensed under **Apache‑2.0**.  
+**PhotinoX.Native** is an independent fork of [`tryphotino/photino.Native`](https://github.com/tryphotino/photino.Native) licensed under **Apache-2.0**.  
 This project is **not affiliated** with the original Photino organization.
 
 This fork maintains and improves the native cross-platform host for:
@@ -47,7 +47,7 @@ Linux native artifacts are built against the Ubuntu 22.04 / glibc 2.35 baseline 
 These repositories provide the managed .NET surface around the native binaries:
 
 - [**PhotinoX**](https://github.com/ivanvoyager/PhotinoX) - managed .NET wrapper around the native layer.
-- [**PhotinoX.App**](https://github.com/ivanvoyager/PhotinoX.App) - Application composition layer for PhotinoX desktop applications.
+- [**PhotinoX.App**](https://github.com/ivanvoyager/PhotinoX.App) - application composition layer for PhotinoX desktop applications.
 - [**PhotinoX.Blazor**](https://github.com/ivanvoyager/PhotinoX.Blazor) - Blazor integration for native desktop apps.
 - [**PhotinoX.Server**](https://github.com/ivanvoyager/PhotinoX.Server) - optional local static-file server for SPA/static assets.
 - [**PhotinoX.Samples**](https://github.com/ivanvoyager/PhotinoX.Samples) - sample projects showcasing common scenarios.
@@ -75,7 +75,7 @@ This package is intended for developers building desktop applications with web-b
 | **Windows WebView2 environment** | WebView2 environment creation follows the older per-window initialization path. | Reuses compatible WebView2 environments and detects conflicting configuration for the same user data folder. |
 | **Linux documentation** | README still documents Ubuntu 18.04/20.04 and WebKitGTK 4.0 build dependencies. | README and CI build notes target the current WebKitGTK 4.1 toolchain. |
 | **Linux binary compatibility** | Current Linux binaries require newer glibc symbols such as `GLIBC_2.38`, causing load failures on Ubuntu 22.04 / glibc 2.35 systems. | Linux x64 and arm64 artifacts are built against the Ubuntu 22.04 / glibc 2.35 baseline. |
-| **RID packaging** | Uses standard `runtimes/<rid>/native/` layout in NuGet packages. | Same standard RID layout; emphasis on keeping all target RIDs green in CI (win‑x64/arm64, linux‑x64/arm64, osx‑x64/arm64). |
+| **RID packaging** | Uses standard `runtimes/<rid>/native/` layout in NuGet packages. | Same standard RID layout; emphasis on keeping all target RIDs green in CI (win-x64/arm64, linux-x64/arm64, osx-x64/arm64). |
 
 ### History
 
@@ -138,7 +138,7 @@ make linux-x64       # or make linux-arm64
 
 Requirements:
 - Xcode 15+ (macOS 14/15/16 toolchains)
-- clang with Objective‑C++ support
+- clang with Objective-C++ support
 - WKWebView available system-wide
 
 ```sh
@@ -156,4 +156,4 @@ Issues and PRs are welcome. Keep changes minimal and performance-conscious.
 
 ## License
 
-PhotinoX.Native is licensed under **Apache‑2.0**.  
+PhotinoX.Native is licensed under **Apache-2.0**.  

@@ -123,21 +123,24 @@ namespace
         if (!instance || !widget || !event)
             return false;
 
-        auto& platform = instance->Platform();
+        auto& settings = instance->Platform().chromelessSettings;
 
         const int width = gtk_widget_get_allocated_width(widget);
         const int x = static_cast<int>(event->x);
         const int y = static_cast<int>(event->y);
 
         const int resizeBorder = instance->CanBeginResize()
-            ? platform.chromelessSettings.ResizeBorderThickness
-            : 0;
+                                     ? (std::max)(0, settings.ResizeBorderThickness)
+                                     : 0;
 
-        if (y < resizeBorder || y >= platform.chromelessSettings.DragRegionHeight)
+        const int dragTop = (std::max)(0, settings.DragRegionTopInset);
+        const int dragBottom = dragTop + (std::max)(0, settings.DragRegionHeight);
+
+        if (y < resizeBorder || y < dragTop || y >= dragBottom)
             return false;
 
-        const int leftInset = (std::clamp)(platform.chromelessSettings.DragRegionLeftInset, 0, width);
-        const int rightInset = (std::clamp)(platform.chromelessSettings.DragRegionRightInset, 0, width);
+        const int leftInset = (std::clamp)(settings.DragRegionLeftInset, 0, width);
+        const int rightInset = (std::clamp)(settings.DragRegionRightInset, 0, width);
         const int dragRight = (std::max)(leftInset, width - rightInset);
 
         return x >= leftInset && x < dragRight;
@@ -403,6 +406,7 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Lin
 
         platform_->chromelessSettings.DragRegionHeight = initParams->LinuxChromeless.DragRegionHeight;
         platform_->chromelessSettings.DragRegionLeftInset = initParams->LinuxChromeless.DragRegionLeftInset;
+        platform_->chromelessSettings.DragRegionTopInset = initParams->LinuxChromeless.DragRegionTopInset;
         platform_->chromelessSettings.DragRegionRightInset = initParams->LinuxChromeless.DragRegionRightInset;
         platform_->chromelessSettings.ResizeBorderThickness = initParams->LinuxChromeless.ResizeBorderThickness;
     }

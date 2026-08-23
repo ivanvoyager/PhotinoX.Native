@@ -13,6 +13,7 @@ namespace PhotinoX::Native
     {
         int DragRegionHeight = 0;
         int DragRegionLeftInset = 0;
+        int DragRegionTopInset = 0;
         int DragRegionRightInset = 0;
         int ResizeBorderThickness = 8;
     };
