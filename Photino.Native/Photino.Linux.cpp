@@ -1,6 +1,7 @@
 #include "Photino.h"
 #include "Photino.Dialog.h"
 #include "Photino.Application.h"
+#include "Photino.Geometry.h"
 #include "Photino.Linux.State.h"
 #include "Photino.Linux.Debug.h"
 
@@ -123,27 +124,27 @@ namespace
         if (!instance || !widget || !event)
             return false;
 
-        auto& settings = instance->Platform().chromelessSettings;
-
-        const int width = gtk_widget_get_allocated_width(widget);
+        const int webViewWidth = gtk_widget_get_allocated_width(widget);
+        const int webViewHeight = gtk_widget_get_allocated_height(widget);
         const int x = static_cast<int>(event->x);
         const int y = static_cast<int>(event->y);
+
+        const auto& settings = instance->Platform().chromelessSettings;
 
         const int resizeBorder = instance->CanBeginResize()
                                      ? (std::max)(0, settings.ResizeBorderThickness)
                                      : 0;
 
-        const int dragTop = (std::max)(0, settings.DragRegionTopInset);
-        const int dragBottom = dragTop + (std::max)(0, settings.DragRegionHeight);
+        if (x < resizeBorder || x >= webViewWidth - resizeBorder ||
+            y < resizeBorder || y >= webViewHeight - resizeBorder)
+        {
+            return false;
+        }
 
-        if (y < resizeBorder || y < dragTop || y >= dragBottom)
+        if (IsInAnyLayoutRegion(settings.NoDragRegions, x, y, webViewWidth, webViewHeight))
             return false;
 
-        const int leftInset = (std::clamp)(settings.DragRegionLeftInset, 0, width);
-        const int rightInset = (std::clamp)(settings.DragRegionRightInset, 0, width);
-        const int dragRight = (std::max)(leftInset, width - rightInset);
-
-        return x >= leftInset && x < dragRight;
+        return IsInAnyLayoutRegion(settings.DragRegions, x, y, webViewWidth, webViewHeight);
     }
 
     gboolean on_webview_button_press_event(GtkWidget* widget, GdkEventButton* event, gpointer self)
@@ -404,10 +405,24 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Lin
     {
         gtk_window_set_decorated(GTK_WINDOW(platform_->window), FALSE);
 
-        platform_->chromelessSettings.DragRegionHeight = initParams->LinuxChromeless.DragRegionHeight;
-        platform_->chromelessSettings.DragRegionLeftInset = initParams->LinuxChromeless.DragRegionLeftInset;
-        platform_->chromelessSettings.DragRegionTopInset = initParams->LinuxChromeless.DragRegionTopInset;
-        platform_->chromelessSettings.DragRegionRightInset = initParams->LinuxChromeless.DragRegionRightInset;
+        if (initParams->LinuxChromeless.DragRegionHeight > 0)
+        {
+            platform_->chromelessSettings.DragRegions.push_back(
+            {
+                .width = 0,
+                .height = initParams->LinuxChromeless.DragRegionHeight,
+                .margin =
+                {
+                    .left = initParams->LinuxChromeless.DragRegionLeftInset,
+                    .top = initParams->LinuxChromeless.DragRegionTopInset,
+                    .right = initParams->LinuxChromeless.DragRegionRightInset,
+                    .bottom = 0
+                },
+                .horizontalAlignment = HorizontalAlignment::Stretch,
+                .verticalAlignment = VerticalAlignment::Top
+            });
+        }
+
         platform_->chromelessSettings.ResizeBorderThickness = initParams->LinuxChromeless.ResizeBorderThickness;
     }
 

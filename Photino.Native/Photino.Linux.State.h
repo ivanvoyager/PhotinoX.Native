@@ -7,14 +7,14 @@
 
 #include <gtk/gtk.h>
 
+#include <vector>
+
 namespace PhotinoX::Native
 {
     struct ChromelessSettings
     {
-        int DragRegionHeight = 0;
-        int DragRegionLeftInset = 0;
-        int DragRegionTopInset = 0;
-        int DragRegionRightInset = 0;
+        std::vector<LayoutRegion> DragRegions;
+        std::vector<LayoutRegion> NoDragRegions;
         int ResizeBorderThickness = 8;
     };
 

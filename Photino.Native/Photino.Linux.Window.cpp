@@ -782,7 +782,7 @@ void Photino::UpdateWebViewInputShape() const noexcept
         return;
     }
 
-    const int border = platform_->chromelessSettings.ResizeBorderThickness;
+    const int border = (std::max)(0, platform_->chromelessSettings.ResizeBorderThickness);
     const int width = gtk_widget_get_allocated_width(platform_->webview);
     const int height = gtk_widget_get_allocated_height(platform_->webview);
 
@@ -823,7 +823,7 @@ bool Photino::CanBeginDrag() const noexcept
 {
     return platform_->window &&
            options_.chromeless &&
-           platform_->chromelessSettings.DragRegionHeight > 0 &&
+           !platform_->chromelessSettings.DragRegions.empty() &&
            !platform_->isFullScreenTransitioning &&
            !IsFullScreen() &&
            !IsMaximized() &&
