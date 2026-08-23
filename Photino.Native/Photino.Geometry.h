@@ -3,6 +3,7 @@
 #include "Photino.Enums.h"
 
 #include <algorithm>
+#include <type_traits>
 #include <vector>
 
 namespace PhotinoX::Native
@@ -23,6 +24,27 @@ namespace PhotinoX::Native
         int maxHeight = 0;
     };
 
+    struct Rect
+    {
+        int x, y;
+        int width, height;
+    };
+    static_assert(std::is_standard_layout_v<Rect>,
+                  "Rect must remain standard-layout for managed/native interop.");
+    static_assert(sizeof(Rect) == 16,
+                  "Rect size changed. Update the managed ABI layout and size validation.");
+
+    struct Monitor
+    {
+        Rect monitor;
+        Rect work;
+        double scale;
+    };
+    static_assert(std::is_standard_layout_v<Monitor>,
+                  "Monitor must remain standard-layout for managed/native interop.");
+    static_assert(sizeof(Monitor) == 40,
+                  "Monitor size changed. Update the managed ABI layout and size validation.");
+
     struct Thickness
     {
         int left = 0;
@@ -30,6 +52,10 @@ namespace PhotinoX::Native
         int right = 0;
         int bottom = 0;
     };
+    static_assert(std::is_standard_layout_v<Thickness>,
+                  "Thickness must remain standard-layout for managed/native interop.");
+    static_assert(sizeof(Thickness) == 16,
+                  "Thickness size changed. Update the managed ABI layout and size validation.");
 
     struct LayoutRegion
     {
@@ -41,6 +67,10 @@ namespace PhotinoX::Native
         HorizontalAlignment horizontalAlignment = HorizontalAlignment::Left;
         VerticalAlignment verticalAlignment = VerticalAlignment::Top;
     };
+    static_assert(std::is_standard_layout_v<LayoutRegion>,
+                  "LayoutRegion must remain standard-layout for managed/native interop.");
+    static_assert(sizeof(LayoutRegion) == 32,
+                  "LayoutRegion size changed. Update the managed ABI layout and size validation.");
 
     inline bool IsInLayoutRange(
         int position,

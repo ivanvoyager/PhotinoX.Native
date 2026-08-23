@@ -5,7 +5,7 @@
 #include "Photino.InitParams.h"
 #include "Photino.Options.h"
 #include "Photino.Strings.h"
-#include "Photino.Monitor.h"
+#include "Photino.Geometry.h"
 
 #include <memory>
 #include <vector>
@@ -162,6 +162,9 @@ namespace PhotinoX::Native
         void CompleteScheduledRestoreNormalGeometry();
 
         void UpdateWebViewInputShape() const noexcept;
+        void SetLinuxChromelessDragRegions(const LayoutRegion* dragRegions, int dragRegionCount, 
+                                           const LayoutRegion* noDragRegions, int noDragRegionCount);
+        void SetLinuxChromelessResizeBorderThickness(int thickness);
 #elif defined(__APPLE__)
         void HandleFullScreenExitCompleted() noexcept;
         void HandleMiniaturizeStarted() noexcept;

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Photino.Enums.h"
-#include "Photino.Monitor.h"
+#include "Photino.Geometry.h"
 #include "Photino.Strings.h"
 
 namespace PhotinoX::Native

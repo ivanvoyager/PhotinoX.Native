@@ -141,10 +141,10 @@ namespace
             return false;
         }
 
-        if (IsInAnyLayoutRegion(settings.NoDragRegions, x, y, webViewWidth, webViewHeight))
+        if (IsInAnyLayoutRegion(settings.Regions.NoDrag, x, y, webViewWidth, webViewHeight))
             return false;
 
-        return IsInAnyLayoutRegion(settings.DragRegions, x, y, webViewWidth, webViewHeight);
+        return IsInAnyLayoutRegion(settings.Regions.Drag, x, y, webViewWidth, webViewHeight);
     }
 
     gboolean on_webview_button_press_event(GtkWidget* widget, GdkEventButton* event, gpointer self)
@@ -407,7 +407,7 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Lin
 
         if (initParams->LinuxChromeless.DragRegionHeight > 0)
         {
-            platform_->chromelessSettings.DragRegions.push_back(
+            platform_->chromelessSettings.Regions.Drag.push_back(
             {
                 .width = 0,
                 .height = initParams->LinuxChromeless.DragRegionHeight,

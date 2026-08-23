@@ -11,10 +11,15 @@
 
 namespace PhotinoX::Native
 {
+    struct ChromelessRegions
+    {
+        std::vector<LayoutRegion> Drag;
+        std::vector<LayoutRegion> NoDrag;
+    };
+
     struct ChromelessSettings
     {
-        std::vector<LayoutRegion> DragRegions;
-        std::vector<LayoutRegion> NoDragRegions;
+        ChromelessRegions Regions;
         int ResizeBorderThickness = 8;
     };
 

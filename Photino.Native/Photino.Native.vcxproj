@@ -13,7 +13,7 @@
     <NuGetTargetMoniker Condition="'$(NuGetTargetMoniker)' == ''">native,Version=v0.0</NuGetTargetMoniker>
     <VerMajor>5</VerMajor>
     <VerMinor>0</VerMinor>
-    <VerPatch>3</VerPatch>
+    <VerPatch>4</VerPatch>
     <VerBuild>
     </VerBuild>
   </PropertyGroup>
@@ -340,7 +340,6 @@
     <ClInclude Include="Photino.Mac.UrlSchemeHandler.h" />
     <ClInclude Include="Photino.Dialog.h" />
     <ClInclude Include="Photino.Memory.h" />
-    <ClInclude Include="Photino.Monitor.h" />
     <ClInclude Include="Photino.Application.Notifications.h" />
     <ClInclude Include="Photino.Options.h" />
     <ClInclude Include="Photino.RuntimeInfo.h" />

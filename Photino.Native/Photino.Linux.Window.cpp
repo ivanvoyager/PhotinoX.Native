@@ -2,6 +2,7 @@
 #include "Photino.Enums.h"
 #include "Photino.Callbacks.h"
 #include "Photino.Strings.h"
+#include "Photino.Geometry.h"
 #include "Photino.Linux.State.h"
 #include "Photino.Linux.Debug.h"
 
@@ -9,6 +10,7 @@
 
 #include <algorithm>
 #include <cassert>
+#include <utility>
 
 using namespace PhotinoX::Native;
 
@@ -808,6 +810,35 @@ void Photino::UpdateWebViewInputShape() const noexcept
     cairo_region_destroy(region);
 }
 
+void Photino::SetLinuxChromelessDragRegions(const LayoutRegion* dragRegions, int dragRegionCount,
+                                            const LayoutRegion* noDragRegions, int noDragRegionCount)
+{
+    if (dragRegionCount < 0 || noDragRegionCount < 0)
+        return;
+
+    if ((dragRegionCount > 0 && !dragRegions) ||
+        (noDragRegionCount > 0 && !noDragRegions))
+    {
+        return;
+    }
+
+    ChromelessRegions regions;
+
+    if (dragRegionCount > 0)
+        regions.Drag.assign(dragRegions, dragRegions + dragRegionCount);
+
+    if (noDragRegionCount > 0)
+        regions.NoDrag.assign(noDragRegions, noDragRegions + noDragRegionCount);
+
+    platform_->chromelessSettings.Regions = std::move(regions);
+}
+
+void Photino::SetLinuxChromelessResizeBorderThickness(int thickness)
+{
+    platform_->chromelessSettings.ResizeBorderThickness = (std::max)(0, thickness);
+    UpdateWebViewInputShape();
+}
+
 bool Photino::CanBeginResize() const noexcept
 {
     return platform_->window &&
@@ -823,7 +854,7 @@ bool Photino::CanBeginDrag() const noexcept
 {
     return platform_->window &&
            options_.chromeless &&
-           !platform_->chromelessSettings.DragRegions.empty() &&
+           !platform_->chromelessSettings.Regions.Drag.empty() &&
            !platform_->isFullScreenTransitioning &&
            !IsFullScreen() &&
            !IsMaximized() &&
