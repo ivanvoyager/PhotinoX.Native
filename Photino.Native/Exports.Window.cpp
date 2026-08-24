@@ -1,5 +1,6 @@
 #include "Photino.Export.h"
 #include "Photino.h"
+#include "Photino.Geometry.h"
 #include "Photino.Strings.h"
 
 #include <cassert>
@@ -26,6 +27,25 @@ extern "C"
         if (!instance) return nullptr;
 
         return instance->GetGtkWidget();
+    }
+
+    PHOTINO_EXPORT void Photino_SetChromelessDragRegions_linux(Photino* instance,
+        const LayoutRegion* dragRegions, const int dragRegionCount,
+        const LayoutRegion* noDragRegions, const int noDragRegionCount)
+    {
+        assert(instance);
+        if (!instance) return;
+
+        instance->SetLinuxChromelessDragRegions(dragRegions, dragRegionCount, 
+                                                noDragRegions, noDragRegionCount);
+    }
+
+    PHOTINO_EXPORT void Photino_SetChromelessResizeBorderThickness_linux(Photino* instance, const int thickness)
+    {
+        assert(instance);
+        if (!instance) return;
+
+        instance->SetLinuxChromelessResizeBorderThickness(thickness);
     }
 
 #elif defined(__APPLE__)

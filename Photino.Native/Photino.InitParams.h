@@ -4,6 +4,7 @@
 #include "Photino.Callbacks.h"
 #include "Photino.Enums.h"
 
+#include <cstddef>
 #include <type_traits>
 
 namespace PhotinoX::Native
@@ -53,12 +54,13 @@ namespace PhotinoX::Native
     {
         int DragRegionHeight;      // #1
         int DragRegionLeftInset;   // #2
-        int DragRegionRightInset;  // #3
-        int ResizeBorderThickness; // #4
+        int DragRegionTopInset;    // #3
+        int DragRegionRightInset;  // #4
+        int ResizeBorderThickness; // #5
     };
     static_assert(std::is_standard_layout_v<PhotinoInitLinuxChromelessOptions>,
                   "PhotinoInitLinuxChromelessOptions must remain standard-layout for managed/native interop.");
-    static_assert(sizeof(PhotinoInitLinuxChromelessOptions) == 16,
+    static_assert(sizeof(PhotinoInitLinuxChromelessOptions) == 20,
                   "PhotinoInitLinuxChromelessOptions size changed. Update the managed ABI layout and size validation.");
 
     struct PhotinoInitGeometry
@@ -119,7 +121,7 @@ namespace PhotinoX::Native
 
     struct PhotinoInitParams
     {
-        static constexpr int NativeAbiVersion = 5;
+        static constexpr int NativeAbiVersion = 6;
 
         int Size;                                           // #1
         int AbiVersion;                                     // #2
@@ -132,8 +134,16 @@ namespace PhotinoX::Native
         PhotinoInitGeometry Geometry;                       // #7
         PhotinoInitBrowserParams Browser;                   // #8
     };
+
     static_assert(std::is_standard_layout_v<PhotinoInitParams>,
         "PhotinoInitParams must remain standard-layout for managed/native interop.");
+
+    static_assert(offsetof(PhotinoInitParams, Callbacks) == 16, "PhotinoInitParams.Callbacks offset changed.");
+    static_assert(offsetof(PhotinoInitParams, Window) == 152, "PhotinoInitParams.Window offset changed.");
+    static_assert(offsetof(PhotinoInitParams, LinuxChromeless) == 176,"PhotinoInitParams.LinuxChromeless offset changed.");
+    static_assert(offsetof(PhotinoInitParams, Geometry) == 196, "PhotinoInitParams.Geometry offset changed.");
+    static_assert(offsetof(PhotinoInitParams, Browser) == 240, "PhotinoInitParams.Browser offset changed.");
+
     static_assert(sizeof(PhotinoInitParams) == 424,
         "PhotinoInitParams size changed. Update the managed ABI layout and size validation.");
 }

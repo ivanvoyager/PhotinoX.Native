@@ -194,9 +194,6 @@
     <ClInclude Include="Photino.Callbacks.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Photino.Monitor.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Photino.Mac.Dialog.Icons.h">
       <Filter>Header Files</Filter>
     </ClInclude>

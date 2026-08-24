@@ -56,4 +56,25 @@ namespace PhotinoX::Native
     };
     static_assert(sizeof(PhotinoNotificationDismissalReason) == sizeof(int),
                   "PhotinoNotificationDismissalReason must remain int-sized for managed/native interop.");
+
+    enum class HorizontalAlignment : int
+    {
+        Left = 0,
+        Center = 1,
+        Right = 2,
+        Stretch = 3
+    };
+    static_assert(sizeof(HorizontalAlignment) == sizeof(int),
+                  "HorizontalAlignment must remain int-sized for managed/native interop.");
+
+    enum class VerticalAlignment : int
+    {
+        Top = 0,
+        Center = 1,
+        Bottom = 2,
+        Stretch = 3
+    };
+    static_assert(sizeof(VerticalAlignment) == sizeof(int),
+                  "VerticalAlignment must remain int-sized for managed/native interop.");
+
 }

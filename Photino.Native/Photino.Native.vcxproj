@@ -12,8 +12,8 @@
     <RestoreProjectStyle>PackageReference</RestoreProjectStyle>
     <NuGetTargetMoniker Condition="'$(NuGetTargetMoniker)' == ''">native,Version=v0.0</NuGetTargetMoniker>
     <VerMajor>5</VerMajor>
-    <VerMinor>0</VerMinor>
-    <VerPatch>3</VerPatch>
+    <VerMinor>1</VerMinor>
+    <VerPatch>0</VerPatch>
     <VerBuild>
     </VerBuild>
   </PropertyGroup>
@@ -340,7 +340,6 @@
     <ClInclude Include="Photino.Mac.UrlSchemeHandler.h" />
     <ClInclude Include="Photino.Dialog.h" />
     <ClInclude Include="Photino.Memory.h" />
-    <ClInclude Include="Photino.Monitor.h" />
     <ClInclude Include="Photino.Application.Notifications.h" />
     <ClInclude Include="Photino.Options.h" />
     <ClInclude Include="Photino.RuntimeInfo.h" />

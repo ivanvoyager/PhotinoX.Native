@@ -36,7 +36,6 @@
     <Compile Include="$(PhotinoNetSourceDir)\NativeMethods.Memory.cs" Link="src/NativeMethods.Memory.cs" />
     <Compile Include="$(PhotinoNetSourceDir)\NativeMethods.Notifications.cs" Link="src/NativeMethods.Notifications.cs" />
     <Compile Include="$(PhotinoNetSourceDir)\NativeMethods.Window.cs" Link="src/NativeMethods.Window.cs" />
-    <Compile Include="$(PhotinoNetSourceDir)\PhotinoMonitorStruct.cs" Link="src/PhotinoMonitorStruct.cs" />
     <Compile Include="$(PhotinoNetSourceDir)\NativeDelegates.cs" Link="src/NativeDelegates.cs" />
     <Compile Include="$(PhotinoNetSourceDir)\PhotinoApplication.cs" Link="src/PhotinoApplication.cs" />
     <Compile Include="$(PhotinoNetSourceDir)\PhotinoApplication.Enums.cs" Link="src/PhotinoApplication.Enums.cs" />
@@ -57,7 +56,9 @@
     <Compile Include="$(PhotinoNetSourceDir)\PhotinoWindow.Extensions.cs" Link="src/PhotinoWindow.Extensions.cs" />
     <Compile Include="$(PhotinoNetSourceDir)\PhotinoWindow.Fluent.cs" Link="src/PhotinoWindow.Fluent.cs" />
     <Compile Include="$(PhotinoNetSourceDir)\PhotinoWindow.Fluent.Handlers.cs" Link="src/PhotinoWindow.Fluent.Handlers.cs" />
-    <Compile Include="$(PhotinoNetSourceDir)\PhotinoWindow.NativeParameters.cs" Link="src/PhotinoNativeWindow.Parameters.cs" />
+    <Compile Include="$(PhotinoNetSourceDir)\PhotinoWindow.Geometry.cs" Link="src/PhotinoWindow.Geometry.cs" />
+    <Compile Include="$(PhotinoNetSourceDir)\PhotinoWindow.NativeGeometry.cs" Link="src/PhotinoWindow.NativeGeometry.cs" />
+    <Compile Include="$(PhotinoNetSourceDir)\PhotinoWindow.NativeParameters.cs" Link="src/PhotinoWindow.NativeParameters.cs" />
     <Compile Include="$(PhotinoNetSourceDir)\PhotinoWindow.Helpers.cs" Link="src/PhotinoWindow.Helpers.cs" />
     <Compile Include="$(PhotinoNetSourceDir)\PhotinoWindow.States.cs" Link="src/PhotinoWindow.States.cs" />
     <Compile Include="$(PhotinoNetSourceDir)\PhotinoWindow.cs" Link="src/PhotinoWindow.cs" />
