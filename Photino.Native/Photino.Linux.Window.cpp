@@ -857,11 +857,10 @@ bool Photino::CanBeginDrag() const noexcept
            !platform_->chromelessSettings.Regions.Drag.empty() &&
            !platform_->isFullScreenTransitioning &&
            !IsFullScreen() &&
-           !IsMaximized() &&
            !IsMinimized();
 }
 
-void Photino::BeginWindowDrag() const
+void Photino::BeginWindowDrag()
 {
     // Linux chromeless drag is started from native GDK button events over the
     // configured drag region. Wayland requires that originating trusted button

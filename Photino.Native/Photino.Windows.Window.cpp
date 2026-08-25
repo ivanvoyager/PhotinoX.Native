@@ -388,11 +388,10 @@ bool Photino::CanBeginDrag() const noexcept
 {
     return platform_->hWnd &&
            !IsFullScreen() &&
-           !IsMaximized() &&
            !IsMinimized();
 }
 
-void Photino::BeginWindowDrag() const
+void Photino::BeginWindowDrag()
 {
     assert(platform_->hWnd);
     if (!platform_->hWnd) return;

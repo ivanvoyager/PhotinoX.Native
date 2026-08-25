@@ -204,7 +204,7 @@ extern "C"
     }
 
 
-    PHOTINO_EXPORT void Photino_BeginWindowDrag(const Photino* instance)
+    PHOTINO_EXPORT void Photino_BeginWindowDrag(Photino* instance)
     {
         assert(instance);
         if (!instance) return;

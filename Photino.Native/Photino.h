@@ -236,7 +236,7 @@ namespace PhotinoX::Native
 
         bool CanBeginResize() const noexcept;
         bool CanBeginDrag() const noexcept;
-        void BeginWindowDrag() const;
+        void BeginWindowDrag();
         void BeginWindowResize(PhotinoWindowEdge edge) const;
 
         unsigned int GetScreenDpi() const;

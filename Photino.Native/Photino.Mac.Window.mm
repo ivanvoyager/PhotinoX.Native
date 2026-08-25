@@ -7,6 +7,8 @@
 #include "Photino.Mac.State.h"
 #include "Photino.Mac.Debug.h"
 
+#include <algorithm>
+
 using namespace PhotinoX::Native;
 
 namespace
@@ -643,16 +645,51 @@ bool Photino::CanBeginDrag() const noexcept
     return platform_->window &&
            !platform_->isFullScreenTransitioning &&
            !IsFullScreen() &&
-           !IsMaximized() &&
            !IsMinimized();
 }
 
-void Photino::BeginWindowDrag() const
+void Photino::BeginWindowDrag()
 {
     if (!CanBeginDrag())
         return;
 
     StopInteractiveWindowOperation();
+
+    if (IsMaximized())
+    {
+        const NSPoint mouse = [NSEvent mouseLocation];
+        const NSRect maximizedFrame = [platform_->window frame];
+
+        if (options_.chromeless && platform_->hasNormalFrame)
+        {
+            NSRect restoredFrame = platform_->normalFrame;
+
+            const CGFloat horizontalRatio = maximizedFrame.size.width > 0
+                ? (mouse.x - maximizedFrame.origin.x) / maximizedFrame.size.width
+                : 0.5;
+
+            const CGFloat distanceFromTop =
+                NSMaxY(maximizedFrame) - mouse.y;
+
+            restoredFrame.origin.x =
+                mouse.x - restoredFrame.size.width *
+                (std::clamp)(horizontalRatio, static_cast<CGFloat>(0), static_cast<CGFloat>(1));
+
+            restoredFrame.origin.y =
+                mouse.y - restoredFrame.size.height + distanceFromTop;
+
+            platform_->logicalMaximized = false;
+            platform_->hasNormalFrame = false;
+
+            [platform_->window setFrame:restoredFrame display:YES animate:NO];
+            UpdateWindowState();
+        }
+        else if (!options_.chromeless)
+        {
+            [platform_->window zoom:nil];
+            UpdateWindowState();
+        }
+    }
 
     platform_->drag.startMouse = [NSEvent mouseLocation];
     platform_->drag.startOrigin = [platform_->window frame].origin;
