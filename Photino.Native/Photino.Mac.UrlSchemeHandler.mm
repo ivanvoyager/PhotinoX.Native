@@ -3,6 +3,7 @@
 
 #include "Photino.Memory.h"
 #include "Photino.Strings.h"
+#include "Photino.h"
 
 using namespace PhotinoX::Native;
 
@@ -12,7 +13,7 @@ using namespace PhotinoX::Native;
 {
     self = [super init];
     if (self)
-        requestHandler = nullptr;
+        photino = nullptr;
 
     return self;
 }
@@ -26,7 +27,7 @@ using namespace PhotinoX::Native;
     if (!urlSchemeTask)
         return;
 
-    if (!requestHandler)
+    if (!photino)
     {
         [urlSchemeTask didFailWithError:[NSError errorWithDomain:NSURLErrorDomain
                                                             code:NSURLErrorUnsupportedURL
@@ -56,7 +57,7 @@ using namespace PhotinoX::Native;
 
     int numBytes = 0;
     Utf8String contentType = nullptr;
-    void* responseData = requestHandler(urlUtf8, &numBytes, &contentType);
+    void* responseData = photino->InvokeCustomScheme(urlUtf8, &numBytes, &contentType);
 
     NSInteger statusCode = responseData && numBytes > 0 ? 200 : 404;
 

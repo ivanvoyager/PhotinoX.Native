@@ -36,18 +36,18 @@ extern "C"
         instance->SetFocusOutCallback(callback);
     }
 
-    PHOTINO_EXPORT void Photino_SetMovedCallback(Photino* instance, const MovedCallback callback)
-    {
-        assert(instance);
-        if (!instance) return;
-        instance->SetMovedCallback(callback);
-    }
-
     PHOTINO_EXPORT void Photino_SetResizedCallback(Photino* instance, const ResizedCallback callback)
     {
         assert(instance);
         if (!instance) return;
         instance->SetResizedCallback(callback);
+    }
+
+    PHOTINO_EXPORT void Photino_SetMovedCallback(Photino* instance, const MovedCallback callback)
+    {
+        assert(instance);
+        if (!instance) return;
+        instance->SetMovedCallback(callback);
     }
 
     PHOTINO_EXPORT void Photino_SetMaximizedCallback(Photino* instance, const MaximizedCallback callback)
@@ -83,6 +83,20 @@ extern "C"
         assert(instance);
         if (!instance) return;
         instance->SetStateChangedCallback(callback);
+    }
+
+    PHOTINO_EXPORT void Photino_SetWebMessageReceivedCallback(Photino* instance, const WebMessageReceivedCallback callback)
+    {
+        assert(instance);
+        if (!instance) return;
+        instance->SetWebMessageReceivedCallback(callback);
+    }
+
+    PHOTINO_EXPORT void Photino_SetCustomSchemeCallback(Photino* instance, const CustomSchemeCallback callback)
+    {
+        assert(instance);
+        if (!instance) return;
+        instance->SetCustomSchemeCallback(callback);
     }
 
     PHOTINO_EXPORT void Photino_SetNavigationStartingCallback(Photino* instance, const NavigationStartingCallback callback)

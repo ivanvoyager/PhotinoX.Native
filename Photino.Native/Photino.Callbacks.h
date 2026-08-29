@@ -6,43 +6,32 @@
 
 namespace PhotinoX::Native
 {
-    using VoidCallback = void (*)();
     using VoidStateCallback = void (*)(void* state);
-    using VoidBoolCallback = void (*)(bool);
-    using BoolCallback = bool (*)();
-    using IntIntCallback = void (*)(int, int);  // Resized, Moved
-    using StringCallback = void (*)(Utf8String);
-    using StringBoolCallback = bool (*)(Utf8String);
-    using StringStringCallback = void (*)(Utf8String, Utf8String);
-    using ResourceCallback = void* (*)(Utf8String, int*, Utf8String*);
-    using MonitorCallback = int (*)(const Monitor*, void* state);
-
     using InvokeStateCallback = VoidStateCallback;
 
-    // no parameters, no return value
-    using MaximizedCallback = VoidCallback;
-    using RestoredCallback = VoidCallback;
-    using MinimizedCallback = VoidCallback;
-    using FocusInCallback = VoidCallback;
-    using FocusOutCallback = VoidCallback;
-    using ClosedCallback = VoidCallback;
+    // window-level callbacks
+    using ClosingCallback = bool (*)(void* state);
+    using ClosedCallback = VoidStateCallback;
+    using FocusInCallback = VoidStateCallback;
+    using FocusOutCallback = VoidStateCallback;
+    using ResizedCallback = void (*)(int width, int height, void* state);
+    using MovedCallback = void (*)(int x, int y, void* state);
+    using MaximizedCallback = VoidStateCallback;
+    using RestoredCallback = VoidStateCallback;
+    using MinimizedCallback = VoidStateCallback;
+    using FullScreenChangedCallback = void (*)(bool fullScreen, void* state);
+    using StateChangedCallback = void (*)(PhotinoWindowState oldState, PhotinoWindowState newState, void* state);
+    using WebMessageReceivedCallback = void (*)(Utf8String message, Utf8String uri, void* state);
+    using CustomSchemeCallback = void* (*)(Utf8String url, int* numBytes, Utf8String* contentType, void* state);
+    using NavigationStartingCallback = bool (*)(Utf8String uri, void* state); // returns true to cancel
+    using NewWindowRequestedCallback = bool (*)(Utf8String uri, void* state); // returns true when handled
+    using ContentLoadingCallback = void (*)(Utf8String uri, void* state);
+    using ContentLoadedCallback = void (*)(Utf8String uri, void* state);
 
-    // with parameters and/or return value
-    using ClosingCallback = BoolCallback;
-    using ResizedCallback = IntIntCallback; //(int width, int height)
-    using MovedCallback = IntIntCallback;   //(int x, int y)
-    using WebMessageReceivedCallback = StringStringCallback; // (message, uri)
-    using NavigationStartingCallback = StringBoolCallback; // returns true to cancel
-    using NewWindowRequestedCallback = StringBoolCallback; // returns true when handled
-    using ContentLoadingCallback = StringCallback;
-    using ContentLoadedCallback = StringCallback;
-    using WebResourceRequestedCallback = ResourceCallback;
-    using GetAllMonitorsCallback = MonitorCallback;
-    using FullScreenChangedCallback = VoidBoolCallback;
-    using StateChangedCallback = void(*)(PhotinoWindowState oldState, PhotinoWindowState newState);
+    using GetAllMonitorsCallback = bool (*)(const Monitor*, void* state);
 
     // application-level callbacks
-    using StartupCallback = void (*)(void* state);
+    using StartupCallback = VoidStateCallback;
     using ShutdownRequestedCallback = bool (*)(PhotinoShutdownRequestReason reason, void* state);
     using ExitCallback = int (*)(int exitCode, void* state);
 

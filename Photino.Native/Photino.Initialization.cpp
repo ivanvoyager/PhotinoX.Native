@@ -69,22 +69,24 @@ void Photino::InitializeOptions(const PhotinoInitParams* initParams)
 void Photino::InitializeCallbacks(const PhotinoInitParams* initParams)
 {
     closingCallback_ = initParams->Callbacks.ClosingHandler;
+    closedCallback_ = initParams->Callbacks.ClosedHandler;
     focusInCallback_ = initParams->Callbacks.FocusInHandler;
     focusOutCallback_ = initParams->Callbacks.FocusOutHandler;
     resizedCallback_ = initParams->Callbacks.ResizedHandler;
+    movedCallback_ = initParams->Callbacks.MovedHandler;
     maximizedCallback_ = initParams->Callbacks.MaximizedHandler;
     restoredCallback_ = initParams->Callbacks.RestoredHandler;
     minimizedCallback_ = initParams->Callbacks.MinimizedHandler;
-    movedCallback_ = initParams->Callbacks.MovedHandler;
-    webMessageReceivedCallback_ = initParams->Callbacks.WebMessageReceivedHandler;
-    contentLoadingCallback_ = initParams->Callbacks.ContentLoadingHandler;
-    contentLoadedCallback_ = initParams->Callbacks.ContentLoadedHandler;
-    navigationStartingCallback_ = initParams->Callbacks.NavigationStartingHandler;
-    newWindowRequestedCallback_ = initParams->Callbacks.NewWindowRequestedHandler;
-    customSchemeCallback_ = initParams->Callbacks.CustomSchemeHandler;
-    closedCallback_ = initParams->Callbacks.ClosedHandler;
     fullScreenChangedCallback_ = initParams->Callbacks.FullScreenChangedHandler;
     stateChangedCallback_ = initParams->Callbacks.StateChangedHandler;
+    webMessageReceivedCallback_ = initParams->Callbacks.WebMessageReceivedHandler;
+    customSchemeCallback_ = initParams->Callbacks.CustomSchemeHandler;
+    navigationStartingCallback_ = initParams->Callbacks.NavigationStartingHandler;
+    newWindowRequestedCallback_ = initParams->Callbacks.NewWindowRequestedHandler;
+    contentLoadingCallback_ = initParams->Callbacks.ContentLoadingHandler;
+    contentLoadedCallback_ = initParams->Callbacks.ContentLoadedHandler;
+
+    callbackState_ = initParams->Callbacks.CallbackState;
 }
 
 void Photino::InitializeCustomSchemes(const PhotinoInitParams* initParams)

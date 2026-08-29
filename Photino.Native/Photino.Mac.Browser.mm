@@ -356,7 +356,7 @@ void Photino::AddCustomSchemeHandlers()
         UrlSchemeHandler* schemeHandler = [[UrlSchemeHandler alloc] init];
         if (!schemeHandler) continue;
 
-        schemeHandler->requestHandler = customSchemeCallback_;
+        schemeHandler->photino = this;
 
         @try
         {

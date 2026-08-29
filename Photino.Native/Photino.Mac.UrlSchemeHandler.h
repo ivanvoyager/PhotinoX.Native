@@ -2,15 +2,18 @@
 
 #ifdef __APPLE__
 
-#include "Photino.Callbacks.h"
+#import <Foundation/Foundation.h>
+#import <WebKit/WebKit.h>
 
-#include <Foundation/Foundation.h>
-#include <WebKit/WebKit.h>
+namespace PhotinoX::Native
+{
+    class Photino;
+}
 
 @interface UrlSchemeHandler : NSObject <WKURLSchemeHandler>
 {
     @public
-        PhotinoX::Native::WebResourceRequestedCallback requestHandler;
+        PhotinoX::Native::Photino* photino;
 }
 @end
 

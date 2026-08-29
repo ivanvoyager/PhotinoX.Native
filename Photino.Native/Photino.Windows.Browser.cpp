@@ -627,7 +627,7 @@ HRESULT Photino::HandleWebResourceRequested(ICoreWebView2* webview, ICoreWebView
 
     int numBytes = 0;
     Utf8String contentType = nullptr;
-    void* responseData = customSchemeCallback_(uriUtf8.c_str(), &numBytes, &contentType);
+    void* responseData = InvokeCustomScheme(uriUtf8.c_str(), &numBytes, &contentType);
 
     if (!platform_->webViewEnvironment)
     {

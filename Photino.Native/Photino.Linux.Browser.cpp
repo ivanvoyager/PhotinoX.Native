@@ -118,8 +118,8 @@ namespace
         assert(request);
         if (!request) return;
 
-        auto callback = reinterpret_cast<WebResourceRequestedCallback>(userData);
-        if (!callback)
+        auto photino = static_cast<Photino*>(userData);
+        if (!photino)
         {
             FinishCustomSchemeRequestWithError(request, "Custom scheme callback is not registered.");
             return;
@@ -134,7 +134,7 @@ namespace
 
         int numBytes = 0;
         Utf8String contentType = nullptr;
-        void* responseData = callback(uri, &numBytes, &contentType);
+        void* responseData = photino->InvokeCustomScheme(uri, &numBytes, &contentType);
 
         if (!responseData || numBytes <= 0)
         {
@@ -690,7 +690,7 @@ void Photino::AddCustomSchemeHandlers()
             context,
             scheme.c_str(),
             HandleCustomSchemeRequest,
-            reinterpret_cast<void*>(customSchemeCallback_),
+            this,
             nullptr);
     }
 }
@@ -714,7 +714,7 @@ bool Photino::RegisterCustomSchemeName(const PlatformString& scheme)
         context,
         scheme.c_str(),
         HandleCustomSchemeRequest,
-        reinterpret_cast<void*>(customSchemeCallback_),
+        this,
         nullptr);
 
     return true;

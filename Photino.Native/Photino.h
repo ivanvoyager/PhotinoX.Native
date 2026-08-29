@@ -44,23 +44,26 @@ namespace PhotinoX::Native
     class Photino
     {
     private:
-        WebMessageReceivedCallback webMessageReceivedCallback_ = nullptr;
-        ContentLoadingCallback contentLoadingCallback_ = nullptr;
-        ContentLoadedCallback contentLoadedCallback_ = nullptr;
-        NavigationStartingCallback navigationStartingCallback_ = nullptr;
-        NewWindowRequestedCallback newWindowRequestedCallback_ = nullptr;
-        MovedCallback movedCallback_ = nullptr;
-        ResizedCallback resizedCallback_ = nullptr;
-        MaximizedCallback maximizedCallback_ = nullptr;
-        RestoredCallback restoredCallback_ = nullptr;
-        MinimizedCallback minimizedCallback_ = nullptr;
         ClosingCallback closingCallback_ = nullptr;
         ClosedCallback closedCallback_ = nullptr;
         FocusInCallback focusInCallback_ = nullptr;
         FocusOutCallback focusOutCallback_ = nullptr;
+        ResizedCallback resizedCallback_ = nullptr;
+        MovedCallback movedCallback_ = nullptr;
+        MaximizedCallback maximizedCallback_ = nullptr;
+        RestoredCallback restoredCallback_ = nullptr;
+        MinimizedCallback minimizedCallback_ = nullptr;
         FullScreenChangedCallback fullScreenChangedCallback_ = nullptr;
         StateChangedCallback stateChangedCallback_ = nullptr;
-        WebResourceRequestedCallback customSchemeCallback_ = nullptr;
+        WebMessageReceivedCallback webMessageReceivedCallback_ = nullptr;
+        CustomSchemeCallback customSchemeCallback_ = nullptr;
+        NavigationStartingCallback navigationStartingCallback_ = nullptr;
+        NewWindowRequestedCallback newWindowRequestedCallback_ = nullptr;
+        ContentLoadingCallback contentLoadingCallback_ = nullptr;
+        ContentLoadedCallback contentLoadedCallback_ = nullptr;
+
+        void* callbackState_ = nullptr;
+
         std::vector<PlatformString> customSchemeNames_;
 
         PhotinoOptions options_;
@@ -308,17 +311,19 @@ namespace PhotinoX::Native
         void SetClosedCallback(ClosedCallback callback) noexcept { closedCallback_ = callback; }
         void SetFocusInCallback(FocusInCallback callback) noexcept { focusInCallback_ = callback; }
         void SetFocusOutCallback(FocusOutCallback callback) noexcept { focusOutCallback_ = callback; }
-        void SetMovedCallback(MovedCallback callback) noexcept { movedCallback_ = callback; }
         void SetResizedCallback(ResizedCallback callback) noexcept { resizedCallback_ = callback; }
+        void SetMovedCallback(MovedCallback callback) noexcept { movedCallback_ = callback; }
         void SetMaximizedCallback(MaximizedCallback callback) noexcept { maximizedCallback_ = callback; }
         void SetRestoredCallback(RestoredCallback callback) noexcept { restoredCallback_ = callback; }
         void SetMinimizedCallback(MinimizedCallback callback) noexcept { minimizedCallback_ = callback; }
         void SetFullScreenChangedCallback(FullScreenChangedCallback callback) noexcept { fullScreenChangedCallback_ = callback; }
         void SetStateChangedCallback(StateChangedCallback callback) noexcept { stateChangedCallback_ = callback; }
-        void SetContentLoadingCallback(ContentLoadingCallback callback) noexcept { contentLoadingCallback_ = callback; }
-        void SetContentLoadedCallback(ContentLoadedCallback callback) noexcept { contentLoadedCallback_ = callback; }
+        void SetWebMessageReceivedCallback(WebMessageReceivedCallback callback) noexcept { webMessageReceivedCallback_ = callback; }
+        void SetCustomSchemeCallback(CustomSchemeCallback callback) noexcept { customSchemeCallback_ = callback; }
         void SetNavigationStartingCallback(NavigationStartingCallback callback) noexcept { navigationStartingCallback_ = callback; }
         void SetNewWindowRequestedCallback(NewWindowRequestedCallback callback) noexcept { newWindowRequestedCallback_ = callback; }
+        void SetContentLoadingCallback(ContentLoadingCallback callback) noexcept { contentLoadingCallback_ = callback; }
+        void SetContentLoadedCallback(ContentLoadedCallback callback) noexcept { contentLoadedCallback_ = callback; }
 
         // Callback invokers
         bool InvokeClosing() const noexcept;
@@ -333,10 +338,11 @@ namespace PhotinoX::Native
         void InvokeFullScreenChanged(bool fullScreen) const noexcept;
         void InvokeStateChanged(PhotinoWindowState oldState, PhotinoWindowState newState) const noexcept;
         void InvokeWebMessageReceived(const PlatformString& message, const PlatformString& uri) const noexcept;
-        void InvokeContentLoading(const PlatformString& uri) const noexcept;
-        void InvokeContentLoaded(const PlatformString& uri) const noexcept;
+        void* InvokeCustomScheme(Utf8String url, int* numBytes, Utf8String* contentType) const noexcept;
         bool InvokeNavigationStarting(const PlatformString& uri) const noexcept;
         bool InvokeNewWindowRequested(const PlatformString& uri) const noexcept;
+        void InvokeContentLoading(const PlatformString& uri) const noexcept;
+        void InvokeContentLoaded(const PlatformString& uri) const noexcept;
     };
 
 } // namespace PhotinoX::Native
