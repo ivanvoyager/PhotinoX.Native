@@ -18,21 +18,36 @@ void PhotinoApplication::InitializeFromInitParams(const PhotinoApplicationInitPa
 {
     ValidateInitParams(initParams);
 
-    startupCallback_ = initParams->StartupHandler;
-    shutdownRequestedCallback_ = initParams->ShutdownRequestedHandler;
-    exitCallback_ = initParams->ExitHandler;
+    InitializeOptions(initParams);
+    InitializeCallbacks(initParams);
+    InitializeNotificationCallbacks(initParams);
+}
 
-    notificationActivatedCallback_ = initParams->NotificationActivatedHandler;
-    notificationActionActivatedCallback_ = initParams->NotificationActionActivatedHandler;
-    notificationInputActivatedCallback_ = initParams->NotificationInputActivatedHandler;
-    notificationDismissedCallback_ = initParams->NotificationDismissedHandler;
-    notificationFailedCallback_ = initParams->NotificationFailedHandler;
+void PhotinoApplication::InitializeOptions(const PhotinoApplicationInitParams* initParams)
+{
+    options_.applicationName = ToPlatformString(initParams->Options.ApplicationName);
+    options_.applicationIconPath = ToPlatformString(initParams->Options.ApplicationIconPath);
+    options_.notificationRegistrationId = ToPlatformString(initParams->Options.NotificationRegistrationId);
 
-    options_.applicationName = ToPlatformString(initParams->ApplicationName);
-    options_.applicationIconPath = ToPlatformString(initParams->ApplicationIconPath);
-    options_.notificationRegistrationId = ToPlatformString(initParams->NotificationRegistrationId);
+    notificationsEnabled_.store(initParams->Options.NotificationsEnabled, std::memory_order_release);
+}
 
-    notificationsEnabled_.store(initParams->NotificationsEnabled, std::memory_order_release);
+void PhotinoApplication::InitializeCallbacks(const PhotinoApplicationInitParams* initParams)
+{
+    startupCallback_ = initParams->Callbacks.StartupHandler;
+    shutdownRequestedCallback_ = initParams->Callbacks.ShutdownRequestedHandler;
+    exitCallback_ = initParams->Callbacks.ExitHandler;
+
+    callbackState_ = initParams->Callbacks.CallbackState;
+}
+
+void PhotinoApplication::InitializeNotificationCallbacks(const PhotinoApplicationInitParams* initParams)
+{
+    notificationActivatedCallback_ = initParams->NotificationCallbacks.NotificationActivatedHandler;
+    notificationActionActivatedCallback_ = initParams->NotificationCallbacks.NotificationActionActivatedHandler;
+    notificationInputActivatedCallback_ = initParams->NotificationCallbacks.NotificationInputActivatedHandler;
+    notificationDismissedCallback_ = initParams->NotificationCallbacks.NotificationDismissedHandler;
+    notificationFailedCallback_ = initParams->NotificationCallbacks.NotificationFailedHandler;
 }
 
 bool PhotinoApplication::IsRunning() const noexcept

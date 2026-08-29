@@ -4,7 +4,7 @@ using namespace PhotinoX::Native;
 
 void PhotinoApplication::InvokeStartup() const
 {
-    if (startupCallback_) startupCallback_();
+    if (startupCallback_) startupCallback_(callbackState_);
 }
 
 bool PhotinoApplication::InvokeShutdownRequested(PhotinoShutdownRequestReason reason) const
@@ -13,7 +13,7 @@ bool PhotinoApplication::InvokeShutdownRequested(PhotinoShutdownRequestReason re
         return false;
 
     isShutdownRequested_ = true;
-    bool result = shutdownRequestedCallback_(reason);
+    bool result = shutdownRequestedCallback_(reason, callbackState_);
     isShutdownRequested_ = false;
 
     return result; // ShutdownRequested: true = cancel shutdown, false = allow shutdown
@@ -23,7 +23,7 @@ int PhotinoApplication::InvokeExit(int exitCode) const
 {
     if (exitCallback_)
     {
-        exitCode = exitCallback_(exitCode);
+        exitCode = exitCallback_(exitCode, callbackState_);
     }
     return exitCode;
 }

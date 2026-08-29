@@ -25,6 +25,7 @@ namespace PhotinoX::Native
         StartupCallback startupCallback_ = nullptr;
         ShutdownRequestedCallback shutdownRequestedCallback_ = nullptr;
         ExitCallback exitCallback_ = nullptr;
+        void* callbackState_ = nullptr;
 
         NotificationActivatedCallback notificationActivatedCallback_ = nullptr;
         NotificationActionActivatedCallback notificationActionActivatedCallback_ = nullptr;
@@ -55,6 +56,9 @@ namespace PhotinoX::Native
 
         void ValidateInitParams(const PhotinoApplicationInitParams* initParams);
         void InitializeFromInitParams(const PhotinoApplicationInitParams* initParams);
+        void InitializeOptions(const PhotinoApplicationInitParams* initParams);
+        void InitializeCallbacks(const PhotinoApplicationInitParams* initParams);
+        void InitializeNotificationCallbacks(const PhotinoApplicationInitParams* initParams);
 
 #ifdef __APPLE__
         bool IsAppBundleProcess() const;
