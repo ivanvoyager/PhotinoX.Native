@@ -231,6 +231,7 @@ namespace WinToastLib {
                                           _In_ std::wstring const& versionInformation = std::wstring());
         static std::wstring const& strerror(_In_ WinToastError error);
         virtual bool initialize(_Out_opt_ WinToastError* error = nullptr);
+        void uninitialize();
         virtual bool isInitialized() const;
         virtual bool hideToast(_In_ INT64 id);
         virtual INT64 showToast(_In_ WinToastTemplate const& toast, _In_ IWinToastHandler* eventHandler,

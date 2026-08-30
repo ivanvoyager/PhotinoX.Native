@@ -283,7 +283,7 @@ bool PhotinoApplication::InitializeNotifications()
 
     instance->setAppUserModelId(appUserModelId);
 
-    WinToastLib::WinToast::WinToastError error;
+    WinToast::WinToastError error;
     if (!instance->initialize(&error))
     {
         notificationsInitialized_.store(false, std::memory_order_release);
@@ -295,7 +295,10 @@ bool PhotinoApplication::InitializeNotifications()
 
 void PhotinoApplication::UninitializeNotifications() noexcept
 {
-    notificationsInitialized_.store(false, std::memory_order_release);
+    if (!notificationsInitialized_.exchange(false, std::memory_order_acq_rel))
+        return;
+
+    WinToast::instance()->uninitialize();
 }
 
 int PhotinoApplication::ShowNotificationCore(int notificationId, const PlatformString& title, const PlatformString& body, const PlatformString& iconPath, void* callbackState)

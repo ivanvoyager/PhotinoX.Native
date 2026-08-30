@@ -495,13 +495,7 @@ WinToast::WinToast() : _isInitialized(false), _hasCoInitialized(false) {
 }
 
 WinToast::~WinToast() {
-    clear();
-
-    if (_hasCoInitialized) {
-        CoUninitialize();
-    }
-
-    DllImporter::uninitialize();
+    uninitialize();
 }
 
 void WinToast::setAppName(_In_ std::wstring const& appName) {
@@ -634,6 +628,23 @@ bool WinToast::initialize(_Out_opt_ WinToastError* error) {
 
     _isInitialized = true;
     return _isInitialized;
+}
+
+void WinToast::uninitialize()
+{
+    if (_isInitialized)
+    {
+        clear();
+        _isInitialized = false;
+    }
+
+    if (_hasCoInitialized)
+    {
+        CoUninitialize();
+        _hasCoInitialized = false;
+    }
+
+    DllImporter::uninitialize();
 }
 
 bool WinToast::isInitialized() const {
