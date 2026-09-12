@@ -247,6 +247,8 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Mac
 
         UpdateWindowState();
         suppressWindowStateCallbacks_ = false;
+
+        InvokeCreated();
     }
 }
 
@@ -305,7 +307,8 @@ Photino::~Photino()
 
     delete dialog_;
     dialog_ = nullptr;
-    //[NSApp release];
+
+    Uninitialize();
 }
 
 #endif

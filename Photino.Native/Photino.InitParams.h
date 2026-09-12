@@ -11,29 +11,30 @@ namespace PhotinoX::Native
 {
     struct PhotinoInitCallbacks
     {
-        ClosingCallback ClosingHandler;                       // #1
-        ClosedCallback ClosedHandler;                         // #2
-        FocusInCallback FocusInHandler;                       // #3
-        FocusOutCallback FocusOutHandler;                     // #4
-        ResizedCallback ResizedHandler;                       // #5
-        MovedCallback MovedHandler;                           // #6
-        MaximizedCallback MaximizedHandler;                   // #7
-        RestoredCallback RestoredHandler;                     // #8
-        MinimizedCallback MinimizedHandler;                   // #9
-        FullScreenChangedCallback FullScreenChangedHandler;   // #10
-        StateChangedCallback StateChangedHandler;             // #11
-        WebMessageReceivedCallback WebMessageReceivedHandler; // #12
-        CustomSchemeCallback CustomSchemeHandler;             // #13
-        NavigationStartingCallback NavigationStartingHandler; // #14
-        NewWindowRequestedCallback NewWindowRequestedHandler; // #15
-        ContentLoadingCallback ContentLoadingHandler;         // #16
-        ContentLoadedCallback ContentLoadedHandler;           // #17
+        CreatedCallback CreatedHandler;                       // #1
+        ClosingCallback ClosingHandler;                       // #2
+        ClosedCallback ClosedHandler;                         // #3
+        FocusInCallback FocusInHandler;                       // #4
+        FocusOutCallback FocusOutHandler;                     // #5
+        ResizedCallback ResizedHandler;                       // #6
+        MovedCallback MovedHandler;                           // #7
+        MaximizedCallback MaximizedHandler;                   // #8
+        RestoredCallback RestoredHandler;                     // #9
+        MinimizedCallback MinimizedHandler;                   // #10
+        FullScreenChangedCallback FullScreenChangedHandler;   // #11
+        StateChangedCallback StateChangedHandler;             // #12
+        WebMessageReceivedCallback WebMessageReceivedHandler; // #13
+        CustomSchemeCallback CustomSchemeHandler;             // #14
+        NavigationStartingCallback NavigationStartingHandler; // #15
+        NewWindowRequestedCallback NewWindowRequestedHandler; // #16
+        ContentLoadingCallback ContentLoadingHandler;         // #17
+        ContentLoadedCallback ContentLoadedHandler;           // #18
 
-        void* CallbackState;                                  // #18
+        void* CallbackState;                                  // #19
     };
     static_assert(std::is_standard_layout_v<PhotinoInitCallbacks>,
                   "PhotinoInitCallbacks must remain standard-layout for managed/native interop.");
-    static_assert(sizeof(PhotinoInitCallbacks) == 144,
+    static_assert(sizeof(PhotinoInitCallbacks) == 152,
                   "PhotinoInitCallbacks size changed. Update the managed ABI layout and size validation.");
 
     struct PhotinoInitWindowParams
@@ -140,11 +141,11 @@ namespace PhotinoX::Native
         "PhotinoInitParams must remain standard-layout for managed/native interop.");
 
     static_assert(offsetof(PhotinoInitParams, Callbacks) == 16, "PhotinoInitParams.Callbacks offset changed.");
-    static_assert(offsetof(PhotinoInitParams, Window) == 160, "PhotinoInitParams.Window offset changed.");
-    static_assert(offsetof(PhotinoInitParams, LinuxChromeless) == 184,"PhotinoInitParams.LinuxChromeless offset changed.");
-    static_assert(offsetof(PhotinoInitParams, Geometry) == 204, "PhotinoInitParams.Geometry offset changed.");
-    static_assert(offsetof(PhotinoInitParams, Browser) == 248, "PhotinoInitParams.Browser offset changed.");
+    static_assert(offsetof(PhotinoInitParams, Window) == 168, "PhotinoInitParams.Window offset changed.");
+    static_assert(offsetof(PhotinoInitParams, LinuxChromeless) == 192,"PhotinoInitParams.LinuxChromeless offset changed.");
+    static_assert(offsetof(PhotinoInitParams, Geometry) == 212, "PhotinoInitParams.Geometry offset changed.");
+    static_assert(offsetof(PhotinoInitParams, Browser) == 256, "PhotinoInitParams.Browser offset changed.");
 
-    static_assert(sizeof(PhotinoInitParams) == 432,
+    static_assert(sizeof(PhotinoInitParams) == 440,
         "PhotinoInitParams size changed. Update the managed ABI layout and size validation.");
 }

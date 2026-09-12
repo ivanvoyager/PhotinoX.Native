@@ -44,6 +44,7 @@ namespace PhotinoX::Native
     class Photino
     {
     private:
+        CreatedCallback createdCallback_ = nullptr;
         ClosingCallback closingCallback_ = nullptr;
         ClosedCallback closedCallback_ = nullptr;
         FocusInCallback focusInCallback_ = nullptr;
@@ -86,6 +87,8 @@ namespace PhotinoX::Native
         void InitializeOptions(const PhotinoInitParams* initParams);
         void InitializeCallbacks(const PhotinoInitParams* initParams);
         void InitializeCustomSchemes(const PhotinoInitParams* initParams);
+
+        void Uninitialize();
 
         bool IsCustomSchemeRegistered(const PlatformString& scheme) const;
         bool RegisterCustomSchemeName(const PlatformString& scheme);
@@ -306,26 +309,8 @@ namespace PhotinoX::Native
         void GetSmoothScrollingEnabled(bool* enabled) const;
         void GetIgnoreCertificateErrorsEnabled(bool* enabled) const;
 
-        // Callbacks
-        void SetClosingCallback(ClosingCallback callback) noexcept { closingCallback_ = callback; }
-        void SetClosedCallback(ClosedCallback callback) noexcept { closedCallback_ = callback; }
-        void SetFocusInCallback(FocusInCallback callback) noexcept { focusInCallback_ = callback; }
-        void SetFocusOutCallback(FocusOutCallback callback) noexcept { focusOutCallback_ = callback; }
-        void SetResizedCallback(ResizedCallback callback) noexcept { resizedCallback_ = callback; }
-        void SetMovedCallback(MovedCallback callback) noexcept { movedCallback_ = callback; }
-        void SetMaximizedCallback(MaximizedCallback callback) noexcept { maximizedCallback_ = callback; }
-        void SetRestoredCallback(RestoredCallback callback) noexcept { restoredCallback_ = callback; }
-        void SetMinimizedCallback(MinimizedCallback callback) noexcept { minimizedCallback_ = callback; }
-        void SetFullScreenChangedCallback(FullScreenChangedCallback callback) noexcept { fullScreenChangedCallback_ = callback; }
-        void SetStateChangedCallback(StateChangedCallback callback) noexcept { stateChangedCallback_ = callback; }
-        void SetWebMessageReceivedCallback(WebMessageReceivedCallback callback) noexcept { webMessageReceivedCallback_ = callback; }
-        void SetCustomSchemeCallback(CustomSchemeCallback callback) noexcept { customSchemeCallback_ = callback; }
-        void SetNavigationStartingCallback(NavigationStartingCallback callback) noexcept { navigationStartingCallback_ = callback; }
-        void SetNewWindowRequestedCallback(NewWindowRequestedCallback callback) noexcept { newWindowRequestedCallback_ = callback; }
-        void SetContentLoadingCallback(ContentLoadingCallback callback) noexcept { contentLoadingCallback_ = callback; }
-        void SetContentLoadedCallback(ContentLoadedCallback callback) noexcept { contentLoadedCallback_ = callback; }
-
         // Callback invokers
+        void InvokeCreated() const noexcept;
         bool InvokeClosing() const noexcept;
         void InvokeClose() const noexcept;
         void InvokeFocusIn() const noexcept;

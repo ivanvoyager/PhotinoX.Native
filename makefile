@@ -21,8 +21,8 @@ DEST_FILE=PhotinoX.Native
 
 # Version
 VER_MAJOR ?= 5
-VER_MINOR ?= 1
-VER_PATCH ?= 1
+VER_MINOR ?= 2
+VER_PATCH ?= 0
 VER_BUILD ?= $(shell date +%j | sed 's/^0*//')
 COPYRIGHT_YEAR ?= $(shell date +%Y)
 GENERATED_ON ?= $(shell date "+%Y-%m-%d %H:%M:%S")
@@ -93,10 +93,8 @@ build-photino-mac-universal: generate-version-header | $(DEST_PATH_X64)
 		$(SRC)/Photino.Mac.mm \
 		$(SRC)/Exports.cpp \
 		$(SRC)/Exports.Application.cpp \
-		$(SRC)/Exports.Application.Callbacks.cpp \
 		$(SRC)/Exports.Application.Notifications.cpp \
 		$(SRC)/Exports.Browser.cpp \
-		$(SRC)/Exports.Callbacks.cpp \
 		$(SRC)/Exports.Dialogs.mm \
 		$(SRC)/Exports.Memory.cpp \
 		$(SRC)/Exports.Window.cpp && \
@@ -126,10 +124,8 @@ build-photino-linux-x64: generate-version-header | $(DEST_PATH_X64)
 		$(SRC)/Photino.Strings.cpp \
 		$(SRC)/Exports.cpp \
 		$(SRC)/Exports.Application.cpp \
-		$(SRC)/Exports.Application.Callbacks.cpp \
 		$(SRC)/Exports.Application.Notifications.cpp \
 		$(SRC)/Exports.Browser.cpp \
-		$(SRC)/Exports.Callbacks.cpp \
 		$(SRC)/Exports.Dialogs.cpp \
 		$(SRC)/Exports.Memory.cpp \
 		$(SRC)/Exports.Window.cpp \
@@ -154,10 +150,8 @@ build-photino-linux-arm64: generate-version-header | $(DEST_PATH_ARM64)
 		$(SRC)/Photino.Strings.cpp \
 		$(SRC)/Exports.cpp \
 		$(SRC)/Exports.Application.cpp \
-		$(SRC)/Exports.Application.Callbacks.cpp \
 		$(SRC)/Exports.Application.Notifications.cpp \
 		$(SRC)/Exports.Browser.cpp \
-		$(SRC)/Exports.Callbacks.cpp \
 		$(SRC)/Exports.Dialogs.cpp \
 		$(SRC)/Exports.Memory.cpp \
 		$(SRC)/Exports.Window.cpp \

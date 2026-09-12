@@ -104,17 +104,6 @@ namespace PhotinoX::Native
         void GetNotificationsEnabled(bool* enabled) const;
         void SetNotificationsEnabled(bool enabled);
 
-        // Callbacks
-        void SetStartupCallback(StartupCallback callback) noexcept { startupCallback_ = callback; }
-        void SetShutdownRequestedCallback(ShutdownRequestedCallback callback) noexcept { shutdownRequestedCallback_ = callback; }
-        void SetExitCallback(ExitCallback callback) noexcept { exitCallback_ = callback; }
-
-        void SetNotificationActivatedCallback(NotificationActivatedCallback callback) noexcept { notificationActivatedCallback_ = callback; }
-        void SetNotificationActionActivatedCallback(NotificationActionActivatedCallback callback) noexcept { notificationActionActivatedCallback_ = callback; }
-        void SetNotificationInputActivatedCallback(NotificationInputActivatedCallback callback) noexcept { notificationInputActivatedCallback_ = callback; }
-        void SetNotificationDismissedCallback(NotificationDismissedCallback callback) noexcept { notificationDismissedCallback_ = callback; }
-        void SetNotificationFailedCallback(NotificationFailedCallback callback) noexcept { notificationFailedCallback_ = callback; }
-
         // Callback invokers
         void InvokeStartup() const;
         bool InvokeShutdownRequested(PhotinoShutdownRequestReason reason) const;

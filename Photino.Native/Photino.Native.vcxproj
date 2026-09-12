@@ -12,8 +12,8 @@
     <RestoreProjectStyle>PackageReference</RestoreProjectStyle>
     <NuGetTargetMoniker Condition="'$(NuGetTargetMoniker)' == ''">native,Version=v0.0</NuGetTargetMoniker>
     <VerMajor>5</VerMajor>
-    <VerMinor>1</VerMinor>
-    <VerPatch>1</VerPatch>
+    <VerMinor>2</VerMinor>
+    <VerPatch>0</VerPatch>
     <VerBuild>
     </VerBuild>
   </PropertyGroup>
@@ -277,9 +277,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="Exports.Application.Callbacks.cpp" />
     <ClCompile Include="Exports.Application.cpp" />
-    <ClCompile Include="Exports.Callbacks.cpp" />
     <ClCompile Include="Exports.Browser.cpp" />
     <ClCompile Include="Exports.cpp" />
     <ClCompile Include="Dependencies\wintoastlib.cpp" />

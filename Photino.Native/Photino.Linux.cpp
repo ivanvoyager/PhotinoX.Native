@@ -493,12 +493,16 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Lin
 
     if (options_.zoom != 100.0)
         SetZoom(options_.zoom);
+
+    InvokeCreated();
 }
 
 Photino::~Photino()
 {
     delete dialog_;
     dialog_ = nullptr;
+
+    Uninitialize();
 }
 
 const char* Photino::GetGtkVersion()

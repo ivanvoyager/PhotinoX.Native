@@ -68,6 +68,7 @@ void Photino::InitializeOptions(const PhotinoInitParams* initParams)
 
 void Photino::InitializeCallbacks(const PhotinoInitParams* initParams)
 {
+    createdCallback_ = initParams->Callbacks.CreatedHandler;
     closingCallback_ = initParams->Callbacks.ClosingHandler;
     closedCallback_ = initParams->Callbacks.ClosedHandler;
     focusInCallback_ = initParams->Callbacks.FocusInHandler;
@@ -95,4 +96,28 @@ void Photino::InitializeCustomSchemes(const PhotinoInitParams* initParams)
     {
         AddCustomSchemeName(customSchemeName);
     }
+}
+
+void Photino::Uninitialize()
+{
+    createdCallback_ = nullptr;
+    closingCallback_ = nullptr;
+    closedCallback_ = nullptr;
+    focusInCallback_ = nullptr;
+    focusOutCallback_ = nullptr;
+    resizedCallback_ = nullptr;
+    movedCallback_ = nullptr;
+    maximizedCallback_ = nullptr;
+    restoredCallback_ = nullptr;
+    minimizedCallback_ = nullptr;
+    fullScreenChangedCallback_ = nullptr;
+    stateChangedCallback_ = nullptr;
+    webMessageReceivedCallback_ = nullptr;
+    customSchemeCallback_ = nullptr;
+    navigationStartingCallback_ = nullptr;
+    newWindowRequestedCallback_ = nullptr;
+    contentLoadingCallback_ = nullptr;
+    contentLoadedCallback_ = nullptr;
+
+    callbackState_ = nullptr;
 }

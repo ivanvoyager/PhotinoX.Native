@@ -10,6 +10,7 @@ namespace PhotinoX::Native
     using InvokeStateCallback = VoidStateCallback;
 
     // window-level callbacks
+    using CreatedCallback = void (*)(void* instance, void* state);
     using ClosingCallback = bool (*)(void* state);
     using ClosedCallback = VoidStateCallback;
     using FocusInCallback = VoidStateCallback;

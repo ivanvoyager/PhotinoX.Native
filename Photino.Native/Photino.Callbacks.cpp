@@ -4,6 +4,11 @@
 
 using namespace PhotinoX::Native;
 
+void Photino::InvokeCreated() const noexcept
+{
+    if (createdCallback_) createdCallback_(const_cast<Photino*>(this), callbackState_);
+}
+
 bool Photino::InvokeClosing() const noexcept
 {
     if (!closingCallback_ || isClosing_)

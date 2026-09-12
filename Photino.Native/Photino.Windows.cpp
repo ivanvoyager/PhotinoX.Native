@@ -202,6 +202,8 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Win
         std::abort();
 
     platform_->suppressWindowCallbacks = false;
+
+    InvokeCreated();
 }
 
 Photino::~Photino()
@@ -220,6 +222,8 @@ Photino::~Photino()
         DestroyIcon(platform_->ownedBigIcon);
         platform_->ownedBigIcon = nullptr;
     }
+
+    Uninitialize();
 }
 
 void Photino::ApplySizeLimits(MINMAXINFO& info) const noexcept
@@ -330,6 +334,9 @@ LRESULT CALLBACK WindowProc(const HWND hwnd, const UINT uMsg, const WPARAM wPara
         if (!photino)
             return 0;
 
+        if (photino->Platform().suppressWindowCallbacks)
+            return 0;
+
         if (LOWORD(wParam) == WA_INACTIVE)
         {
             photino->InvokeFocusOut();
@@ -355,7 +362,9 @@ LRESULT CALLBACK WindowProc(const HWND hwnd, const UINT uMsg, const WPARAM wPara
                 return 0;
         }
 
-        DestroyWindow(hwnd);
+        photino = nullptr;
+        DestroyWindow(hwnd); // This will trigger WM_DESTROY and WM_NCDESTROY messages
+
         return 0;
     }
 
