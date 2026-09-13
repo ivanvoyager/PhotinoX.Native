@@ -50,6 +50,25 @@ void PhotinoApplication::InitializeNotificationCallbacks(const PhotinoApplicatio
     notificationFailedCallback_ = initParams->NotificationCallbacks.NotificationFailedHandler;
 }
 
+void PhotinoApplication::Uninitialize()
+{
+    startupCallback_ = nullptr;
+    shutdownRequestedCallback_ = nullptr;
+    exitCallback_ = nullptr;
+
+    callbackState_ = nullptr;
+
+    notificationActivatedCallback_ = nullptr;
+    notificationActionActivatedCallback_ = nullptr;
+    notificationInputActivatedCallback_ = nullptr;
+    notificationDismissedCallback_ = nullptr;
+    notificationFailedCallback_ = nullptr;
+
+    options_.applicationName.clear();
+    options_.applicationIconPath.clear();
+    options_.notificationRegistrationId.clear();
+}
+
 bool PhotinoApplication::IsRunning() const noexcept
 {
     return isRunning_.load(std::memory_order_acquire);
@@ -78,6 +97,7 @@ int PhotinoApplication::Run(const PhotinoApplicationInitParams* initParams)
     {
         isShuttingDown_.store(true, std::memory_order_release);
         UninitializeNotifications();
+        Uninitialize();
         isRunning_.store(false, std::memory_order_release);
     };
 

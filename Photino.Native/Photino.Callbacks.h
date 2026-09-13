@@ -36,9 +36,9 @@ namespace PhotinoX::Native
     using ShutdownRequestedCallback = bool (*)(PhotinoShutdownRequestReason reason, void* state);
     using ExitCallback = int (*)(int exitCode, void* state);
 
-    using NotificationActivatedCallback = void (*)(int notificationId, void* state);
-    using NotificationActionActivatedCallback = void (*)(int notificationId, int actionIndex, void* state);
-    using NotificationInputActivatedCallback = void (*)(int notificationId, Utf8String response, void* state);
-    using NotificationDismissedCallback = void (*)(int notificationId, PhotinoNotificationDismissalReason reason, void* state);
-    using NotificationFailedCallback = void (*)(int notificationId, void* state);
+    using NotificationActivatedCallback = void (*)(int notificationId, void* notificationState, void* state);
+    using NotificationActionActivatedCallback = void (*)(int notificationId, int actionIndex, void* notificationState, void* state);
+    using NotificationInputActivatedCallback = void (*)(int notificationId, Utf8String response, void* notificationState, void* state);
+    using NotificationDismissedCallback = void (*)(int notificationId, PhotinoNotificationDismissalReason reason, void* notificationState, void* state);
+    using NotificationFailedCallback = void (*)(int notificationId, void* notificationState, void* state);
 }

@@ -60,6 +60,8 @@ namespace PhotinoX::Native
         void InitializeCallbacks(const PhotinoApplicationInitParams* initParams);
         void InitializeNotificationCallbacks(const PhotinoApplicationInitParams* initParams);
 
+        void Uninitialize();
+
 #ifdef __APPLE__
         bool IsAppBundleProcess() const;
 #endif

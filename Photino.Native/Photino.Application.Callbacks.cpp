@@ -30,25 +30,25 @@ int PhotinoApplication::InvokeExit(int exitCode) const
 
 void PhotinoApplication::InvokeNotificationActivated(int notificationId, void* state) const
 {
-    if (notificationActivatedCallback_) notificationActivatedCallback_(notificationId, state);
+    if (notificationActivatedCallback_) notificationActivatedCallback_(notificationId, state, callbackState_);
 }
 
 void PhotinoApplication::InvokeNotificationActionActivated(int notificationId, int actionIndex, void* state) const
 {
-    if (notificationActionActivatedCallback_) notificationActionActivatedCallback_(notificationId, actionIndex, state);
+    if (notificationActionActivatedCallback_) notificationActionActivatedCallback_(notificationId, actionIndex, state, callbackState_);
 }
 
 void PhotinoApplication::InvokeNotificationInputActivated(int notificationId, Utf8String response, void* state) const
 {
-    if (notificationInputActivatedCallback_) notificationInputActivatedCallback_(notificationId, response, state);
+    if (notificationInputActivatedCallback_) notificationInputActivatedCallback_(notificationId, response, state, callbackState_);
 }
 
 void PhotinoApplication::InvokeNotificationDismissed(int notificationId, PhotinoNotificationDismissalReason reason, void* state) const
 {
-    if (notificationDismissedCallback_) notificationDismissedCallback_(notificationId, reason, state);
+    if (notificationDismissedCallback_) notificationDismissedCallback_(notificationId, reason, state, callbackState_);
 }
 
 void PhotinoApplication::InvokeNotificationFailed(int notificationId, void* state) const
 {
-    if (notificationFailedCallback_) notificationFailedCallback_(notificationId, state);
+    if (notificationFailedCallback_) notificationFailedCallback_(notificationId, state, callbackState_);
 }
