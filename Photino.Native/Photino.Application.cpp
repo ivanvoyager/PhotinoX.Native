@@ -2,6 +2,10 @@
 #include "Photino.Application.InitParams.h"
 #include "Photino.Application.Notifications.h"
 
+#include "Photino.h"
+#include "Photino.Memory.h"
+
+#include <algorithm>
 #include <cassert>
 #include <cstdlib>
 #include <stdexcept>
@@ -37,6 +41,7 @@ void PhotinoApplication::InitializeCallbacks(const PhotinoApplicationInitParams*
     startupCallback_ = initParams->Callbacks.StartupHandler;
     shutdownRequestedCallback_ = initParams->Callbacks.ShutdownRequestedHandler;
     exitCallback_ = initParams->Callbacks.ExitHandler;
+    windowCollectionChangedCallback_ = initParams->Callbacks.WindowCollectionChangedHandler;
 
     callbackState_ = initParams->Callbacks.CallbackState;
 }
@@ -55,6 +60,7 @@ void PhotinoApplication::Uninitialize()
     startupCallback_ = nullptr;
     shutdownRequestedCallback_ = nullptr;
     exitCallback_ = nullptr;
+    windowCollectionChangedCallback_ = nullptr;
 
     callbackState_ = nullptr;
 
@@ -95,6 +101,8 @@ int PhotinoApplication::Run(const PhotinoApplicationInitParams* initParams)
 
     auto stopRunning = [&]
     {
+        assert(windows_.empty());
+
         isShuttingDown_.store(true, std::memory_order_release);
         UninitializeNotifications();
         Uninitialize();
@@ -218,4 +226,77 @@ int PhotinoApplication::ShowNotification(const PhotinoNotificationShowParams* sh
         iconPath = options_.applicationIconPath;
 
     return ShowNotificationCore(showParams->NotificationId, title, body, iconPath, showParams->CallbackState);
+}
+
+bool PhotinoApplication::RegisterWindow(Photino* photino)
+{
+    assert(CheckAccess() || !IsRunning());
+    assert(photino);
+    if (!photino) return false;
+
+    const auto iterator = std::find(windows_.begin(), windows_.end(), photino);
+    assert(iterator == windows_.end());
+
+   if (iterator != windows_.end())
+        return true;
+
+    windows_.push_back(photino);
+
+    void* newItem = photino->CallbackState();
+
+    return InvokeWindowCollectionChanged(NotifyCollectionChangedAction::Add, &newItem, 1, nullptr, 0);
+}
+
+void PhotinoApplication::UnregisterWindow(Photino* photino) noexcept
+{
+    assert(CheckAccess());
+    assert(photino);
+    if (!photino) return;
+
+    const auto iterator = std::find(windows_.begin(), windows_.end(), photino);
+    assert(iterator != windows_.end());
+
+    if (iterator == windows_.end())
+        return;
+
+    void* oldItem = photino->CallbackState();
+
+    windows_.erase(iterator);
+
+    InvokeWindowCollectionChanged(NotifyCollectionChangedAction::Remove, nullptr, 0, &oldItem, 1);
+}
+
+bool PhotinoApplication::GetWindows(void** states, int* count) const
+{
+    assert(CheckAccess());
+    assert(states);
+    assert(count);
+
+    if (!states || !count || !CheckAccess())
+        return false;
+
+    *states = nullptr;
+    *count = 0;
+
+    const auto windowCount = windows_.size();
+
+    if (windowCount == 0)
+        return true;
+
+    const auto size = windowCount * sizeof(void*);
+
+    auto values = static_cast<void**>(AllocateMemory(static_cast<int>(size)));
+
+    if (!values)
+        return false;
+
+    for (std::size_t i = 0; i < windowCount; ++i)
+    {
+        values[i] = windows_[i]->CallbackState();
+    }
+
+    *states = values;
+    *count = static_cast<int>(windowCount);
+
+    return true;
 }

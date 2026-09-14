@@ -1,12 +1,17 @@
 #include "Photino.h"
 #include "Photino.Enums.h"
 #include "Photino.Strings.h"
+#include "Photino.Application.h"
 
 using namespace PhotinoX::Native;
 
-void Photino::InvokeCreated() const noexcept
+void Photino::InvokeCreated() const
 {
-    if (createdCallback_) createdCallback_(const_cast<Photino*>(this), callbackState_);
+    auto* photino = const_cast<Photino*>(this);
+
+    bool registered = PhotinoApplication::Instance().RegisterWindow(photino);
+
+    if (createdCallback_) createdCallback_(photino, registered, callbackState_);
 }
 
 bool Photino::InvokeClosing() const noexcept
@@ -21,8 +26,12 @@ bool Photino::InvokeClosing() const noexcept
     return result; // Closing: true = cancel close, false = allow close
 }
 
-void Photino::InvokeClose() const noexcept
+void Photino::InvokeClosed() const noexcept
 {
+    auto* photino = const_cast<Photino*>(this);
+
+    PhotinoApplication::Instance().UnregisterWindow(photino);
+
     if (closedCallback_) closedCallback_(callbackState_);
 }
 

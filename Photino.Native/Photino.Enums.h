@@ -77,4 +77,15 @@ namespace PhotinoX::Native
     static_assert(sizeof(VerticalAlignment) == sizeof(int),
                   "VerticalAlignment must remain int-sized for managed/native interop.");
 
-}
+    enum class NotifyCollectionChangedAction : int
+    {
+        Add = 0,
+        Remove = 1,
+        Replace = 2,
+        Move = 3,
+        Reset = 4
+    };
+    static_assert(sizeof(NotifyCollectionChangedAction) == sizeof(int),
+                  "NotifyCollectionChangedAction must remain int-sized for managed/native interop.");
+
+} // namespace PhotinoX::Native

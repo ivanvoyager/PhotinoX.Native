@@ -86,7 +86,7 @@ namespace
         auto instance = static_cast<Photino*>(self);
         if (!instance) return;
 
-        instance->InvokeClose();
+        instance->InvokeClosed();
 
         delete instance;
     }

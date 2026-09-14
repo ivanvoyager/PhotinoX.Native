@@ -28,6 +28,17 @@ int PhotinoApplication::InvokeExit(int exitCode) const
     return exitCode;
 }
 
+bool PhotinoApplication::InvokeWindowCollectionChanged(NotifyCollectionChangedAction action,
+    void* const* newItems, int newItemsCount, void* const* oldItems, int oldItemsCount) const
+{
+    if (windowCollectionChangedCallback_)
+    {
+        windowCollectionChangedCallback_(action, newItems, newItemsCount, oldItems, oldItemsCount, callbackState_);
+        return true;
+    }
+    return false;
+}
+
 void PhotinoApplication::InvokeNotificationActivated(int notificationId, void* state) const
 {
     if (notificationActivatedCallback_) notificationActivatedCallback_(notificationId, state, callbackState_);

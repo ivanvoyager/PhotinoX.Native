@@ -374,7 +374,7 @@ LRESULT CALLBACK WindowProc(const HWND hwnd, const UINT uMsg, const WPARAM wPara
         if (photino)
         {
             photino->CloseWebView();
-            photino->InvokeClose();
+            photino->InvokeClosed();
         }
 
         return 0;

@@ -9,14 +9,15 @@ namespace PhotinoX::Native
 {
     struct PhotinoApplicationInitCallbacks
     {
-        StartupCallback StartupHandler;                     // #1
-        ShutdownRequestedCallback ShutdownRequestedHandler; // #2
-        ExitCallback ExitHandler;                           // #3
-        void* CallbackState;                                // #4
+        StartupCallback StartupHandler;                                 // #1
+        ShutdownRequestedCallback ShutdownRequestedHandler;             // #2
+        ExitCallback ExitHandler;                                       // #3
+        WindowCollectionChangedCallback WindowCollectionChangedHandler; // #4
+        void* CallbackState;                                            // #5
     };
     static_assert(std::is_standard_layout_v<PhotinoApplicationInitCallbacks>,
                   "PhotinoApplicationInitCallbacks must remain standard-layout for managed/native interop.");
-    static_assert(sizeof(PhotinoApplicationInitCallbacks) == 32,
+    static_assert(sizeof(PhotinoApplicationInitCallbacks) == 40,
                   "PhotinoApplicationInitCallbacks size changed. Update the managed ABI layout and size validation.");
 
     struct PhotinoApplicationInitOptions
@@ -60,10 +61,10 @@ namespace PhotinoX::Native
                   "PhotinoApplicationInitParams must remain standard-layout for managed/native interop.");
 
     static_assert(offsetof(PhotinoApplicationInitParams, Callbacks) == 8, "PhotinoApplicationInitParams.Callbacks offset changed.");
-    static_assert(offsetof(PhotinoApplicationInitParams, Options) == 40, "PhotinoApplicationInitParams.Options offset changed.");
-    static_assert(offsetof(PhotinoApplicationInitParams, NotificationCallbacks) == 72, "PhotinoApplicationInitParams.NotificationCallbacks offset changed.");
+    static_assert(offsetof(PhotinoApplicationInitParams, Options) == 48, "PhotinoApplicationInitParams.Options offset changed.");
+    static_assert(offsetof(PhotinoApplicationInitParams, NotificationCallbacks) == 80, "PhotinoApplicationInitParams.NotificationCallbacks offset changed.");
 
-    static_assert(sizeof(PhotinoApplicationInitParams) == 112,
+    static_assert(sizeof(PhotinoApplicationInitParams) == 120,
                   "PhotinoApplicationInitParams size changed. Update the managed ABI layout and size validation.");
 
 } // namespace PhotinoX::Native

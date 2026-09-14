@@ -10,7 +10,7 @@ namespace PhotinoX::Native
     using InvokeStateCallback = VoidStateCallback;
 
     // window-level callbacks
-    using CreatedCallback = void (*)(void* instance, void* state);
+    using CreatedCallback = void (*)(void* instance, bool registered, void* state);
     using ClosingCallback = bool (*)(void* state);
     using ClosedCallback = VoidStateCallback;
     using FocusInCallback = VoidStateCallback;
@@ -36,9 +36,12 @@ namespace PhotinoX::Native
     using ShutdownRequestedCallback = bool (*)(PhotinoShutdownRequestReason reason, void* state);
     using ExitCallback = int (*)(int exitCode, void* state);
 
+    using WindowCollectionChangedCallback = void (*)(NotifyCollectionChangedAction action, void* const* newItems, int newItemsCount, void* const* oldItems, int oldItemsCount, void* state);
+
     using NotificationActivatedCallback = void (*)(int notificationId, void* notificationState, void* state);
     using NotificationActionActivatedCallback = void (*)(int notificationId, int actionIndex, void* notificationState, void* state);
     using NotificationInputActivatedCallback = void (*)(int notificationId, Utf8String response, void* notificationState, void* state);
     using NotificationDismissedCallback = void (*)(int notificationId, PhotinoNotificationDismissalReason reason, void* notificationState, void* state);
     using NotificationFailedCallback = void (*)(int notificationId, void* notificationState, void* state);
+
 }

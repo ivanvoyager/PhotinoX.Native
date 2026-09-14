@@ -9,6 +9,7 @@
 
 #include <atomic>
 #include <memory>
+#include <vector>
 
 namespace PhotinoX::Native
 {
@@ -19,12 +20,15 @@ namespace PhotinoX::Native
 #elif defined(__APPLE__)
     struct MacApplicationState;
 #endif
+    class Photino;
+
     class PhotinoApplication final
     {
       private:
         StartupCallback startupCallback_ = nullptr;
         ShutdownRequestedCallback shutdownRequestedCallback_ = nullptr;
         ExitCallback exitCallback_ = nullptr;
+        WindowCollectionChangedCallback windowCollectionChangedCallback_ = nullptr;
         void* callbackState_ = nullptr;
 
         NotificationActivatedCallback notificationActivatedCallback_ = nullptr;
@@ -43,6 +47,8 @@ namespace PhotinoX::Native
         std::atomic_bool notificationsEnabled_{true};
 
         mutable bool isShutdownRequested_ = false;
+
+        std::vector<Photino*> windows_;
 
 #ifdef _WIN32
         std::unique_ptr<WindowsApplicationState> platform_;
@@ -101,15 +107,26 @@ namespace PhotinoX::Native
         bool Invoke(InvokeStateCallback callback, void* state) const;
         bool BeginInvoke(InvokeStateCallback callback, void* state) const;
 
+        // Notifications
         int ShowNotification(const PhotinoNotificationShowParams* showParams);
 
         void GetNotificationsEnabled(bool* enabled) const;
         void SetNotificationsEnabled(bool enabled);
 
+        // Windows
+        bool RegisterWindow(Photino* photino);
+        void UnregisterWindow(Photino* photino) noexcept;
+
+        const std::vector<Photino*>& Windows() const noexcept { return windows_; }
+        std::size_t WindowCount() const noexcept { return windows_.size(); }
+        bool GetWindows(void** states, int* count) const;
+
         // Callback invokers
         void InvokeStartup() const;
         bool InvokeShutdownRequested(PhotinoShutdownRequestReason reason) const;
         int InvokeExit(int exitCode) const;
+        bool InvokeWindowCollectionChanged(NotifyCollectionChangedAction action,
+                                           void* const* newItems, int newItemsCount, void* const* oldItems, int oldItemsCount) const;
 
         void InvokeNotificationActivated(int notificationId, void* state) const;
         void InvokeNotificationActionActivated(int notificationId, int actionIndex, void* state) const;

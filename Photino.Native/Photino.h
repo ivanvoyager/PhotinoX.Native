@@ -181,6 +181,9 @@ namespace PhotinoX::Native
 #endif
         Photino(PhotinoInitParams* initParams);
         ~Photino();
+
+        void* CallbackState() const noexcept { return callbackState_; }
+
 #ifdef _WIN32
         static void Register(HINSTANCE hInstance);
         static void SetWebView2RuntimePath(const PlatformString& pathToWebView2);
@@ -310,9 +313,9 @@ namespace PhotinoX::Native
         void GetIgnoreCertificateErrorsEnabled(bool* enabled) const;
 
         // Callback invokers
-        void InvokeCreated() const noexcept;
+        void InvokeCreated() const;
         bool InvokeClosing() const noexcept;
-        void InvokeClose() const noexcept;
+        void InvokeClosed() const noexcept;
         void InvokeFocusIn() const noexcept;
         void InvokeFocusOut() const noexcept;
         void InvokeMove(int x, int y) const noexcept;

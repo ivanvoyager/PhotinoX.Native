@@ -119,7 +119,7 @@ using namespace PhotinoX::Native;
     Photino* instance = photino;
     photino = nullptr;
 
-    instance->InvokeClose();
+    instance->InvokeClosed();
 
     NSWindow* window = (NSWindow*)notification.object;
     [window setDelegate:nil];

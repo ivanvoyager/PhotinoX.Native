@@ -47,4 +47,9 @@ extern "C"
     {
         return PhotinoApplication::Instance().BeginInvoke(callback, state);
     }
+
+    PHOTINO_EXPORT bool PhotinoApplication_GetWindows(void** states, int* count)
+    {
+        return PhotinoApplication::Instance().GetWindows(states, count);
+    }
 }
