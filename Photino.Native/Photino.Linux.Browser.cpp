@@ -316,11 +316,6 @@ namespace
     }
 } // namespace
 
-struct InvokeJSWaitInfo
-{
-    bool isCompleted = false;
-};
-
 void Photino::GetTransparentEnabled(bool* enabled) const
 {
     assert(enabled);
@@ -380,9 +375,6 @@ void Photino::NavigateToUrl(const PlatformString& url) const
 
 static void webview_eval_finished(GObject* object, GAsyncResult* result, gpointer userdata)
 {
-    auto waitInfo = static_cast<InvokeJSWaitInfo*>(userdata);
-    if (!waitInfo) return;
-
     GError* error = nullptr;
     JSCValue* value = webkit_web_view_evaluate_javascript_finish(WEBKIT_WEB_VIEW(object), result, &error);
 
@@ -394,8 +386,6 @@ static void webview_eval_finished(GObject* object, GAsyncResult* result, gpointe
 
     if (value)
         g_object_unref(value);
-
-    waitInfo->isCompleted = true;
 }
 
 void Photino::SendWebMessage(const PlatformString& message) const
@@ -408,8 +398,6 @@ void Photino::SendWebMessage(const PlatformString& message) const
     js.append(json(message).dump(-1, ' ', false, json::error_handler_t::replace));
     js.append(")");
 
-    InvokeJSWaitInfo invokeJsWaitInfo{};
-
     webkit_web_view_evaluate_javascript(
         WEBKIT_WEB_VIEW(platform_->webview),
         js.c_str(),
@@ -418,10 +406,7 @@ void Photino::SendWebMessage(const PlatformString& message) const
         nullptr,
         nullptr,
         webview_eval_finished,
-        &invokeJsWaitInfo);
-
-    while (!invokeJsWaitInfo.isCompleted)
-        g_main_context_iteration(nullptr, TRUE);
+        nullptr);
 }
 
 void Photino::GetContextMenuEnabled(bool* enabled) const
