@@ -248,6 +248,8 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Mac
         UpdateWindowState();
         suppressWindowStateCallbacks_ = false;
 
+        platform_->suppressWindowCallbacks = false;
+
         InvokeCreated();
     }
 }

@@ -29,6 +29,9 @@ using namespace PhotinoX::Native;
     if (!photino->IsFullScreenTransitioning())
         photino->UpdateWindowState();
 
+    if (photino->Platform().suppressWindowCallbacks)
+        return;
+
     int width = 0, height = 0;
     photino->GetSize(&width, &height);
     photino->InvokeResize(width, height);
@@ -42,6 +45,9 @@ using namespace PhotinoX::Native;
     if (!photino->IsFullScreenTransitioning())
         photino->UpdateWindowState();
 
+    if (photino->Platform().suppressWindowCallbacks)
+        return;
+
     int x = 0, y = 0;
     photino->GetPosition(&x, &y);
     photino->InvokeMove(x, y);
@@ -52,6 +58,9 @@ using namespace PhotinoX::Native;
 
     PHOTINO_MAC_LOG("[mac-event] windowDidBecomeKey\n");
 
+    if (photino->Platform().suppressWindowCallbacks)
+        return;
+
     photino->InvokeFocusIn();
 }
 
@@ -59,6 +68,9 @@ using namespace PhotinoX::Native;
     if (!photino) return;
 
     PHOTINO_MAC_LOG("[mac-event] windowDidResignKey\n");
+    
+    if (photino->Platform().suppressWindowCallbacks)
+        return;
 
     photino->InvokeFocusOut();
 }

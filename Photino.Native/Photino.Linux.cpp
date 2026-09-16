@@ -96,7 +96,9 @@ namespace
         auto instance = static_cast<Photino*>(self);
         if (!instance) return FALSE;
 
-        instance->InvokeFocusIn();
+        if (!instance->Platform().suppressWindowCallbacks)
+            instance->InvokeFocusIn();
+
         return FALSE;
     }
 
@@ -105,7 +107,9 @@ namespace
         auto instance = static_cast<Photino*>(self);
         if (!instance) return FALSE;
 
-        instance->InvokeFocusOut();
+        if (!instance->Platform().suppressWindowCallbacks)
+            instance->InvokeFocusOut();
+
         return FALSE;
     }
 
@@ -440,6 +444,8 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Lin
 
     g_signal_connect(platform_->window, "configure-event",    G_CALLBACK(on_configure_event), this);
     g_signal_connect(platform_->window, "window-state-event", G_CALLBACK(on_window_state_event), this);
+    g_signal_connect(platform_->window, "focus-in-event", G_CALLBACK(on_focus_in_event), this);
+    g_signal_connect(platform_->window, "focus-out-event", G_CALLBACK(on_focus_out_event), this);
     g_signal_connect(platform_->window, "delete-event", G_CALLBACK(on_widget_deleted), this);
     g_signal_connect(platform_->window, "destroy", G_CALLBACK(on_widget_destroyed), this);
 
@@ -488,11 +494,10 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Lin
     UpdateWindowState();
     suppressWindowStateCallbacks_ = false;
 
-    g_signal_connect(platform_->window, "focus-in-event", G_CALLBACK(on_focus_in_event), this);
-    g_signal_connect(platform_->window, "focus-out-event", G_CALLBACK(on_focus_out_event), this);
-
     if (options_.zoom != 100.0)
         SetZoom(options_.zoom);
+
+    platform_->suppressWindowCallbacks = false;
 
     InvokeCreated();
 }

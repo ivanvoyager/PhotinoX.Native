@@ -39,6 +39,8 @@ namespace PhotinoX::Native
         bool restoreNormalGeometryAfterUnmaximize = false;
         bool restoreNormalGeometryScheduled = false;
 
+        bool suppressWindowCallbacks = true;
+
         bool isFullScreenTransitioning = false;
         bool isExitingFullScreen = false;
         PhotinoWindowState pendingStateAfterFullScreenExit = PhotinoWindowState::Normal;

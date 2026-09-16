@@ -44,6 +44,8 @@ namespace PhotinoX::Native
         MacDragState drag;
         MacResizeState resize;
 
+        bool suppressWindowCallbacks = true;
+
         bool isFullScreenTransitioning = false;
         bool logicalMaximized = false;
         bool hasNormalFrame = false;

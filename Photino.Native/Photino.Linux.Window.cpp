@@ -438,14 +438,18 @@ void Photino::HandleConfigureEvent(int x, int y, int width, int height)
     {
         // Configure x/y are best-effort for toplevel windows.
         // On Wayland they are not reliable global screen coordinates.
-        InvokeMove(x, y);
+        if (!platform_->suppressWindowCallbacks)
+            InvokeMove(x, y);
+
         platform_->lastGeometry.left = x;
         platform_->lastGeometry.top = y;
     }
 
     if (platform_->lastGeometry.width != width || platform_->lastGeometry.height != height)
     {
-        InvokeResize(width, height);
+        if (!platform_->suppressWindowCallbacks)
+            InvokeResize(width, height);
+
         platform_->lastGeometry.width = width;
         platform_->lastGeometry.height = height;
     }
