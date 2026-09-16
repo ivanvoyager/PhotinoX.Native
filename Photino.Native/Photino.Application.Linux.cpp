@@ -250,11 +250,6 @@ void PhotinoApplication::ShutdownCore(int exitCode, bool force) noexcept
         DestroyShutdownInfo);
 }
 
-bool PhotinoApplication::CheckAccess() const noexcept
-{
-    return g_main_context_is_owner(g_main_context_default());
-}
-
 bool PhotinoApplication::Invoke(InvokeStateCallback callback, void* state) const
 {
     assert(callback);

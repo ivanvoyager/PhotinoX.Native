@@ -1,1 +1,1 @@
-.\nuget.exe pack ".\PhotinoX.Native.nuspec" -Version 5.2.0 -NonInteractive
+.\nuget.exe pack ".\PhotinoX.Native.nuspec" -Version 5.2.1 -NonInteractive

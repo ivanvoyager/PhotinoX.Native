@@ -129,11 +129,6 @@ void PhotinoApplication::ShutdownCore(int exitCode, bool force) noexcept
     dispatch_async(dispatch_get_main_queue(), shutdown);
 }
 
-bool PhotinoApplication::CheckAccess() const noexcept
-{
-    return [NSThread isMainThread];
-}
-
 bool PhotinoApplication::Invoke(InvokeStateCallback callback, void* state) const
 {
     assert(callback);

@@ -20,7 +20,6 @@ namespace
     constexpr UINT WM_PHOTINO_INVOKE_STATE = WM_APP + 1;
     constexpr UINT WM_PHOTINO_SHUTDOWN = WM_APP + 2;
 
-    std::atomic<DWORD> g_uiThreadId{0};
     std::atomic<HWND> g_messageWindow{nullptr};
 
     LRESULT CALLBACK ApplicationWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
@@ -154,14 +153,11 @@ int PhotinoApplication::RunCore()
 {
     assert(!g_messageWindow.load(std::memory_order_acquire));
 
-    g_uiThreadId.store(GetCurrentThreadId(), std::memory_order_release);
-
     HWND messageWindow = CreateApplicationMessageWindow();
     g_messageWindow.store(messageWindow, std::memory_order_release);
 
     if (!messageWindow)
     {
-        g_uiThreadId.store(0, std::memory_order_release);
         return -1;
     }
 
@@ -193,8 +189,6 @@ int PhotinoApplication::RunCore()
     if (messageWindow)
         DestroyWindow(messageWindow);
 
-    g_uiThreadId.store(0, std::memory_order_release);
-
     return exitCode;
 }
 
@@ -203,13 +197,6 @@ void PhotinoApplication::ShutdownCore(int exitCode, bool force) noexcept
     HWND messageWindow = g_messageWindow.load(std::memory_order_acquire);
     if (messageWindow && IsWindow(messageWindow))
         PostMessageW(messageWindow, WM_PHOTINO_SHUTDOWN, static_cast<WPARAM>(exitCode), force ? TRUE : FALSE);
-}
-
-bool PhotinoApplication::CheckAccess() const noexcept
-{
-    DWORD uiThreadId = g_uiThreadId.load(std::memory_order_acquire);
-    DWORD currentThreadId = GetCurrentThreadId();
-    return uiThreadId != 0 && currentThreadId == uiThreadId;
 }
 
 bool PhotinoApplication::Invoke(InvokeStateCallback callback, void* state) const

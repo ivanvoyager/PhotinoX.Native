@@ -12,6 +12,11 @@
 
 using namespace PhotinoX::Native;
 
+namespace
+{
+    thread_local bool g_hasDispatcherAccess = false;
+}
+
 PhotinoApplication& PhotinoApplication::Instance()
 {
     static PhotinoApplication application;
@@ -106,8 +111,11 @@ int PhotinoApplication::Run(const PhotinoApplicationInitParams* initParams)
         isShuttingDown_.store(true, std::memory_order_release);
         UninitializeNotifications();
         Uninitialize();
+        g_hasDispatcherAccess = false;
         isRunning_.store(false, std::memory_order_release);
     };
+
+    g_hasDispatcherAccess = true;
 
     try
     {
@@ -168,6 +176,11 @@ void PhotinoApplication::Shutdown(int exitCode, bool force) noexcept
     }
 
     ShutdownCore(exitCode, force);
+}
+
+bool PhotinoApplication::CheckAccess() const noexcept
+{
+    return g_hasDispatcherAccess;
 }
 
 void PhotinoApplication::GetNotificationsEnabled(bool* enabled) const
