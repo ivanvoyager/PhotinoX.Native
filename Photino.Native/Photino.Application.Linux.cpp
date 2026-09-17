@@ -104,7 +104,9 @@ namespace
         if (!info->force && !info->app->HandleShutdownRequest(info->exitCode))
             return G_SOURCE_REMOVE;
 
-        gtk_main_quit();
+        if (gtk_main_level() > 0)
+            gtk_main_quit();
+
         return G_SOURCE_REMOVE;
     }
 

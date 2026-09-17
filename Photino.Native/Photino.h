@@ -155,6 +155,7 @@ namespace PhotinoX::Native
         void ConfigureWebViewPreferences();
 #endif
     public:
+        static void Register();
 #ifdef _WIN32
         void ApplySizeLimits(MINMAXINFO& info) const noexcept;
         void RefitContent() const;
@@ -185,16 +186,13 @@ namespace PhotinoX::Native
         void* CallbackState() const noexcept { return callbackState_; }
 
 #ifdef _WIN32
-        static void Register(HINSTANCE hInstance);
         static void SetWebView2RuntimePath(const PlatformString& pathToWebView2);
         static const char* GetWebView2RuntimeVersion();
 #elif defined(__linux__)
-        static void Register();
         static const char* GetGtkVersion();
         static const char* GetGlibcVersion();
         static const char* GetWebKitGtkRuntimeVersion();
 #elif defined(__APPLE__)
-        static void Register();
         static const char* GetWebKitVersion();
 #endif
         // Platform handles

@@ -46,7 +46,6 @@
     <Compile Include="$(PhotinoNetSourceDir)\PhotinoApplication.NativeParameters.cs" Link="src/PhotinoApplication.NativeParameters.cs" />
     <Compile Include="$(PhotinoNetSourceDir)\PhotinoApplication.Notifications.cs" Link="src/PhotinoApplication.Notifications.cs" />
     <Compile Include="$(PhotinoNetSourceDir)\PhotinoApplication.RuntimeInfo.cs" Link="src/PhotinoApplication.RuntimeInfo.cs" />
-    <Compile Include="$(PhotinoNetSourceDir)\PhotinoBootstrap.cs" Link="src/PhotinoBootstrap.cs" />
     <Compile Include="$(PhotinoNetSourceDir)\PhotinoDispatcher.cs" Link="src/PhotinoDispatcher.cs" />
     <Compile Include="$(PhotinoNetSourceDir)\PhotinoDispatcher.States.cs" Link="src/PhotinoDispatcher.States.cs" />
     <Compile Include="$(PhotinoNetSourceDir)\PhotinoWindow.Browser.cs" Link="src/PhotinoWindow.Browser.cs" />

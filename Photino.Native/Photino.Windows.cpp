@@ -33,42 +33,47 @@ extern PlatformString g_webview2RuntimePath;
 const HBRUSH darkBrush = CreateSolidBrush(RGB(0, 0, 0));
 const HBRUSH lightBrush = CreateSolidBrush(RGB(255, 255, 255));
 
-void Photino::Register(const HINSTANCE hInstance)
+void Photino::Register()
 {
-    InitDarkModeSupport();
+    assert(GetModuleHandleW(nullptr));
 
-    //g_hInstance = GetModuleHandleW(nullptr);
-    g_hInstance = hInstance;
-
-    assert(g_hInstance == GetModuleHandleW(nullptr));
-
-    // Register the window class
-    WNDCLASSEX wcx{};
-    wcx.cbSize = sizeof(WNDCLASSEX);
-    wcx.style = CS_HREDRAW | CS_VREDRAW;
-    wcx.lpfnWndProc = WindowProc;
-    wcx.cbClsExtra = 0;
-    wcx.cbWndExtra = 0;
-    wcx.hInstance = hInstance;
-    wcx.hIcon = LoadIcon(hInstance, IDI_APPLICATION);
-    wcx.hCursor = LoadCursor(nullptr, IDC_ARROW);
-    wcx.hbrBackground = IsDarkModeEnabled() ? darkBrush : lightBrush;
-    wcx.lpszMenuName = nullptr;
-    wcx.lpszClassName = CLASS_NAME;
-    wcx.hIconSm = LoadIcon(hInstance, IDI_APPLICATION);
-
-    if (!RegisterClassExW(&wcx))
+    static std::once_flag flag;
+    std::call_once(flag, []
     {
-        if (GetLastError() != ERROR_CLASS_ALREADY_EXISTS)
-            std::abort();
-    }
+        const HINSTANCE hInstance = GetModuleHandleW(nullptr);
 
-    DPI_AWARENESS_CONTEXT previous = SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
-    assert(previous != nullptr);
+        InitDarkModeSupport();
+        g_hInstance = hInstance;
+
+        WNDCLASSEXW wcx{};
+        wcx.cbSize = sizeof(WNDCLASSEXW);
+        wcx.style = CS_HREDRAW | CS_VREDRAW;
+        wcx.lpfnWndProc = WindowProc;
+        wcx.hInstance = hInstance;
+        wcx.hIcon = LoadIconW(hInstance, IDI_APPLICATION);
+        wcx.hCursor = LoadCursorW(nullptr, IDC_ARROW);
+        wcx.hbrBackground = IsDarkModeEnabled() ? darkBrush : lightBrush;
+        wcx.lpszMenuName = nullptr;
+        wcx.lpszClassName = CLASS_NAME;
+        wcx.hIconSm = LoadIconW(hInstance, IDI_APPLICATION);
+
+        if (!RegisterClassExW(&wcx) &&
+            GetLastError() != ERROR_CLASS_ALREADY_EXISTS)
+        {
+            std::abort();
+        }
+
+        const DPI_AWARENESS_CONTEXT previous =
+            SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
+
+        assert(previous != nullptr);
+     });
 }
 
 Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<WindowsState>())
 {
+    Register();
+
     assert(initParams);
     if (!initParams)
         std::abort();

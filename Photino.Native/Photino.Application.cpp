@@ -96,6 +96,8 @@ int PhotinoApplication::Run(const PhotinoApplicationInitParams* initParams)
     if (!isRunning_.compare_exchange_strong(expected, true, std::memory_order_acq_rel))
         throw std::logic_error("The application is already running.");
 
+    Photino::Register();
+
     InitializeFromInitParams(initParams);
 
     isShuttingDown_.store(false, std::memory_order_release);

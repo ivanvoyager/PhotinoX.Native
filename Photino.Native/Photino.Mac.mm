@@ -101,6 +101,8 @@ void Photino::Register()
 
 Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<MacState>())
 {
+    Register();
+
     @autoreleasepool
     {
         assert(initParams);
