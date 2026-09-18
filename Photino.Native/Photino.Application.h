@@ -40,7 +40,9 @@ namespace PhotinoX::Native
         PhotinoApplicationOptions options_;
 
         std::atomic_bool isRunning_{false};
+        std::atomic_bool isInMainLoop_{false};
         std::atomic_bool isShuttingDown_{false};
+        std::atomic<bool> shutdownCompleted_{false};
         std::atomic_int exitCode_{0};
 
         std::atomic_bool notificationsInitialized_{false};
@@ -76,7 +78,8 @@ namespace PhotinoX::Native
         int ShowNotificationCore(int notificationId, const PlatformString& title, const PlatformString& body, const PlatformString& iconPath, void* callbackState);
 
         int RunCore();
-        void ShutdownCore(int exitCode, bool force) noexcept;
+        void RequestShutdownCore(int exitCode, bool force) noexcept;
+        void CompleteShutdownCore(int exitCode) noexcept;
       public:
         static PhotinoApplication& Instance();
 
@@ -99,9 +102,14 @@ namespace PhotinoX::Native
         bool IsShuttingDown() const noexcept;
 
         int Run(const PhotinoApplicationInitParams* initParams);
+
         void NotifySessionEnding() noexcept;
-        bool HandleShutdownRequest(int exitCode, PhotinoShutdownRequestReason reason = PhotinoShutdownRequestReason::Application) noexcept;
         void Shutdown(int exitCode = 0, bool force = false) noexcept;
+
+        void HandleShutdown(int exitCode, bool force) noexcept;
+        void CloseWindows() noexcept;
+        void CompleteShutdown() noexcept;
+
         bool CheckAccess() const noexcept;
 
         bool Invoke(InvokeStateCallback callback, void* state) const;

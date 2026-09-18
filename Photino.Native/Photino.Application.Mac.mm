@@ -108,16 +108,10 @@ void PhotinoApplication::StopApplicationLoop() noexcept
     [NSApp postEvent:event atStart:NO];
 }
 
-void PhotinoApplication::ShutdownCore(int exitCode, bool force) noexcept
+void PhotinoApplication::RequestShutdownCore(int exitCode, bool force) noexcept
 {
     auto shutdown = ^{
-        if (!force)
-        {
-            if (!HandleShutdownRequest(exitCode))
-                return;
-        }
-
-        StopApplicationLoop();
+        HandleShutdown(exitCode, force);
     };
 
     if ([NSThread isMainThread])
@@ -127,6 +121,11 @@ void PhotinoApplication::ShutdownCore(int exitCode, bool force) noexcept
     }
 
     dispatch_async(dispatch_get_main_queue(), shutdown);
+}
+
+void PhotinoApplication::CompleteShutdownCore(int) noexcept
+{
+    StopApplicationLoop();
 }
 
 bool PhotinoApplication::Invoke(InvokeStateCallback callback, void* state) const

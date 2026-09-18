@@ -20,12 +20,15 @@ using namespace PhotinoX::Native;
 
 - (NSApplicationTerminateReply)applicationShouldTerminate:(NSApplication*)sender
 {
-    auto& application = PhotinoX::Native::PhotinoApplication::Instance();
+    auto& application = PhotinoApplication::Instance();
 
-    if (!application.IsShuttingDown() && !application.HandleShutdownRequest(0, PhotinoShutdownRequestReason::Unknown))
+    if (application.IsShuttingDown())
         return NSTerminateCancel;
 
-    application.StopApplicationLoop();
+    if (application.InvokeShutdownRequested(PhotinoShutdownRequestReason::Unknown))
+        return NSTerminateCancel;
+
+    application.HandleShutdown(0, true);
     return NSTerminateCancel;
 }
 

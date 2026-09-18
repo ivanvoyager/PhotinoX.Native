@@ -69,15 +69,7 @@ namespace
             auto exitCode = static_cast<int>(wParam);
             bool force = lParam != FALSE;
 
-            if (force)
-            {
-                PostQuitMessage(exitCode);
-                return 0;
-            }
-
-            if (PhotinoApplication::Instance().HandleShutdownRequest(exitCode))
-                PostQuitMessage(exitCode);
-
+            PhotinoApplication::Instance().HandleShutdown(exitCode, force);
             return 0;
         }
 
@@ -192,11 +184,16 @@ int PhotinoApplication::RunCore()
     return exitCode;
 }
 
-void PhotinoApplication::ShutdownCore(int exitCode, bool force) noexcept
+void PhotinoApplication::RequestShutdownCore(int exitCode, bool force) noexcept
 {
     HWND messageWindow = g_messageWindow.load(std::memory_order_acquire);
     if (messageWindow && IsWindow(messageWindow))
         PostMessageW(messageWindow, WM_PHOTINO_SHUTDOWN, static_cast<WPARAM>(exitCode), force ? TRUE : FALSE);
+}
+
+void PhotinoApplication::CompleteShutdownCore(int exitCode) noexcept
+{
+    PostQuitMessage(exitCode);
 }
 
 bool PhotinoApplication::Invoke(InvokeStateCallback callback, void* state) const

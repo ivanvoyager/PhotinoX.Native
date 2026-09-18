@@ -101,12 +101,7 @@ namespace
         if (!info || !info->app)
             return G_SOURCE_REMOVE;
 
-        if (!info->force && !info->app->HandleShutdownRequest(info->exitCode))
-            return G_SOURCE_REMOVE;
-
-        if (gtk_main_level() > 0)
-            gtk_main_quit();
-
+        info->app->HandleShutdown(info->exitCode, info->force);
         return G_SOURCE_REMOVE;
     }
 
@@ -240,7 +235,7 @@ int PhotinoApplication::RunCore()
     return exitCode_.load(std::memory_order_acquire);
 }
 
-void PhotinoApplication::ShutdownCore(int exitCode, bool force) noexcept
+void PhotinoApplication::RequestShutdownCore(int exitCode, bool force) noexcept
 {
     auto info = new ShutdownInfo{this, exitCode, force};
 
@@ -250,6 +245,12 @@ void PhotinoApplication::ShutdownCore(int exitCode, bool force) noexcept
         ShutdownApplication,
         info,
         DestroyShutdownInfo);
+}
+
+void PhotinoApplication::CompleteShutdownCore(int) noexcept
+{
+    if (gtk_main_level() > 0)
+        gtk_main_quit();
 }
 
 bool PhotinoApplication::Invoke(InvokeStateCallback callback, void* state) const

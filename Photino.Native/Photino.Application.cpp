@@ -100,7 +100,9 @@ int PhotinoApplication::Run(const PhotinoApplicationInitParams* initParams)
 
     InitializeFromInitParams(initParams);
 
+    shutdownCompleted_.store(false, std::memory_order_release);
     isShuttingDown_.store(false, std::memory_order_release);
+    isInMainLoop_.store(false, std::memory_order_release);
     exitCode_.store(0, std::memory_order_release);
 
     if (notificationsEnabled_.load(std::memory_order_acquire))
@@ -123,7 +125,7 @@ int PhotinoApplication::Run(const PhotinoApplicationInitParams* initParams)
     {
         InvokeStartup();
 
-        if (IsShuttingDown())
+        if (IsShuttingDown() && windows_.empty())
         {
             int exitCode = exitCode_.load(std::memory_order_acquire);
             exitCode = InvokeExit(exitCode);
@@ -133,10 +135,21 @@ int PhotinoApplication::Run(const PhotinoApplicationInitParams* initParams)
             return exitCode;
         }
 
-        int exitCode = RunCore();
+        int exitCode;
+
+        isInMainLoop_.store(true, std::memory_order_release);
+        try
+        {
+            exitCode = RunCore();
+        }
+        catch (...)
+        {
+            isInMainLoop_.store(false, std::memory_order_release);
+            throw;
+        }
+        isInMainLoop_.store(false, std::memory_order_release);
 
         exitCode = InvokeExit(exitCode);
-
         exitCode_.store(exitCode, std::memory_order_release);
 
         stopRunning();
@@ -155,29 +168,66 @@ void PhotinoApplication::NotifySessionEnding() noexcept
     isShuttingDown_.store(true, std::memory_order_release);
 }
 
-bool PhotinoApplication::HandleShutdownRequest(int exitCode, PhotinoShutdownRequestReason reason) noexcept
+void PhotinoApplication::Shutdown(int exitCode, bool force) noexcept
 {
-    if (IsShuttingDown())
-        return false;
+    if (!IsRunning())
+        return;
 
-    if (InvokeShutdownRequested(reason))
-        return false;
+    if (CheckAccess())
+    {
+        HandleShutdown(exitCode, force);
+        return;
+    }
+
+    RequestShutdownCore(exitCode, force);
+}
+
+void PhotinoApplication::HandleShutdown(int exitCode, bool force) noexcept
+{
+    assert(CheckAccess());
+
+    if (!CheckAccess() || IsShuttingDown())
+        return;
+
+    if (!force && InvokeShutdownRequested(PhotinoShutdownRequestReason::Application))
+        return;
 
     exitCode_.store(exitCode, std::memory_order_release);
     isShuttingDown_.store(true, std::memory_order_release);
 
-    return true;
+    CloseWindows();
+
+    if (windows_.empty())
+        CompleteShutdown();
 }
 
-void PhotinoApplication::Shutdown(int exitCode, bool force) noexcept
+void PhotinoApplication::CloseWindows() noexcept
 {
-    if (force)
-    {
-        exitCode_.store(exitCode, std::memory_order_release);
-        isShuttingDown_.store(true, std::memory_order_release);
-    }
+    assert(CheckAccess());
 
-    ShutdownCore(exitCode, force);
+    const auto windows = windows_;
+
+    for (auto iterator = windows.rbegin(); iterator != windows.rend(); ++iterator)
+    {
+        if (*iterator)
+            (*iterator)->Close();
+    }
+}
+
+void PhotinoApplication::CompleteShutdown() noexcept
+{
+    assert(CheckAccess());
+    assert(IsShuttingDown());
+    assert(windows_.empty());
+
+    if (!isInMainLoop_.load(std::memory_order_acquire))
+        return;
+
+    bool expected = false;
+    if (!shutdownCompleted_.compare_exchange_strong(expected, true, std::memory_order_acq_rel))
+        return;
+
+    CompleteShutdownCore(exitCode_.load(std::memory_order_acquire));
 }
 
 bool PhotinoApplication::CheckAccess() const noexcept
@@ -279,6 +329,9 @@ void PhotinoApplication::UnregisterWindow(Photino* photino) noexcept
     windows_.erase(iterator);
 
     InvokeWindowCollectionChanged(NotifyCollectionChangedAction::Remove, nullptr, 0, &oldItem, 1);
+
+    if (IsShuttingDown() && windows_.empty())
+        CompleteShutdown();
 }
 
 bool PhotinoApplication::GetWindows(void** states, int* count) const
