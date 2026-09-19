@@ -14,7 +14,7 @@ using namespace PhotinoX::Native;
 
 namespace
 {
-    void ScheduleNotificationInputActivated(const PhotinoApplication* app, int notificationId, NSString* response, void* callbackState)
+    void ScheduleNotificationInputActivated(PhotinoApplication* app, int notificationId, NSString* response, void* callbackState)
     {
         const char* utf8 = response ? [response UTF8String] : nullptr;
 

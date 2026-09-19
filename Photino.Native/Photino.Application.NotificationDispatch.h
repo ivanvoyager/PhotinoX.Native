@@ -10,16 +10,22 @@
 
 namespace PhotinoX::Native::NotificationDispatch
 {
+    template <typename TState>
+    void ReleaseState(void* value) noexcept
+    {
+        delete static_cast<TState*>(value);
+    }
+
     struct NotificationState
     {
-        const PhotinoApplication* App;
+        PhotinoApplication* App;
         int NotificationId;
         void* CallbackState;
     };
 
     struct NotificationActionState
     {
-        const PhotinoApplication* App;
+        PhotinoApplication* App;
         int NotificationId;
         int ActionIndex;
         void* CallbackState;
@@ -27,7 +33,7 @@ namespace PhotinoX::Native::NotificationDispatch
 
     struct NotificationInputState
     {
-        const PhotinoApplication* App;
+        PhotinoApplication* App;
         int NotificationId;
         std::string Response;
         void* CallbackState;
@@ -35,7 +41,7 @@ namespace PhotinoX::Native::NotificationDispatch
 
     struct NotificationDismissedState
     {
-        const PhotinoApplication* App;
+        PhotinoApplication* App;
         int NotificationId;
         PhotinoNotificationDismissalReason Reason;
         void* CallbackState;
@@ -71,53 +77,53 @@ namespace PhotinoX::Native::NotificationDispatch
         state->App->InvokeNotificationFailed(state->NotificationId, state->CallbackState);
     }
 
-    inline void ScheduleNotificationActivated(const PhotinoApplication* app, int notificationId, void* callbackState)
+    inline void ScheduleNotificationActivated(PhotinoApplication* app, int notificationId, void* callbackState)
     {
         assert(app);
         if (!app) return;
 
         auto state = new NotificationState{app, notificationId, callbackState};
-        if (!app->BeginInvoke(InvokeNotificationActivated, state))
+        if (!app->BeginInvoke(InvokeNotificationActivated, ReleaseState<NotificationState>, state))
             delete state;
     }
 
-    inline void ScheduleNotificationActionActivated(const PhotinoApplication* app, int notificationId, int actionIndex, void* callbackState)
+    inline void ScheduleNotificationActionActivated(PhotinoApplication* app, int notificationId, int actionIndex, void* callbackState)
     {
         assert(app);
         if (!app) return;
 
         auto state = new NotificationActionState{app, notificationId, actionIndex, callbackState};
-        if (!app->BeginInvoke(InvokeNotificationActionActivated, state))
+        if (!app->BeginInvoke(InvokeNotificationActionActivated, ReleaseState<NotificationActionState>, state))
             delete state;
     }
 
-    inline void ScheduleNotificationInputActivated(const PhotinoApplication* app, int notificationId, std::string response, void* callbackState)
+    inline void ScheduleNotificationInputActivated(PhotinoApplication* app, int notificationId, std::string response, void* callbackState)
     {
         assert(app);
         if (!app) return;
 
         auto state = new NotificationInputState{app, notificationId, std::move(response), callbackState};
-        if (!app->BeginInvoke(InvokeNotificationInputActivated, state))
+        if (!app->BeginInvoke(InvokeNotificationInputActivated, ReleaseState<NotificationInputState>, state))
             delete state;
     }
 
-    inline void ScheduleNotificationDismissed(const PhotinoApplication* app, int notificationId, PhotinoNotificationDismissalReason reason, void* callbackState)
+    inline void ScheduleNotificationDismissed(PhotinoApplication* app, int notificationId, PhotinoNotificationDismissalReason reason, void* callbackState)
     {
         assert(app);
         if (!app) return;
 
         auto state = new NotificationDismissedState{app, notificationId, reason, callbackState};
-        if (!app->BeginInvoke(InvokeNotificationDismissed, state))
+        if (!app->BeginInvoke(InvokeNotificationDismissed, ReleaseState<NotificationDismissedState>, state))
             delete state;
     }
 
-    inline void ScheduleNotificationFailed(const PhotinoApplication* app, int notificationId, void* callbackState)
+    inline void ScheduleNotificationFailed(PhotinoApplication* app, int notificationId, void* callbackState)
     {
         assert(app);
         if (!app) return;
 
         auto state = new NotificationState{app, notificationId, callbackState};
-        if (!app->BeginInvoke(InvokeNotificationFailed, state))
+        if (!app->BeginInvoke(InvokeNotificationFailed, ReleaseState<NotificationState>, state))
             delete state;
     }
 } // namespace PhotinoX::Native::NotificationDispatch

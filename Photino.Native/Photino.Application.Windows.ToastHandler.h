@@ -15,12 +15,12 @@ namespace PhotinoX::Native
     class WinToastHandler final : public WinToastLib::IWinToastHandler
     {
       private:
-        const PhotinoApplication* app_;
+        PhotinoApplication* app_;
         int notificationId_;
         void* callbackState_;
 
       public:
-        WinToastHandler(const PhotinoApplication* app, int notificationId, void* callbackState)
+        WinToastHandler(PhotinoApplication* app, int notificationId, void* callbackState)
             : app_(app),
               notificationId_(notificationId),
               callbackState_(callbackState)

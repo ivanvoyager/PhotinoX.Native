@@ -60,27 +60,14 @@ namespace
         return G_SOURCE_REMOVE;
     }
 
-    struct InvokeAsyncInfo
+    gboolean ProcessPendingInvokesCallback(gpointer data)
     {
-        InvokeStateCallback callback = nullptr;
-        void* state = nullptr;
-    };
+        auto application = static_cast<PhotinoApplication*>(data);
 
-    gboolean InvokeCallbackAsync(gpointer data)
-    {
-        auto info = static_cast<InvokeAsyncInfo*>(data);
-        if (!info)
-            return G_SOURCE_REMOVE;
-
-        if (info->callback)
-            info->callback(info->state);
+        if (application)
+            application->ProcessPendingInvokes();
 
         return G_SOURCE_REMOVE;
-    }
-
-    void DestroyInvokeAsyncInfo(gpointer data)
-    {
-        delete static_cast<InvokeAsyncInfo*>(data);
     }
 
     struct ShutdownInfo
@@ -229,10 +216,19 @@ void PhotinoApplication::ValidateInitParams(const PhotinoApplicationInitParams* 
     }
 }
 
-int PhotinoApplication::RunCore()
+bool PhotinoApplication::InitializeCore() noexcept
+{
+    return true;
+}
+
+int PhotinoApplication::RunCore() noexcept
 {
     gtk_main();
     return exitCode_.load(std::memory_order_acquire);
+}
+
+void PhotinoApplication::UninitializeCore() noexcept
+{
 }
 
 void PhotinoApplication::RequestShutdownCore(int exitCode, bool force) noexcept
@@ -287,28 +283,17 @@ bool PhotinoApplication::Invoke(InvokeStateCallback callback, void* state) const
     return true;
 }
 
-bool PhotinoApplication::BeginInvoke(InvokeStateCallback callback, void* state) const
+void PhotinoApplication::RequestPendingInvokesCore() noexcept
 {
-    assert(callback);
+    GSource* source = g_idle_source_new();
 
-    if (!callback || IsShuttingDown() || !IsRunning())
-        return false;
+    if (!source)
+        return;
 
-    auto info = new InvokeAsyncInfo{ callback, state };
-
-    const guint sourceId = g_idle_add_full(
-               G_PRIORITY_DEFAULT,
-               InvokeCallbackAsync,
-               info,
-               DestroyInvokeAsyncInfo);
-
-    if (sourceId == 0)
-    {
-        delete info;
-        return false;
-    }
-
-    return true;
+    g_source_set_priority(source, G_PRIORITY_DEFAULT);
+    g_source_set_callback(source, ProcessPendingInvokesCallback, this, nullptr);
+    g_source_attach(source, g_main_context_default());
+    g_source_unref(source);
 }
 
 bool PhotinoApplication::InitializeNotifications()

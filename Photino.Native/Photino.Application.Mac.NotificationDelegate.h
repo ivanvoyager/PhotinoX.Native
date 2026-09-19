@@ -12,7 +12,7 @@ namespace PhotinoX::Native
 @interface NotificationDelegate : NSObject <UNUserNotificationCenterDelegate>
 {
   @public
-    const PhotinoX::Native::PhotinoApplication* app;
+    PhotinoX::Native::PhotinoApplication* app;
 }
 @end
 

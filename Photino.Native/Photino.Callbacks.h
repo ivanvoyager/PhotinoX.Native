@@ -7,7 +7,9 @@
 namespace PhotinoX::Native
 {
     using VoidStateCallback = void (*)(void* state);
+
     using InvokeStateCallback = VoidStateCallback;
+    using ReleaseStateCallback = VoidStateCallback;
 
     // window-level callbacks
     using CreatedCallback = void (*)(void* instance, bool registered, void* state);

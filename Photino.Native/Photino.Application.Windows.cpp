@@ -17,8 +17,9 @@ using namespace WinToastLib;
 namespace
 {
     constexpr wchar_t ApplicationWindowClassName[] = L"PhotinoXApplicationWindow";
-    constexpr UINT WM_PHOTINO_INVOKE_STATE = WM_APP + 1;
-    constexpr UINT WM_PHOTINO_SHUTDOWN = WM_APP + 2;
+    constexpr UINT WM_PHOTINO_INVOKE = WM_APP + 1;
+    constexpr UINT WM_PHOTINO_DISPATCH = WM_APP + 2;
+    constexpr UINT WM_PHOTINO_SHUTDOWN = WM_APP + 3;
 
     std::atomic<HWND> g_messageWindow{nullptr};
 
@@ -50,7 +51,7 @@ namespace
             return 0;
         }
 
-        case WM_PHOTINO_INVOKE_STATE:
+        case WM_PHOTINO_INVOKE:
         {
             auto callback = reinterpret_cast<InvokeStateCallback>(wParam);
             assert(callback);
@@ -58,16 +59,20 @@ namespace
             if (!callback)
                 return FALSE;
 
-            auto state = reinterpret_cast<void*>(lParam);
-            callback(state);
-
+            callback(reinterpret_cast<void*>(lParam));
             return TRUE;
+        }
+
+        case WM_PHOTINO_DISPATCH:
+        {
+            PhotinoApplication::Instance().ProcessPendingInvokes();
+            return 0;
         }
 
         case WM_PHOTINO_SHUTDOWN:
         {
             auto exitCode = static_cast<int>(wParam);
-            bool force = lParam != FALSE;
+            const bool force = lParam != FALSE;
 
             PhotinoApplication::Instance().HandleShutdown(exitCode, force);
             return 0;
@@ -141,21 +146,25 @@ void PhotinoApplication::ValidateInitParams(const PhotinoApplicationInitParams* 
     }
 }
 
-int PhotinoApplication::RunCore()
+bool PhotinoApplication::InitializeCore() noexcept
 {
     assert(!g_messageWindow.load(std::memory_order_acquire));
 
     HWND messageWindow = CreateApplicationMessageWindow();
-    g_messageWindow.store(messageWindow, std::memory_order_release);
 
     if (!messageWindow)
-    {
-        return -1;
-    }
+        return false;
+
+    g_messageWindow.store(messageWindow, std::memory_order_release);
+    return true;
+}
+
+int PhotinoApplication::RunCore() noexcept
+{
+    assert(g_messageWindow.load(std::memory_order_acquire));
 
     MSG message{};
     int exitCode = 0;
-
     // Run the message loop
     while (true)
     {
@@ -177,11 +186,15 @@ int PhotinoApplication::RunCore()
         DispatchMessageW(&message);
     }
 
-    messageWindow = g_messageWindow.exchange(nullptr, std::memory_order_acq_rel);
+    return exitCode;
+}
+
+void PhotinoApplication::UninitializeCore() noexcept
+{
+    HWND messageWindow = g_messageWindow.exchange(nullptr, std::memory_order_acq_rel);
+
     if (messageWindow)
         DestroyWindow(messageWindow);
-
-    return exitCode;
 }
 
 void PhotinoApplication::RequestShutdownCore(int exitCode, bool force) noexcept
@@ -216,29 +229,15 @@ bool PhotinoApplication::Invoke(InvokeStateCallback callback, void* state) const
     if (!messageWindow || !IsWindow(messageWindow))
         return false;
 
-    return SendMessageW(
-                messageWindow,
-                WM_PHOTINO_INVOKE_STATE,
-                reinterpret_cast<WPARAM>(callback),
-                reinterpret_cast<LPARAM>(state)) == TRUE;
+    return SendMessageW(messageWindow, WM_PHOTINO_INVOKE, reinterpret_cast<WPARAM>(callback), reinterpret_cast<LPARAM>(state)) == TRUE;
 }
 
-bool PhotinoApplication::BeginInvoke(InvokeStateCallback callback, void* state) const
+void PhotinoApplication::RequestPendingInvokesCore() noexcept
 {
-    assert(callback);
-
-    if (!callback || IsShuttingDown() || !IsRunning())
-        return false;
-
     HWND messageWindow = g_messageWindow.load(std::memory_order_acquire);
-    if (!messageWindow || !IsWindow(messageWindow))
-        return false;
 
-    return PostMessageW(
-               messageWindow,
-               WM_PHOTINO_INVOKE_STATE,
-               reinterpret_cast<WPARAM>(callback),
-               reinterpret_cast<LPARAM>(state)) != FALSE;
+    if (messageWindow && IsWindow(messageWindow))
+        PostMessageW(messageWindow, WM_PHOTINO_DISPATCH, 0, 0);
 }
 
 bool PhotinoApplication::InitializeNotifications()

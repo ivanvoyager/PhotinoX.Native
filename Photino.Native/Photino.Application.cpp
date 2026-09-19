@@ -113,6 +113,7 @@ int PhotinoApplication::Run(const PhotinoApplicationInitParams* initParams)
         assert(windows_.empty());
 
         isShuttingDown_.store(true, std::memory_order_release);
+        ReleasePendingInvokes();
         UninitializeNotifications();
         Uninitialize();
         g_hasDispatcherAccess = false;
@@ -121,8 +122,18 @@ int PhotinoApplication::Run(const PhotinoApplicationInitParams* initParams)
 
     g_hasDispatcherAccess = true;
 
+    bool applicationLoopInitialized = false;
     try
     {
+        if (!InitializeCore())
+        {
+            isShuttingDown_.store(true, std::memory_order_release);
+            CloseWindows();
+            stopRunning();
+            return -1;
+        }
+        applicationLoopInitialized = true;
+
         InvokeStartup();
 
         if (IsShuttingDown() && windows_.empty())
@@ -131,26 +142,24 @@ int PhotinoApplication::Run(const PhotinoApplicationInitParams* initParams)
             exitCode = InvokeExit(exitCode);
             exitCode_.store(exitCode, std::memory_order_release);
 
+            UninitializeCore();
+            applicationLoopInitialized = false;
+
             stopRunning();
             return exitCode;
         }
 
-        int exitCode;
-
         isInMainLoop_.store(true, std::memory_order_release);
-        try
-        {
-            exitCode = RunCore();
-        }
-        catch (...)
-        {
-            isInMainLoop_.store(false, std::memory_order_release);
-            throw;
-        }
+        RequestPendingInvokes();
+
+        int exitCode = RunCore();
         isInMainLoop_.store(false, std::memory_order_release);
 
         exitCode = InvokeExit(exitCode);
         exitCode_.store(exitCode, std::memory_order_release);
+
+        UninitializeCore();
+        applicationLoopInitialized = false;
 
         stopRunning();
 
@@ -158,6 +167,17 @@ int PhotinoApplication::Run(const PhotinoApplicationInitParams* initParams)
     }
     catch (...)
     {
+        isInMainLoop_.store(false, std::memory_order_release);
+
+        if (!windows_.empty())
+        {
+            isShuttingDown_.store(true, std::memory_order_release);
+            CloseWindows();
+        }
+
+        if (applicationLoopInitialized)
+            UninitializeCore();
+
         stopRunning();
         throw;
     }
@@ -235,7 +255,90 @@ bool PhotinoApplication::CheckAccess() const noexcept
     return g_hasDispatcherAccess;
 }
 
-void PhotinoApplication::GetNotificationsEnabled(bool* enabled) const
+bool PhotinoApplication::BeginInvoke(InvokeStateCallback callback, ReleaseStateCallback release, void* state) noexcept
+{
+    assert(callback);
+    assert(release);
+
+    if (!callback || !release || !IsRunning() || IsShuttingDown())
+        return false;
+
+    try
+    {
+        std::lock_guard lock(pendingInvokesMutex_);
+
+        if (!IsRunning() || IsShuttingDown())
+            return false;
+
+        pendingInvokes_.push_back({callback, release, state});
+    }
+    catch (...)
+    {
+        return false;
+    }
+
+    if (isInMainLoop_.load(std::memory_order_acquire))
+        RequestPendingInvokesCore();
+
+    return true;
+}
+
+void PhotinoApplication::ProcessPendingInvokes() noexcept
+{
+    assert(CheckAccess());
+
+    if (!CheckAccess())
+        return;
+
+    std::deque<PendingInvoke> pendingInvokes;
+
+    {
+        std::lock_guard lock(pendingInvokesMutex_);
+        pendingInvokes.swap(pendingInvokes_);
+    }
+
+    auto iterator = pendingInvokes.begin();
+
+    for (; iterator != pendingInvokes.end(); ++iterator)
+    {
+        if (IsShuttingDown())
+            break;
+
+        iterator->callback(iterator->state);
+    }
+
+    for (; iterator != pendingInvokes.end(); ++iterator)
+        iterator->release(iterator->state);
+
+    if (!IsShuttingDown())
+        RequestPendingInvokes();
+}
+
+void PhotinoApplication::RequestPendingInvokes() noexcept
+{
+    bool hasPendingInvokes;
+    {
+        std::lock_guard lock(pendingInvokesMutex_);
+        hasPendingInvokes = !pendingInvokes_.empty();
+    }
+
+    if (hasPendingInvokes)
+        RequestPendingInvokesCore();
+}
+
+void PhotinoApplication::ReleasePendingInvokes() noexcept
+{
+    std::deque<PendingInvoke> pendingInvokes;
+    {
+        std::lock_guard lock(pendingInvokesMutex_);
+        pendingInvokes.swap(pendingInvokes_);
+    }
+
+    for (const auto& pendingInvoke : pendingInvokes)
+        pendingInvoke.release(pendingInvoke.state);
+}
+
+void PhotinoApplication::GetNotificationsEnabled(bool* enabled) const noexcept
 {
     if (!enabled) return;
 

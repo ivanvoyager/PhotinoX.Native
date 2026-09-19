@@ -78,7 +78,12 @@ void PhotinoApplication::ValidateInitParams(const PhotinoApplicationInitParams* 
     }
 }
 
-int PhotinoApplication::RunCore()
+bool PhotinoApplication::InitializeCore() noexcept
+{
+    return true;
+}
+
+int PhotinoApplication::RunCore() noexcept
 {
     assert([NSThread isMainThread]);
     if (![NSThread isMainThread])
@@ -89,6 +94,10 @@ int PhotinoApplication::RunCore()
         [NSApp run];
         return exitCode_.load(std::memory_order_acquire);
     }
+}
+
+void PhotinoApplication::UninitializeCore() noexcept
+{
 }
 
 void PhotinoApplication::StopApplicationLoop() noexcept
@@ -151,18 +160,13 @@ bool PhotinoApplication::Invoke(InvokeStateCallback callback, void* state) const
     return true;
 }
 
-bool PhotinoApplication::BeginInvoke(InvokeStateCallback callback, void* state) const
+void PhotinoApplication::RequestPendingInvokesCore() noexcept
 {
-    assert(callback);
-
-    if (!callback || IsShuttingDown() || !IsRunning())
-        return false;
+    PhotinoApplication* application = this;
 
     dispatch_async(dispatch_get_main_queue(), ^{
-        callback(state);
+        application->ProcessPendingInvokes();
     });
-
-    return true;
 }
 
 bool PhotinoApplication::IsAppBundleProcess() const
@@ -330,7 +334,7 @@ int PhotinoApplication::ShowNotificationCore(int notificationId, const PlatformS
                                              content:content
                                              trigger:nil];
 
-    const PhotinoApplication* app = this;
+    PhotinoApplication* app = this;
 
     UNUserNotificationCenter* center = [UNUserNotificationCenter currentNotificationCenter];
 

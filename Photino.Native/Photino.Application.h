@@ -8,7 +8,9 @@
 #include "Photino.Application.Notifications.h"
 
 #include <atomic>
+#include <deque>
 #include <memory>
+#include <mutex>
 #include <vector>
 
 namespace PhotinoX::Native
@@ -25,6 +27,13 @@ namespace PhotinoX::Native
     class PhotinoApplication final
     {
       private:
+        struct PendingInvoke final
+        {
+            InvokeStateCallback callback = nullptr;
+            ReleaseStateCallback release = nullptr;
+            void* state = nullptr;
+        };
+
         StartupCallback startupCallback_ = nullptr;
         ShutdownRequestedCallback shutdownRequestedCallback_ = nullptr;
         ExitCallback exitCallback_ = nullptr;
@@ -39,18 +48,21 @@ namespace PhotinoX::Native
 
         PhotinoApplicationOptions options_;
 
+        std::vector<Photino*> windows_;
+
+        std::mutex pendingInvokesMutex_;
+        std::deque<PendingInvoke> pendingInvokes_;
+
         std::atomic_bool isRunning_{false};
         std::atomic_bool isInMainLoop_{false};
         std::atomic_bool isShuttingDown_{false};
-        std::atomic<bool> shutdownCompleted_{false};
+        std::atomic_bool shutdownCompleted_{false};
         std::atomic_int exitCode_{0};
 
         std::atomic_bool notificationsInitialized_{false};
         std::atomic_bool notificationsEnabled_{true};
 
         mutable bool isShutdownRequested_ = false;
-
-        std::vector<Photino*> windows_;
 
 #ifdef _WIN32
         std::unique_ptr<WindowsApplicationState> platform_;
@@ -77,9 +89,17 @@ namespace PhotinoX::Native
         void UninitializeNotifications() noexcept;
         int ShowNotificationCore(int notificationId, const PlatformString& title, const PlatformString& body, const PlatformString& iconPath, void* callbackState);
 
-        int RunCore();
+        void RequestPendingInvokes() noexcept;
+        void ReleasePendingInvokes() noexcept;
+        void RequestPendingInvokesCore() noexcept;
+
+        bool InitializeCore() noexcept;
+        int RunCore() noexcept;
+        void UninitializeCore() noexcept;
+
         void RequestShutdownCore(int exitCode, bool force) noexcept;
         void CompleteShutdownCore(int exitCode) noexcept;
+
       public:
         static PhotinoApplication& Instance();
 
@@ -113,12 +133,13 @@ namespace PhotinoX::Native
         bool CheckAccess() const noexcept;
 
         bool Invoke(InvokeStateCallback callback, void* state) const;
-        bool BeginInvoke(InvokeStateCallback callback, void* state) const;
+        bool BeginInvoke(InvokeStateCallback callback, ReleaseStateCallback release, void* state) noexcept;
+        void ProcessPendingInvokes() noexcept;
 
         // Notifications
         int ShowNotification(const PhotinoNotificationShowParams* showParams);
 
-        void GetNotificationsEnabled(bool* enabled) const;
+        void GetNotificationsEnabled(bool* enabled) const noexcept;
         void SetNotificationsEnabled(bool enabled);
 
         // Windows
