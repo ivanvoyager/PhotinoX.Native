@@ -3,7 +3,8 @@
 # PhotinoX.Native
 
 [![NuGet Version](https://img.shields.io/nuget/v/PhotinoX.Native.svg)](https://www.nuget.org/packages/PhotinoX.Native)
-[![Build (Windows)](https://github.com/ivanvoyager/PhotinoX.Native/actions/workflows/photinox-native-win.yml/badge.svg)](https://github.com/ivanvoyager/PhotinoX.Native/actions/workflows/photinox-native-win.yml)
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/ivanvoyager/PhotinoX.Native)
+[![Build (Windows)](https://github.com/ivanvoyager/PhotinoX.Native/actions/workflows/build-native-win.yml/badge.svg)](https://github.com/ivanvoyager/PhotinoX.Native/actions/workflows/build-native-win.yml)
 [![Build (Unix)](https://github.com/ivanvoyager/PhotinoX.Native/actions/workflows/build-native-unix.yml/badge.svg)](https://github.com/ivanvoyager/PhotinoX.Native/actions/workflows/build-native-unix.yml)
 [![License](https://img.shields.io/github/license/ivanvoyager/PhotinoX.Native?label=license)](https://github.com/ivanvoyager/PhotinoX.Native/blob/master/LICENSE)
 [![NuGet Downloads](https://img.shields.io/nuget/dt/PhotinoX.Native.svg)](https://www.nuget.org/packages/PhotinoX.Native)
@@ -93,7 +94,7 @@ PhotinoX.Native builds with MSBuild on Windows and the included makefile on Linu
 > CI also uses **v145**.
 
 > CI: see  
-> - [`.github/workflows/photinox-native-win.yml`](https://github.com/ivanvoyager/PhotinoX.Native/blob/master/.github/workflows/photinox-native-win.yml) (build + pack + upload `win-x64`/`win-ARM64`)  
+> - [`.github/workflows/build-native-win.yml`](https://github.com/ivanvoyager/PhotinoX.Native/blob/master/.github/workflows/build-native-win.yml) (build + pack + upload `win-x64`/`win-ARM64`)  
 > - [`.github/workflows/build-native-unix.yml`](https://github.com/ivanvoyager/PhotinoX.Native/blob/master/.github/workflows/build-native-unix.yml) (build + pack + upload `linux-x64`/`linux-arm64` and `osx-x64`/`osx-arm64`)
 
 ## Windows
