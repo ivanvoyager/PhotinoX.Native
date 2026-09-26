@@ -33,6 +33,9 @@ namespace PhotinoX::Native
 
         WindowSizeLimits sizeLimits;
 
+        PhotinoWindowState initialWindowState = PhotinoWindowState::Normal;
+        bool initialWindowStateApplied = false;
+
         WindowGeometry lastGeometry;
         WindowGeometry normalGeometry;
         bool hasNormalGeometry = false;

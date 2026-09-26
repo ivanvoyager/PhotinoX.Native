@@ -368,7 +368,7 @@ void Photino::CompleteScheduledRestoreNormalGeometry()
 bool Photino::Activate() const
 {
     assert(platform_->window);
-    if (!platform_->window) return false;
+    if (!platform_->window || !IsVisible()) return false;
 
     gtk_window_present(GTK_WINDOW(platform_->window));
     return true;
@@ -599,7 +599,7 @@ bool Photino::Maximize()
         static_cast<int>(platform_->pendingStateAfterFullScreenExit));
 
     assert(platform_->window);
-    if (!platform_->window) return false;
+    if (!platform_->window || !IsVisible()) return false;
 
     if (platform_->isFullScreenTransitioning)
     {
@@ -652,7 +652,7 @@ bool Photino::Minimize()
         static_cast<int>(platform_->pendingStateAfterFullScreenExit));
 
     assert(platform_->window);
-    if (!platform_->window) return false;
+    if (!platform_->window || !IsVisible()) return false;
 
     if (platform_->isFullScreenTransitioning)
     {
@@ -698,7 +698,7 @@ bool Photino::Restore()
         platform_->logicalMinimized);
 
     assert(platform_->window);
-    if (!platform_->window) return false;
+    if (!platform_->window || !IsVisible()) return false;
 
     if (platform_->isFullScreenTransitioning)
     {
@@ -768,12 +768,43 @@ bool Photino::Restore()
     return true;
 }
 
-bool Photino::Show() const
+bool Photino::Show()
 {
     assert(platform_->window);
     if (!platform_->window) return false;
 
     gtk_widget_show_all(platform_->window);
+
+    if (!platform_->initialWindowStateApplied)
+    {
+        platform_->initialWindowStateApplied = true;
+
+        switch (platform_->initialWindowState)
+        {
+        case PhotinoWindowState::Maximized:
+            SetMaximized(true);
+            break;
+        case PhotinoWindowState::Minimized:
+            SetMinimized(true);
+            break;
+        case PhotinoWindowState::FullScreen:
+            SetFullScreen(true);
+            break;
+        default:
+            UpdateWindowState();
+            break;
+        }
+    }
+
+    return true;
+}
+
+bool Photino::Hide() const
+{
+    assert(platform_->window);
+    if (!platform_->window) return false;
+
+    gtk_widget_hide(platform_->window);
     return true;
 }
 
@@ -851,7 +882,8 @@ bool Photino::CanBeginResize() const noexcept
            platform_->chromelessSettings.ResizeBorderThickness > 0 &&
            !platform_->isFullScreenTransitioning &&
            !IsFullScreen() &&
-           !IsMaximized();
+           !IsMaximized() &&
+           IsVisible();
 }
 
 bool Photino::CanBeginDrag() const noexcept
@@ -861,7 +893,8 @@ bool Photino::CanBeginDrag() const noexcept
            !platform_->chromelessSettings.Regions.Drag.empty() &&
            !platform_->isFullScreenTransitioning &&
            !IsFullScreen() &&
-           !IsMinimized();
+           !IsMinimized() &&
+           IsVisible();
 }
 
 void Photino::BeginWindowDrag()
@@ -979,6 +1012,14 @@ bool Photino::IsMaximized() const noexcept
     return (gdk_window_get_state(gdkWindow) & GDK_WINDOW_STATE_MAXIMIZED) != 0;
 }
 
+bool Photino::IsVisible() const noexcept
+{
+    if (!platform_->window)
+        return false;
+
+    return gtk_widget_get_visible(platform_->window);
+}
+
 PhotinoWindowState Photino::GetPlatformWindowState() const noexcept
 {
     if (!platform_->window)
@@ -1014,7 +1055,7 @@ void Photino::SetFullScreen(bool fullScreen)
     PHOTINO_LINUX_LOG("[linux-command] SetFullScreen(%d)\n", fullScreen);
 
     assert(platform_->window);
-    if (!platform_->window) return;
+    if (!platform_->window || !IsVisible()) return;
 
     GtkWindow* window = GTK_WINDOW(platform_->window);
 
@@ -1076,7 +1117,7 @@ void Photino::SetFullScreen(bool fullScreen)
 void Photino::SetMaximized(bool maximized)
 {
     assert(platform_->window);
-    if (!platform_->window) return;
+    if (!platform_->window || !IsVisible()) return;
 
     if (maximized)
     {
@@ -1102,7 +1143,7 @@ void Photino::SetMaximized(bool maximized)
 void Photino::SetMinimized(bool minimized)
 {
     assert(platform_->window);
-    if (!platform_->window) return;
+    if (!platform_->window || !IsVisible()) return;
 
     if (minimized)
     {

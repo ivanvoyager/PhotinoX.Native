@@ -484,7 +484,9 @@ HRESULT Photino::CompleteWebViewInitialization()
     platform_->initialNavigationIssued = true;
 
     RefitContent();
-    FocusWebView2();
+
+    if (platform_->isAlreadyShown)
+        FocusWebView2();
 
     return S_OK;
 }
@@ -717,6 +719,10 @@ HRESULT Photino::HandleWebViewControllerCreated(HRESULT result, ICoreWebView2Con
     if (!controller) return E_POINTER;
 
     HRESULT hr = controller->QueryInterface(&platform_->webViewController);
+    if (FAILED(hr)) return hr;
+
+    // Keep the WebView rendering while its parent window remains hidden.
+    hr = platform_->webViewController->put_IsVisible(TRUE);
     if (FAILED(hr)) return hr;
 
     hr = platform_->webViewController->get_CoreWebView2(&platform_->webViewWindow);
@@ -1013,8 +1019,35 @@ void Photino::RefitContent() const
     if (!GetClientRect(platform_->hWnd, &bounds))
         return;
 
+    /*BOOL webViewVisible = FALSE;
+    RECT webViewBounds{};
+
+    HRESULT visibleResult = platform_->webViewController->get_IsVisible(&webViewVisible);
+    HRESULT boundsResult = platform_->webViewController->get_Bounds(&webViewBounds);
+    assert(SUCCEEDED(visibleResult));
+    assert(SUCCEEDED(boundsResult));
+
+    auto str = "WebView2 visible: " + std::to_string(webViewVisible) +
+        ", bounds: " +
+        std::to_string(webViewBounds.left) + "," +
+        std::to_string(webViewBounds.top) + " " +
+        std::to_string(webViewBounds.right - webViewBounds.left) + "x" +
+        std::to_string(webViewBounds.bottom - webViewBounds.top);*/
+
     HRESULT hr = platform_->webViewController->put_Bounds(bounds);
     assert(SUCCEEDED(hr));
+
+    /*visibleResult = platform_->webViewController->get_IsVisible(&webViewVisible);
+    boundsResult = platform_->webViewController->get_Bounds(&webViewBounds);
+    assert(SUCCEEDED(visibleResult));
+    assert(SUCCEEDED(boundsResult));
+
+    auto str1 = "WebView2 visible: " + std::to_string(webViewVisible) +
+        ", bounds: " +
+        std::to_string(webViewBounds.left) + "," +
+        std::to_string(webViewBounds.top) + " " +
+        std::to_string(webViewBounds.right - webViewBounds.left) + "x" +
+        std::to_string(webViewBounds.bottom - webViewBounds.top);*/
 }
 
 void Photino::FocusWebView2() const
@@ -1084,13 +1117,6 @@ bool Photino::EnsureWebViewAttached()
         return true;
 
     if (g_webview2RuntimePath.empty() && !EnsureWebViewIsInstalled())
-        return false;
-
-    // Strangely, it only works to create the webview2 *after* the window has been shown,
-    // so defer it until here. This unfortunately means you can't call the Navigate methods
-    // until the window is shown.
-    assert(platform_->isAlreadyShown);
-    if (!platform_->isAlreadyShown)
         return false;
 
     AttachWebView();

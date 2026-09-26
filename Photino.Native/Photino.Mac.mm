@@ -129,7 +129,7 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Mac
 
         InitializeFromInitParams(initParams);
 
-        const auto startupWindowState = options_.windowState;
+        platform_->initialWindowState = options_.windowState;
         options_.windowState = PhotinoWindowState::Normal;
 
         if (initParams->Geometry.UseOsDefaultSize)
@@ -229,27 +229,13 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Mac
 
         suppressWindowStateCallbacks_ = true;
 
-        Show();
-        UpdateWindowState();
-
-        switch (startupWindowState)
+        if (initParams->Window.ShowOnInitialize)
         {
-        case PhotinoWindowState::Maximized:
-            SetMaximized(true);
-            break;
-        case PhotinoWindowState::Minimized:
-            SetMinimized(true);
-            break;
-        case PhotinoWindowState::FullScreen:
-            SetFullScreen(true);
-            break;
-        default:
-            break;
+            Show();
+            UpdateWindowState();
         }
 
-        UpdateWindowState();
         suppressWindowStateCallbacks_ = false;
-
         platform_->suppressWindowCallbacks = false;
 
         InvokeCreated();

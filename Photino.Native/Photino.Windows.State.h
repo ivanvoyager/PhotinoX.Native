@@ -30,6 +30,9 @@ namespace PhotinoX::Native
         WindowSizeLimits sizeLimits;
         int initialShowCommand = SW_SHOWDEFAULT;
 
+        PhotinoWindowState initialWindowState = PhotinoWindowState::Normal;
+        bool initialWindowStateApplied = false;
+
         bool isAlreadyShown = false;
         bool suppressWindowCallbacks = true;
         bool webViewInitialized = false;

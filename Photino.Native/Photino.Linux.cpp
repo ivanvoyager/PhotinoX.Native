@@ -356,7 +356,7 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Lin
 
     InitializeFromInitParams(initParams);
 
-    const auto startupWindowState = options_.windowState;
+    platform_->initialWindowState = options_.windowState;
     options_.windowState = PhotinoWindowState::Normal;
 
     platform_->sizeLimits.minWidth = (std::max)(0, initParams->Geometry.MinWidth);
@@ -472,28 +472,15 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Lin
 
     suppressWindowStateCallbacks_ = true;
 
-    Show();
-    UpdateWindowState();
+    if (initParams->Window.ShowOnInitialize)
+    {
+        Show();
+        UpdateWindowState();
+    }
 
     if (options_.transparentEnabled)
         SetTransparentEnabled(true); // WebKit background alpha
 
-    switch (startupWindowState)
-    {
-    case PhotinoWindowState::Maximized:
-        SetMaximized(true);
-        break;
-    case PhotinoWindowState::Minimized:
-        SetMinimized(true);
-        break;
-    case PhotinoWindowState::FullScreen:
-        SetFullScreen(true);
-        break;
-    default:
-        break;
-    }
-
-    UpdateWindowState();
     suppressWindowStateCallbacks_ = false;
 
     if (options_.zoom != 100.0)

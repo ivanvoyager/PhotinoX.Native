@@ -274,7 +274,7 @@ void Photino::SetMaxSize(const int width, const int height)
 bool Photino::Activate() const
 {
     assert(platform_->hWnd);
-    if (!platform_->hWnd) return false;
+    if (!platform_->hWnd || !IsVisible()) return false;
 
     return SetForegroundWindow(platform_->hWnd) != FALSE;
 }
@@ -319,7 +319,7 @@ bool Photino::Maximize()
     PHOTINO_WINDOWS_LOG("[windows-command] Maximize\n");
 
     assert(platform_->hWnd);
-    if (!platform_->hWnd) return false;
+    if (!platform_->hWnd || !IsVisible()) return false;
 
     return ShowWindowAfterFullScreenExit(SW_MAXIMIZE);
 }
@@ -329,7 +329,7 @@ bool Photino::Minimize()
     PHOTINO_WINDOWS_LOG("[windows-command] Minimize\n");
 
     assert(platform_->hWnd);
-    if (!platform_->hWnd) return false;
+    if (!platform_->hWnd || !IsVisible()) return false;
 
     return ShowWindowAfterFullScreenExit(SW_MINIMIZE);
 }
@@ -339,7 +339,7 @@ bool Photino::Restore()
     PHOTINO_WINDOWS_LOG("[windows-command] Restore\n");
 
     assert(platform_->hWnd);
-    if (!platform_->hWnd) return false;
+    if (!platform_->hWnd || !IsVisible()) return false;
 
     if (GetPlatformWindowState() == PhotinoWindowState::FullScreen ||
         platform_->hasFullScreenRestoreState)
@@ -356,7 +356,7 @@ bool Photino::Restore()
     return true;
 }
 
-bool Photino::Show() const
+bool Photino::Show()
 {
     assert(platform_->hWnd);
     if (!platform_->hWnd) return false;
@@ -365,14 +365,31 @@ bool Photino::Show() const
     {
         ShowWindow(platform_->hWnd, platform_->initialShowCommand);
         platform_->isAlreadyShown = true;
-
         UpdateWindow(platform_->hWnd);
+
+        if (!platform_->initialWindowStateApplied)
+        {
+            platform_->initialWindowStateApplied = true;
+
+            if (platform_->initialWindowState == PhotinoWindowState::FullScreen)
+                SetFullScreen(true);
+        }
     }
     else
     {
         ShowWindow(platform_->hWnd, SW_SHOW);
     }
 
+    FocusWebView2();
+    return true;
+}
+
+bool Photino::Hide() const
+{
+    assert(platform_->hWnd);
+    if (!platform_->hWnd) return false;
+
+    ShowWindow(platform_->hWnd, SW_HIDE);
     return true;
 }
 
@@ -381,14 +398,16 @@ bool Photino::CanBeginResize() const noexcept
     return platform_->hWnd &&
            options_.resizable &&
            !IsFullScreen() &&
-           !IsMaximized();
+           !IsMaximized() &&
+           IsVisible();
 }
 
 bool Photino::CanBeginDrag() const noexcept
 {
     return platform_->hWnd &&
            !IsFullScreen() &&
-           !IsMinimized();
+           !IsMinimized() &&
+           IsVisible();
 }
 
 void Photino::BeginWindowDrag()
@@ -668,6 +687,14 @@ bool Photino::IsMaximized() const noexcept
     return IsZoomed(platform_->hWnd); // Determines whether a window is maximized.
 }
 
+bool Photino::IsVisible() const noexcept
+{
+    if (!platform_->hWnd)
+        return false;
+
+    return IsWindowVisible(platform_->hWnd) != FALSE;
+}
+
 PhotinoWindowState Photino::GetPlatformWindowState() const noexcept
 {
     if (!platform_->hWnd)
@@ -697,7 +724,7 @@ void Photino::SetFullScreen(const bool fullScreen)
     PHOTINO_WINDOWS_LOG("[windows-command] SetFullScreen(%d)\n", fullScreen);
 
     assert(platform_->hWnd);
-    if (!platform_->hWnd) return;
+    if (!platform_->hWnd || !IsVisible()) return;
 
     if (SkipFullScreenChange(fullScreen))
         return;
@@ -757,7 +784,7 @@ void Photino::SetFullScreen(const bool fullScreen)
 void Photino::SetMaximized(const bool maximized)
 {
     assert(platform_->hWnd);
-    if (!platform_->hWnd) return;
+    if (!platform_->hWnd || !IsVisible()) return;
 
     if (maximized)
     {
@@ -780,7 +807,7 @@ void Photino::SetMaximized(const bool maximized)
 void Photino::SetMinimized(const bool minimized)
 {
     assert(platform_->hWnd);
-    if (!platform_->hWnd) return;
+    if (!platform_->hWnd || !IsVisible()) return;
 
     if (minimized)
     {

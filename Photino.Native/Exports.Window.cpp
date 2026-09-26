@@ -60,12 +60,20 @@ extern "C"
 
 #endif
 
-    PHOTINO_EXPORT bool Photino_Show(const Photino* instance)
+    PHOTINO_EXPORT bool Photino_Show(Photino* instance)
     {
         assert(instance);
         if (!instance) return false;
 
         return instance->Show();
+    }
+
+    PHOTINO_EXPORT bool Photino_Hide(Photino* instance)
+    {
+        assert(instance);
+        if (!instance) return false;
+
+        return instance->Hide();
     }
 
     PHOTINO_EXPORT bool Photino_Activate(const Photino* instance)
@@ -344,5 +352,13 @@ extern "C"
         assert(instance);
         if (!instance) return;
         instance->SetTopmost(topmost);
+    }
+
+    PHOTINO_EXPORT void Photino_GetVisible(const Photino* instance, bool* visible)
+    {
+        assert(instance && visible);
+        if (!instance || !visible) return;
+
+        *visible = instance->IsVisible();
     }
 }

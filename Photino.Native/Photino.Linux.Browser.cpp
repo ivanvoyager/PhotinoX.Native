@@ -723,6 +723,7 @@ bool Photino::EnsureWebViewAttached()
     SetWebKitSettings();
 
     gtk_container_add(GTK_CONTAINER(platform_->window), platform_->webview);
+    gtk_widget_show(platform_->webview);
 
     WebKitUserScriptPtr script(webkit_user_script_new(
         "window.__receiveMessageCallbacks = [];"

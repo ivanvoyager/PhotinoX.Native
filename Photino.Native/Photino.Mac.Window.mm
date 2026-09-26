@@ -306,7 +306,7 @@ void Photino::SetMaxSize(int width, int height)
 bool Photino::Activate() const
 {
     assert(platform_->window);
-    if (!platform_->window) return false;
+    if (!platform_->window || !IsVisible()) return false;
 
     [platform_->window makeKeyAndOrderFront:nil];
     [NSApp activateIgnoringOtherApps:YES];
@@ -500,7 +500,7 @@ bool Photino::Maximize()
     TraceMacState("Maximize:entry", this);
 
     assert(platform_->window);
-    if (!platform_->window) return false;
+    if (!platform_->window|| !IsVisible()) return false;
 
     StopInteractiveWindowOperation();
 
@@ -549,7 +549,7 @@ bool Photino::Minimize()
     TraceMacState("Minimize:entry", this);
 
     assert(platform_->window);
-    if (!platform_->window) return false;
+    if (!platform_->window || !IsVisible()) return false;
 
     StopInteractiveWindowOperation();
 
@@ -582,7 +582,7 @@ bool Photino::Restore()
     TraceMacState("Restore:entry", this);
 
     assert(platform_->window);
-    if (!platform_->window) return false;
+    if (!platform_->window || !IsVisible()) return false;
 
     StopInteractiveWindowOperation();
 
@@ -619,7 +619,7 @@ bool Photino::Restore()
     return true;
 }
 
-bool Photino::Show() const
+bool Photino::Show()
 {
     assert(platform_->window);
     if (!platform_->window) return false;
@@ -628,6 +628,37 @@ bool Photino::Show() const
         [platform_->window deminiaturize:nil];
 
     [platform_->window makeKeyAndOrderFront:nil];
+
+    if (!platform_->initialWindowStateApplied)
+    {
+        platform_->initialWindowStateApplied = true;
+
+        switch (platform_->initialWindowState)
+        {
+        case PhotinoWindowState::Maximized:
+            SetMaximized(true);
+            break;
+        case PhotinoWindowState::Minimized:
+            SetMinimized(true);
+            break;
+        case PhotinoWindowState::FullScreen:
+            SetFullScreen(true);
+            break;
+        default:
+            UpdateWindowState();
+            break;
+        }
+    }
+
+    return true;
+}
+
+bool Photino::Hide() const
+{
+    assert(platform_->window);
+    if (!platform_->window) return false;
+
+    [platform_->window orderOut:nil];
     return true;
 }
 
@@ -637,7 +668,8 @@ bool Photino::CanBeginResize() const noexcept
            options_.resizable &&
            !platform_->isFullScreenTransitioning &&
            !IsFullScreen() &&
-           !IsMaximized();
+           !IsMaximized() &&
+           IsVisible();
 }
 
 bool Photino::CanBeginDrag() const noexcept
@@ -645,7 +677,8 @@ bool Photino::CanBeginDrag() const noexcept
     return platform_->window &&
            !platform_->isFullScreenTransitioning &&
            !IsFullScreen() &&
-           !IsMinimized();
+           !IsMinimized() &&
+           IsVisible();
 }
 
 void Photino::BeginWindowDrag()
@@ -960,6 +993,14 @@ bool Photino::IsMaximized() const noexcept
     return [platform_->window isZoomed];
 }
 
+bool Photino::IsVisible() const noexcept
+{
+    if (!platform_->window)
+        return false;
+
+    return [platform_->window isVisible];
+}
+
 PhotinoWindowState Photino::GetPlatformWindowState() const noexcept
 {
     if (!platform_->window)
@@ -988,7 +1029,7 @@ void Photino::SetFullScreen(bool fullScreen)
     TraceMacState("SetFullScreen:before", this);
 
     assert(platform_->window);
-    if (!platform_->window) return;
+    if (!platform_->window || !IsVisible()) return;
 
     const bool isFullScreen = IsFullScreen();
 
@@ -1038,7 +1079,7 @@ void Photino::SetFullScreen(bool fullScreen)
 void Photino::SetMaximized(bool maximized)
 {
     assert(platform_->window);
-    if (!platform_->window) return;
+    if (!platform_->window || !IsVisible()) return;
 
     if (maximized)
     {
@@ -1069,7 +1110,7 @@ void Photino::SetMaximized(bool maximized)
 void Photino::SetMinimized(bool minimized)
 {
     assert(platform_->window);
-    if (!platform_->window) return;
+    if (!platform_->window || !IsVisible()) return;
 
     if (minimized)
     {

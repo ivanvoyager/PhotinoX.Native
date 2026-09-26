@@ -213,10 +213,12 @@ namespace PhotinoX::Native
         bool IsFullScreen() const noexcept;
         bool IsMinimized() const noexcept;
         bool IsMaximized() const noexcept;
+        bool IsVisible() const noexcept;
 
         bool UpdateWindowState() noexcept;
 
-        bool Show() const;
+        bool Show();
+        bool Hide() const;
         bool Activate() const;
         bool Center() const;
         bool Maximize();

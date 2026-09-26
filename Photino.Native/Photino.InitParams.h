@@ -45,6 +45,7 @@ namespace PhotinoX::Native
         bool Chromeless;            // #3
         bool Transparent;           // #4
         bool UseNativeWindowOwner;  // #5
+        bool ShowOnInitialize;      // #6
     };
     static_assert(std::is_standard_layout_v<PhotinoInitWindowParams>,
                   "PhotinoInitWindowParams must remain standard-layout for managed/native interop.");
@@ -124,7 +125,7 @@ namespace PhotinoX::Native
 
     struct PhotinoInitParams
     {
-        static constexpr int NativeAbiVersion = 7;
+        static constexpr int NativeAbiVersion = 8;
 
         int Size;                                           // #1
         int AbiVersion;                                     // #2

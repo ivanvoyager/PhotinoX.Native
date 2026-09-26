@@ -98,9 +98,8 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Win
 
     InitializeFromInitParams(initParams);
 
-    const auto startupWindowState = options_.windowState;
+    platform_->initialWindowState = options_.windowState;
     options_.windowState = PhotinoWindowState::Normal;
-    const bool startFullScreen = startupWindowState == PhotinoWindowState::FullScreen;
 
     platform_->sizeLimits.minWidth = (std::max)(0, initParams->Geometry.MinWidth);
     platform_->sizeLimits.minHeight = (std::max)(0, initParams->Geometry.MinHeight);
@@ -171,7 +170,7 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Win
     if (initParams->Geometry.CenterOnInitialize)
         Center();
 
-    switch (startupWindowState)
+    switch (platform_->initialWindowState)
     {
     case PhotinoWindowState::Maximized:
         platform_->initialShowCommand = SW_SHOWMAXIMIZED;
@@ -193,19 +192,16 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Win
 
     suppressWindowStateCallbacks_ = true;
 
-    Show();
-    UpdateWindowState();
+    if (initParams->Window.ShowOnInitialize)
+    {
+        Show();
+        UpdateWindowState();
+    }
 
-    if (startFullScreen)
-        SetFullScreen(true);
-
-    suppressWindowStateCallbacks_ = false;
-
-    // Photino creates WebView2 after the native window is shown because creating it
-    // earlier has historically caused initialization/display issues.
     if (!EnsureWebViewAttached())
         std::abort();
 
+    suppressWindowStateCallbacks_ = false;
     platform_->suppressWindowCallbacks = false;
 
     InvokeCreated();
@@ -313,16 +309,7 @@ LRESULT CALLBACK WindowProc(const HWND hwnd, const UINT uMsg, const WPARAM wPara
         if (const HDC hdc = BeginPaint(hwnd, &ps))
         {
             // Fill the background with the current theme color
-            if (IsDarkModeEnabled())
-            {
-                FillRect(hdc, &ps.rcPaint, darkBrush);
-                // SetTextColor(hdc, RGB(255,255,255));
-            }
-            else
-            {
-                FillRect(hdc, &ps.rcPaint, lightBrush);
-                // SetTextColor(hdc, RGB(0, 0, 0));
-            }
+            FillRect(hdc, &ps.rcPaint, IsDarkModeEnabled() ? darkBrush : lightBrush);
 
             // Draw some text
             // SetBkMode(hdc, TRANSPARENT);
@@ -419,11 +406,10 @@ LRESULT CALLBACK WindowProc(const HWND hwnd, const UINT uMsg, const WPARAM wPara
         if (!photino) return 0;
 
         photino->UpdateWindowState();
+        photino->RefitContent();
 
         if (photino->Platform().suppressWindowCallbacks)
             return 0;
-
-        photino->RefitContent();
 
         int width = 0, height = 0;
         photino->GetSize(&width, &height);
