@@ -66,6 +66,7 @@ namespace PhotinoX::Native
         };
 
         static WebView2EnvironmentCache& Instance();
+        void Clear();
 
         Result TryGet(
             const WebView2EnvironmentSharingKey& sharingKey,

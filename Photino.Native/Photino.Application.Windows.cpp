@@ -3,6 +3,7 @@
 #include "Photino.Application.Windows.State.h"
 #include "Photino.Application.Windows.ToastHandler.h"
 #include "Photino.Strings.h"
+#include "Photino.Windows.WebView2Environment.h"
 
 #include "Dependencies/wintoastlib.h"
 
@@ -191,6 +192,7 @@ int PhotinoApplication::RunCore() noexcept
 
 void PhotinoApplication::UninitializeCore() noexcept
 {
+    WebView2EnvironmentCache::Instance().Clear();
     HWND messageWindow = g_messageWindow.exchange(nullptr, std::memory_order_acq_rel);
 
     if (messageWindow)

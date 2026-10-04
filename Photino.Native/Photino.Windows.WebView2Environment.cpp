@@ -102,6 +102,16 @@ WebView2EnvironmentCache& WebView2EnvironmentCache::Instance()
     return cache;
 }
 
+void WebView2EnvironmentCache::Clear()
+{
+    // Release COM references outside the lock.
+    decltype(environments_) released;
+    {
+        std::lock_guard lock(mutex_);
+        released.swap(environments_);
+    }
+}
+
 WebView2EnvironmentCache::Result WebView2EnvironmentCache::TryGet(
     const WebView2EnvironmentSharingKey& sharingKey,
     const WebView2EnvironmentKey& environmentKey,
