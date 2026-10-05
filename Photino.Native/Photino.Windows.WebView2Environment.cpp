@@ -102,7 +102,7 @@ WebView2EnvironmentCache& WebView2EnvironmentCache::Instance()
     return cache;
 }
 
-void WebView2EnvironmentCache::Clear()
+void WebView2EnvironmentCache::Clear() noexcept
 {
     // Release COM references outside the lock.
     decltype(environments_) released;
