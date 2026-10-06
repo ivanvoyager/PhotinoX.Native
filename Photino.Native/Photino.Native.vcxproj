@@ -13,7 +13,7 @@
     <NuGetTargetMoniker Condition="'$(NuGetTargetMoniker)' == ''">native,Version=v0.0</NuGetTargetMoniker>
     <VerMajor>5</VerMajor>
     <VerMinor>3</VerMinor>
-    <VerPatch>4</VerPatch>
+    <VerPatch>5</VerPatch>
     <VerBuild>
     </VerBuild>
   </PropertyGroup>
