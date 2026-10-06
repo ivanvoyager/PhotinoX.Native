@@ -14,6 +14,9 @@
 
 #include <X11/Xlib.h>
 #include <gtk/gtk.h>
+#ifdef GDK_WINDOWING_WAYLAND
+#include <gdk/gdkwayland.h>
+#endif
 
 #ifdef __GLIBC__
 #include <gnu/libc-version.h>
@@ -432,6 +435,14 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Lin
     if (options_.chromeless)
     {
         gtk_window_set_decorated(GTK_WINDOW(platform_->window), FALSE);
+
+        // On Wayland, GTK3 asks compositors that offer server-side decorations (KWin, for one)
+        // to draw the frame of any window it doesn't decorate itself, undecorated or not.
+        // An empty custom titlebar makes GTK decorate the window itself, so nothing is drawn.
+#ifdef GDK_WINDOWING_WAYLAND
+        if (GDK_IS_WAYLAND_DISPLAY(gtk_widget_get_display(platform_->window)))
+            gtk_window_set_titlebar(GTK_WINDOW(platform_->window), gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0));
+#endif
 
         if (initParams->LinuxChromeless.DragRegionHeight > 0)
         {
