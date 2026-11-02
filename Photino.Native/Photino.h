@@ -114,7 +114,8 @@ namespace PhotinoX::Native
 
         void AttachWebView();
         bool EnsureWebViewAttached();
-        static bool EnsureWebViewIsInstalled();
+        static bool TryGetWebView2RuntimeVersion(PlatformString& version);
+        static bool EnsureWebView2RuntimeAvailable();
         static bool InstallWebView2();
         void NotifyWebView2WindowMove() const;
         void ReloadWebView() const;
@@ -187,7 +188,9 @@ namespace PhotinoX::Native
 
 #ifdef _WIN32
         static void SetWebView2RuntimePath(const PlatformString& pathToWebView2);
+        static void SetWebView2RuntimeInstallAllowed(bool allowed);
         static const char* GetWebView2RuntimeVersion();
+        static bool IsWebView2RuntimeAvailable();
 #elif defined(__linux__)
         static const char* GetGtkVersion();
         static const char* GetGlibcVersion();

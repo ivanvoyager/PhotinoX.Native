@@ -21,10 +21,11 @@
 using namespace Microsoft::WRL;
 using namespace PhotinoX::Native;
 
-PlatformString g_webview2RuntimePath;
-
 namespace
 {
+    PlatformString g_webview2RuntimePath;
+    bool g_allowWebView2RuntimeInstall = false;
+
     WebView2EnvironmentSharingKey BuildWebView2EnvironmentSharingKey(const PlatformString& runtimePath, const PlatformString& userDataFolder)
     {
         WebView2EnvironmentSharingKey key;
@@ -1132,7 +1133,7 @@ bool Photino::EnsureWebViewAttached()
     if (platform_->webViewController)
         return true;
 
-    if (g_webview2RuntimePath.empty() && !EnsureWebViewIsInstalled())
+    if (g_webview2RuntimePath.empty() && !EnsureWebView2RuntimeAvailable())
         return false;
 
     AttachWebView();
@@ -1144,39 +1145,68 @@ void Photino::SetWebView2RuntimePath(const PlatformString& pathToWebView2)
     g_webview2RuntimePath = pathToWebView2;
 }
 
+void Photino::SetWebView2RuntimeInstallAllowed(bool allowed)
+{
+    g_allowWebView2RuntimeInstall = allowed;
+}
+
 const char* Photino::GetWebView2RuntimeVersion()
 {
     thread_local std::string version;
+    PlatformString platformVersion;
 
-    PCWSTR runtimePath = g_webview2RuntimePath.empty() ? nullptr: g_webview2RuntimePath.c_str();
-
-    LPWSTR versionInfo = nullptr;
-    HRESULT hr = GetAvailableCoreWebView2BrowserVersionString(runtimePath, &versionInfo);
-
-    if (FAILED(hr) || !versionInfo)
+    if (!TryGetWebView2RuntimeVersion(platformVersion))
     {
         version.clear();
         return nullptr;
     }
 
-    version = ToUtf8String(PlatformString(versionInfo));
-    CoTaskMemFree(versionInfo);
-
+    version = ToUtf8String(platformVersion);
     return version.empty() ? nullptr : version.c_str();
 }
 
-bool Photino::EnsureWebViewIsInstalled()
+bool Photino::TryGetWebView2RuntimeVersion(PlatformString& version)
 {
+    version.clear();
+
+    PCWSTR runtimePath = g_webview2RuntimePath.empty() ? nullptr : g_webview2RuntimePath.c_str();
+
     LPWSTR versionInfo = nullptr;
-    HRESULT hr = GetAvailableCoreWebView2BrowserVersionString(nullptr, &versionInfo);
+    const HRESULT hr = GetAvailableCoreWebView2BrowserVersionString(runtimePath, &versionInfo);
+
+    if (SUCCEEDED(hr) && versionInfo)
+        version = versionInfo;
 
     if (versionInfo)
         CoTaskMemFree(versionInfo);
 
-    if (FAILED(hr))
-        return InstallWebView2();
+    return !version.empty();
+}
 
-    return true;
+bool Photino::IsWebView2RuntimeAvailable()
+{
+    PCWSTR runtimePath = g_webview2RuntimePath.empty() ? nullptr : g_webview2RuntimePath.c_str();
+
+    LPWSTR versionInfo = nullptr;
+    const HRESULT hr = GetAvailableCoreWebView2BrowserVersionString(runtimePath, &versionInfo);
+
+    const bool available = SUCCEEDED(hr) && versionInfo && *versionInfo;
+
+    if (versionInfo)
+        CoTaskMemFree(versionInfo);
+
+    return available;
+}
+
+bool Photino::EnsureWebView2RuntimeAvailable()
+{
+    if (IsWebView2RuntimeAvailable())
+        return true;
+
+    if (!g_allowWebView2RuntimeInstall)
+        return false;
+
+    return InstallWebView2() && IsWebView2RuntimeAvailable();
 }
 
 bool Photino::InstallWebView2()

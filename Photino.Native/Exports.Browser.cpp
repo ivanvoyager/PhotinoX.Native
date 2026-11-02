@@ -233,4 +233,20 @@ extern "C"
         return false;
 #endif
     }
+
+    PHOTINO_EXPORT void Photino_SetWebView2RuntimeInstallAllowed(bool allowed)
+    {
+#ifdef _WIN32
+        Photino::SetWebView2RuntimeInstallAllowed(allowed);
+#endif
+    }
+
+    PHOTINO_EXPORT bool Photino_IsWebView2RuntimeAvailable()
+    {
+#ifdef _WIN32
+        return Photino::IsWebView2RuntimeAvailable();
+#else
+        return false;
+#endif
+    }
 }
