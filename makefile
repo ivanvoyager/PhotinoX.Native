@@ -21,8 +21,8 @@ DEST_FILE=PhotinoX.Native
 
 # Version
 VER_MAJOR ?= 5
-VER_MINOR ?= 3
-VER_PATCH ?= 5
+VER_MINOR ?= 4
+VER_PATCH ?= 0
 VER_BUILD ?= $(shell date +%j | sed 's/^0*//')
 COPYRIGHT_YEAR ?= $(shell date +%Y)
 GENERATED_ON ?= $(shell date "+%Y-%m-%d %H:%M:%S")
