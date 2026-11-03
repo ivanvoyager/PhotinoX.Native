@@ -10,8 +10,9 @@
 
 #include <algorithm>
 #include <cassert>
+#include <climits>
 
-#pragma comment(lib, "Shcore.lib")//TODO remove
+#pragma comment(lib, "Shcore.lib")
 
 using namespace PhotinoX::Native;
 
@@ -28,11 +29,11 @@ namespace
         if (!GetMonitorInfoW(hMonitor, &info))
             return false;
 
-        UINT dpiX = 96;
-        UINT dpiY = 96;
+        UINT dpiX = USER_DEFAULT_SCREEN_DPI;
+        UINT dpiY = USER_DEFAULT_SCREEN_DPI;
 
         if (FAILED(GetDpiForMonitor(hMonitor, MDT_EFFECTIVE_DPI, &dpiX, &dpiY)))
-            dpiX = dpiY = 96;
+            dpiX = dpiY = USER_DEFAULT_SCREEN_DPI;
 
         monitor.monitor.x = info.rcMonitor.left;
         monitor.monitor.y = info.rcMonitor.top;
@@ -44,7 +45,7 @@ namespace
         monitor.work.width = info.rcWork.right - info.rcWork.left;
         monitor.work.height = info.rcWork.bottom - info.rcWork.top;
 
-        monitor.scale = static_cast<double>(dpiY) / 96.0;
+        monitor.scale = static_cast<double>(dpiY) / USER_DEFAULT_SCREEN_DPI;
 
         return true;
     }
@@ -77,6 +78,68 @@ namespace
 
         return TRUE;
     }
+
+    int ScaleToPhysical(const int value, const UINT dpi) noexcept
+    {
+        if (value == INT_MAX)
+            return INT_MAX;
+        return MulDiv(value, static_cast<int>(dpi), USER_DEFAULT_SCREEN_DPI);
+    }
+
+    int ScaleToLogical(const int value, const UINT dpi) noexcept
+    {
+        return MulDiv(value, USER_DEFAULT_SCREEN_DPI, static_cast<int>(dpi));
+    }
+
+    UINT GetWindowDpi(const HWND hwnd) noexcept
+    {
+        if (!hwnd)
+            return USER_DEFAULT_SCREEN_DPI;
+        const UINT dpi = GetDpiForWindow(hwnd);
+        return dpi ? dpi : USER_DEFAULT_SCREEN_DPI;
+    }
+
+} // namespace
+
+void Photino::ApplySizeLimits(MINMAXINFO& info) const noexcept
+{
+    const UINT dpi = GetWindowDpi(platform_->hWnd);
+
+    if (platform_->sizeLimits.minWidth > 0) info.ptMinTrackSize.x = ScaleToPhysical(platform_->sizeLimits.minWidth, dpi);
+    if (platform_->sizeLimits.minHeight > 0) info.ptMinTrackSize.y = ScaleToPhysical(platform_->sizeLimits.minHeight, dpi);
+    if (platform_->sizeLimits.maxWidth > 0 && platform_->sizeLimits.maxWidth < INT_MAX) info.ptMaxTrackSize.x = ScaleToPhysical(platform_->sizeLimits.maxWidth, dpi);
+    if (platform_->sizeLimits.maxHeight > 0 && platform_->sizeLimits.maxHeight < INT_MAX) info.ptMaxTrackSize.y = ScaleToPhysical(platform_->sizeLimits.maxHeight, dpi);
+}
+
+void Photino::ScaleInitialSize(const int left, const int top, int& width, int& height) const noexcept
+{
+    if (width == CW_USEDEFAULT && height == CW_USEDEFAULT)
+        return;
+
+    HMONITOR monitor = nullptr;
+
+    if (left != CW_USEDEFAULT && top != CW_USEDEFAULT)
+    {
+        const POINT location{left, top};
+        monitor = MonitorFromPoint(location, MONITOR_DEFAULTTONEAREST);
+    }
+    else
+    {
+        const POINT location{};
+        monitor = MonitorFromPoint(location, MONITOR_DEFAULTTOPRIMARY);
+    }
+
+    UINT dpiX = USER_DEFAULT_SCREEN_DPI;
+    UINT dpiY = USER_DEFAULT_SCREEN_DPI;
+
+    if (monitor)
+        GetDpiForMonitor(monitor, MDT_EFFECTIVE_DPI, &dpiX, &dpiY);
+
+    if (width != CW_USEDEFAULT)
+        width = ScaleToPhysical(width, dpiX);
+
+    if (height != CW_USEDEFAULT)
+        height = ScaleToPhysical(height, dpiY);
 }
 
 HWND Photino::GetHwnd() const noexcept { return platform_->hWnd; }
@@ -200,8 +263,10 @@ void Photino::GetSize(int* width, int* height) const
     RECT rect{};
     if (!GetWindowRect(platform_->hWnd, &rect)) return;
 
-    if (width) *width = rect.right - rect.left;
-    if (height) *height = rect.bottom - rect.top;
+    const UINT dpi = GetWindowDpi(platform_->hWnd);
+
+    if (width) *width = ScaleToLogical(rect.right - rect.left, dpi);
+    if (height) *height = ScaleToLogical(rect.bottom - rect.top, dpi);
 }
 
 void Photino::SetSize(const int width, const int height)
@@ -219,6 +284,10 @@ void Photino::SetSize(const int width, const int height)
     if (platform_->sizeLimits.minHeight > 0 && newHeight < platform_->sizeLimits.minHeight) newHeight = platform_->sizeLimits.minHeight;
     if (platform_->sizeLimits.maxWidth > 0 && newWidth > platform_->sizeLimits.maxWidth)    newWidth = platform_->sizeLimits.maxWidth;
     if (platform_->sizeLimits.maxHeight > 0 && newHeight > platform_->sizeLimits.maxHeight) newHeight = platform_->sizeLimits.maxHeight;
+
+    const UINT dpi = GetWindowDpi(platform_->hWnd);
+    newWidth = ScaleToPhysical(newWidth, dpi);
+    newHeight = ScaleToPhysical(newHeight, dpi);
 
     BOOL result = SetWindowPos(platform_->hWnd, nullptr, 0, 0, newWidth, newHeight, SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE);
     assert(result);
@@ -460,10 +529,10 @@ void Photino::BeginWindowResize(const PhotinoWindowEdge edge) const
 unsigned int Photino::GetScreenDpi() const
 {
     assert(platform_->hWnd);
-    if (!platform_->hWnd) return 96;
+    if (!platform_->hWnd) return USER_DEFAULT_SCREEN_DPI;
 
     UINT dpi = GetDpiForWindow(platform_->hWnd);
-    return dpi ? dpi : 96;
+    return dpi ? dpi : USER_DEFAULT_SCREEN_DPI;
 }
 
 bool Photino::GetAllMonitors(GetAllMonitorsCallback callback, void* state) const noexcept

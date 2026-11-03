@@ -161,6 +161,7 @@ namespace PhotinoX::Native
         static void Register();
 #ifdef _WIN32
         void ApplySizeLimits(MINMAXINFO& info) const noexcept;
+        void ScaleInitialSize(int left, int top, int& width, int& height) const noexcept;
         void RefitContent() const;
         void FocusWebView2() const;
         void CloseWebView();

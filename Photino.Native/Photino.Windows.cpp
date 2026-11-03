@@ -148,13 +148,19 @@ Photino::Photino(PhotinoInitParams* initParams) : platform_(std::make_unique<Win
 
     //wprintf(L"Chromeless: %d, Transparent: %d, Style: 0x%08X, ExStyle: 0x%08X\n", options_.chromeless, options_.transparentEnabled, windowStyle, extendedStyle);
 
-    HWND hWnd = CreateWindowExW(extendedStyle, CLASS_NAME,  options_.windowTitle.c_str(), windowStyle,
-        // Size and position
-        initParams->Geometry.Left, initParams->Geometry.Top, initParams->Geometry.Width, initParams->Geometry.Height,
-        ownerHwnd,  // Parent window handle
-        nullptr,    // Menu
-        g_hInstance,// Instance handle
-        this        // Additional application data
+    int left = initParams->Geometry.Left;
+    int top = initParams->Geometry.Top;
+    int width = initParams->Geometry.Width;
+    int height = initParams->Geometry.Height;
+
+    ScaleInitialSize(left, top, width, height);
+
+    HWND hWnd = CreateWindowExW(extendedStyle, CLASS_NAME, options_.windowTitle.c_str(), windowStyle,
+                                left, top, width, height, // Window position and size
+                                ownerHwnd,                // Parent window handle
+                                nullptr,                  // Menu
+                                g_hInstance,              // Instance handle
+                                this                      // Additional application data
     );
 
     if (!hWnd)
@@ -223,14 +229,6 @@ Photino::~Photino()
     }
 
     Uninitialize();
-}
-
-void Photino::ApplySizeLimits(MINMAXINFO& info) const noexcept
-{
-    if (platform_->sizeLimits.minWidth > 0)   info.ptMinTrackSize.x = platform_->sizeLimits.minWidth;
-    if (platform_->sizeLimits.minHeight > 0)  info.ptMinTrackSize.y = platform_->sizeLimits.minHeight;
-    if (platform_->sizeLimits.maxWidth > 0)   info.ptMaxTrackSize.x = platform_->sizeLimits.maxWidth;
-    if (platform_->sizeLimits.maxHeight > 0)  info.ptMaxTrackSize.y = platform_->sizeLimits.maxHeight;
 }
 
 LRESULT CALLBACK WindowProc(const HWND hwnd, const UINT uMsg, const WPARAM wParam, const LPARAM lParam)
