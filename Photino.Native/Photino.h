@@ -112,6 +112,8 @@ namespace PhotinoX::Native
         HRESULT HandleWebViewEnvironmentCreated(HRESULT result, ICoreWebView2Environment* environment);
         HRESULT ConfigureCustomSchemeRegistrations(ICoreWebView2EnvironmentOptions* options) const;
 
+        HRESULT ApplyWebView2Settings();
+
         void AttachWebView();
         bool EnsureWebViewAttached();
         static bool TryGetWebView2RuntimeVersion(PlatformString& version);
@@ -304,6 +306,18 @@ namespace PhotinoX::Native
 
         void GetStatusBarEnabled(bool* enabled) const;
         void SetStatusBarEnabled(bool enabled);
+
+        void GetBrowserAcceleratorKeysEnabled(bool* enabled) const;
+        void SetBrowserAcceleratorKeysEnabled(bool enabled);
+
+        void GetGeneralAutofillEnabled(bool* enabled) const;
+        void SetGeneralAutofillEnabled(bool enabled);
+
+        void GetPasswordAutosaveEnabled(bool* enabled) const;
+        void SetPasswordAutosaveEnabled(bool enabled);
+
+        void GetReputationCheckingRequired(bool* required) const;
+        void SetReputationCheckingRequired(bool required);
 
         void GetGrantBrowserPermissions(bool* grant) const;
         const PlatformString& GetUserAgent() const noexcept { return options_.userAgent; }

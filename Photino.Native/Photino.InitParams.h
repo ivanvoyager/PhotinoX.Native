@@ -115,17 +115,22 @@ namespace PhotinoX::Native
         bool MediaStreamEnabled;                                    // #17
         bool SmoothScrollingEnabled;                                // #18
         bool IgnoreCertificateErrorsEnabled;                        // #19
+
+        bool BrowserAcceleratorKeysEnabled;                         // #20
+        bool GeneralAutofillEnabled;                                // #21
+        bool PasswordAutosaveEnabled;                               // #22
+        bool ReputationCheckingRequired;                            // #23
     };
     static_assert(std::is_standard_layout_v<PhotinoInitBrowserParams>,
                   "PhotinoInitBrowserParams must remain standard-layout for managed/native interop.");
-    static_assert(sizeof(PhotinoInitBrowserParams) == 184,
+    static_assert(sizeof(PhotinoInitBrowserParams) == 192,
                   "PhotinoInitBrowserParams size changed. Update the managed ABI layout and size validation.");
 
     class Photino;
 
     struct PhotinoInitParams
     {
-        static constexpr int NativeAbiVersion = 8;
+        static constexpr int NativeAbiVersion = 9;
 
         int Size;                                           // #1
         int AbiVersion;                                     // #2
@@ -147,6 +152,6 @@ namespace PhotinoX::Native
     static_assert(offsetof(PhotinoInitParams, Geometry) == 212, "PhotinoInitParams.Geometry offset changed.");
     static_assert(offsetof(PhotinoInitParams, Browser) == 256, "PhotinoInitParams.Browser offset changed.");
 
-    static_assert(sizeof(PhotinoInitParams) == 440,
+    static_assert(sizeof(PhotinoInitParams) == 448,
         "PhotinoInitParams size changed. Update the managed ABI layout and size validation.");
 }

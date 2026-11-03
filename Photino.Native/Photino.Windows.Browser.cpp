@@ -159,7 +159,7 @@ void Photino::NavigateToString(const PlatformString& content) const
     assert(platform_->webViewWindow);
     if (!platform_->webViewWindow) return;
 
-    HRESULT hr = platform_->webViewWindow->NavigateToString(content.c_str());
+    const HRESULT hr = platform_->webViewWindow->NavigateToString(content.c_str());
     assert(SUCCEEDED(hr));
 }
 
@@ -168,7 +168,7 @@ void Photino::NavigateToUrl(const PlatformString& url) const
     assert(platform_->webViewWindow);
     if (!platform_->webViewWindow || url.empty()) return;
 
-    HRESULT hr = platform_->webViewWindow->Navigate(url.c_str());
+    const HRESULT hr = platform_->webViewWindow->Navigate(url.c_str());
     assert(SUCCEEDED(hr));
 }
 
@@ -177,7 +177,7 @@ void Photino::SendWebMessage(const PlatformString& message) const
     assert(platform_->webViewWindow);
     if (!platform_->webViewWindow) return;
 
-    HRESULT hr = platform_->webViewWindow->PostWebMessageAsString(message.c_str());
+    const HRESULT hr = platform_->webViewWindow->PostWebMessageAsString(message.c_str());
     assert(SUCCEEDED(hr));
 }
 
@@ -206,7 +206,7 @@ void Photino::SetContextMenuEnabled(const bool enabled)
     wil::com_ptr<ICoreWebView2Settings> settings;
     if (FAILED(platform_->webViewWindow->get_Settings(&settings)) || !settings) return;
 
-    HRESULT hr = settings->put_AreDefaultContextMenusEnabled(enabled ? TRUE : FALSE);
+    const HRESULT hr = settings->put_AreDefaultContextMenusEnabled(enabled ? TRUE : FALSE);
     if (FAILED(hr)) return;
 
     ReloadWebView();
@@ -239,7 +239,7 @@ void Photino::SetZoomEnabled(const bool enabled)
     wil::com_ptr<ICoreWebView2Settings> settings;
     if (FAILED(platform_->webViewWindow->get_Settings(&settings)) || !settings) return;
 
-    HRESULT hr = settings->put_IsZoomControlEnabled(enabled ? TRUE : FALSE);
+    const HRESULT hr = settings->put_IsZoomControlEnabled(enabled ? TRUE : FALSE);
     if (FAILED(hr)) return;
 
     ReloadWebView();
@@ -274,7 +274,7 @@ void Photino::SetZoom(int zoom)
     if (!platform_->webViewController) return;
 
     double newZoom = static_cast<double>(zoom) / 100.0;
-    HRESULT hr = platform_->webViewController->put_ZoomFactor(newZoom);
+    const HRESULT hr = platform_->webViewController->put_ZoomFactor(newZoom);
     assert(SUCCEEDED(hr));
 }
 
@@ -341,6 +341,191 @@ void Photino::SetStatusBarEnabled(const bool enabled)
 
     ReloadWebView();
 }
+
+void Photino::GetBrowserAcceleratorKeysEnabled(bool* enabled) const
+{
+    assert(enabled);
+    if (!enabled)
+        return;
+
+    *enabled = options_.browserAcceleratorKeysEnabled;
+    if (!platform_->webViewWindow)
+        return;
+
+    wil::com_ptr<ICoreWebView2Settings> settings;
+    if (FAILED(platform_->webViewWindow->get_Settings(&settings)) || !settings)
+        return;
+
+    const auto settings3 = settings.try_query<ICoreWebView2Settings3>();
+    if (!settings3)
+        return;
+
+    BOOL value = FALSE;
+    if (SUCCEEDED(settings3->get_AreBrowserAcceleratorKeysEnabled(&value)))
+        *enabled = value == TRUE;
+}
+
+void Photino::SetBrowserAcceleratorKeysEnabled(const bool enabled)
+{
+    options_.browserAcceleratorKeysEnabled = enabled;
+
+    if (!platform_->webViewWindow)
+        return;
+
+    wil::com_ptr<ICoreWebView2Settings> settings;
+
+    if (FAILED(platform_->webViewWindow->get_Settings(&settings)) || !settings)
+        return;
+
+    const auto settings3 = settings.try_query<ICoreWebView2Settings3>();
+
+    if (!settings3)
+        return;
+
+    const HRESULT hr = settings3->put_AreBrowserAcceleratorKeysEnabled(enabled ? TRUE : FALSE);
+    assert(SUCCEEDED(hr));
+    if (FAILED(hr))
+        return;
+
+    ReloadWebView();
+}
+
+void Photino::GetGeneralAutofillEnabled(bool* enabled) const
+{
+    assert(enabled);
+
+    if (!enabled)
+        return;
+
+    *enabled = options_.generalAutofillEnabled;
+
+    if (!platform_->webViewWindow)
+        return;
+
+    wil::com_ptr<ICoreWebView2Settings> settings;
+
+    if (FAILED(platform_->webViewWindow->get_Settings(&settings)) || !settings)
+        return;
+
+    const auto settings4 = settings.try_query<ICoreWebView2Settings4>();
+
+    if (!settings4)
+        return;
+
+    BOOL value = FALSE;
+
+    if (SUCCEEDED(settings4->get_IsGeneralAutofillEnabled(&value)))
+        *enabled = value == TRUE;
+}
+
+void Photino::SetGeneralAutofillEnabled(const bool enabled)
+{
+    options_.generalAutofillEnabled = enabled;
+
+    if (!platform_->webViewWindow)
+        return;
+
+    wil::com_ptr<ICoreWebView2Settings> settings;
+    if (FAILED(platform_->webViewWindow->get_Settings(&settings)) || !settings)
+        return;
+
+    const auto settings4 = settings.try_query<ICoreWebView2Settings4>();
+    if (!settings4)
+        return;
+
+    const HRESULT hr = settings4->put_IsGeneralAutofillEnabled(enabled ? TRUE : FALSE);
+    assert(SUCCEEDED(hr));
+}
+
+void Photino::GetPasswordAutosaveEnabled(bool* enabled) const
+{
+    assert(enabled);
+    if (!enabled)
+        return;
+
+    *enabled = options_.passwordAutosaveEnabled;
+
+    if (!platform_->webViewWindow)
+        return;
+
+    wil::com_ptr<ICoreWebView2Settings> settings;
+    if (FAILED(platform_->webViewWindow->get_Settings(&settings)) || !settings)
+        return;
+
+    const auto settings4 = settings.try_query<ICoreWebView2Settings4>();
+    if (!settings4)
+        return;
+
+    BOOL value = FALSE;
+    if (SUCCEEDED(settings4->get_IsPasswordAutosaveEnabled(&value)))
+        *enabled = value == TRUE;
+}
+
+void Photino::SetPasswordAutosaveEnabled(const bool enabled)
+{
+    options_.passwordAutosaveEnabled = enabled;
+
+    if (!platform_->webViewWindow)
+        return;
+
+    wil::com_ptr<ICoreWebView2Settings> settings;
+    if (FAILED(platform_->webViewWindow->get_Settings(&settings)) || !settings)
+        return;
+
+    const auto settings4 = settings.try_query<ICoreWebView2Settings4>();
+    if (!settings4)
+        return;
+
+    const HRESULT hr = settings4->put_IsPasswordAutosaveEnabled(enabled ? TRUE : FALSE);
+    assert(SUCCEEDED(hr));
+}
+
+void Photino::GetReputationCheckingRequired(bool* required) const
+{
+    assert(required);
+    if (!required)
+        return;
+
+    *required = options_.reputationCheckingRequired;
+    if (!platform_->webViewWindow)
+        return;
+
+    wil::com_ptr<ICoreWebView2Settings> settings;
+    if (FAILED(platform_->webViewWindow->get_Settings(&settings)) || !settings)
+        return;
+
+    const auto settings8 = settings.try_query<ICoreWebView2Settings8>();
+    if (!settings8)
+        return;
+
+    BOOL value = FALSE;
+    if (SUCCEEDED(settings8->get_IsReputationCheckingRequired(&value)))
+        *required = value == TRUE;
+}
+
+void Photino::SetReputationCheckingRequired(const bool required)
+{
+    options_.reputationCheckingRequired = required;
+
+    if (!platform_->webViewWindow)
+        return;
+
+    wil::com_ptr<ICoreWebView2Settings> settings;
+    if (FAILED(platform_->webViewWindow->get_Settings(&settings)) || !settings)
+        return;
+
+    const auto settings8 = settings.try_query<ICoreWebView2Settings8>();
+    if (!settings8)
+        return;
+
+    const HRESULT hr = settings8->put_IsReputationCheckingRequired(required ? TRUE : FALSE);
+    assert(SUCCEEDED(hr));
+    if (FAILED(hr))
+        return;
+
+    ReloadWebView();
+}
+
 
 void Photino::GetGrantBrowserPermissions(bool* grant) const
 {
@@ -466,23 +651,11 @@ HRESULT Photino::CompleteWebViewInitialization()
     // it, and the setters skip their reload while initialNavigationIssued is
     // false - reloading here would discard the navigation started below before it
     // has committed.
-    if (options_.contextMenuEnabled == false)
-        SetContextMenuEnabled(false);
-
-    if (options_.zoomEnabled == false)
-        SetZoomEnabled(false);
-
-    if (options_.devToolsEnabled == false)
-        SetDevToolsEnabled(false);
-
     if (options_.transparentEnabled == true)
         SetTransparentEnabled(true);
 
     if (options_.zoom != 100)
         SetZoom(options_.zoom);
-
-    if (options_.statusBarEnabled == false)
-        SetStatusBarEnabled(false);
 
     if (!options_.startUrl.empty())
     {
@@ -746,19 +919,9 @@ HRESULT Photino::HandleWebViewControllerCreated(HRESULT result, ICoreWebView2Con
     if (FAILED(hr)) return hr;
     if (!platform_->webViewWindow) return E_POINTER;
 
-    wil::com_ptr<ICoreWebView2Settings> settings;
-    hr = platform_->webViewWindow->get_Settings(&settings);
-    if (FAILED(hr)) return hr;
-    if (!settings) return E_POINTER;
-
-    hr = settings->put_AreHostObjectsAllowed(TRUE);
-    if (FAILED(hr)) return hr;
-    hr = settings->put_IsScriptEnabled(TRUE);
-    if (FAILED(hr)) return hr;
-    hr = settings->put_AreDefaultScriptDialogsEnabled(TRUE);
-    if (FAILED(hr)) return hr;
-    hr = settings->put_IsWebMessageEnabled(TRUE);
-    if (FAILED(hr)) return hr;
+    hr = ApplyWebView2Settings();
+    if (FAILED(hr))
+        return hr;
 
     EventRegistrationToken webMessageToken;
     hr = platform_->webViewWindow->add_WebMessageReceived(
@@ -933,6 +1096,95 @@ HRESULT Photino::ConfigureCustomSchemeRegistrations(ICoreWebView2EnvironmentOpti
     return options4->SetCustomSchemeRegistrations(
         static_cast<UINT32>(rawRegistrations.size()),
         rawRegistrations.data());
+}
+
+HRESULT Photino::ApplyWebView2Settings()
+{
+    assert(platform_->webViewWindow);
+    if (!platform_->webViewWindow)
+        return E_POINTER;
+
+    wil::com_ptr<ICoreWebView2Settings> settings;
+    HRESULT hr = platform_->webViewWindow->get_Settings(&settings);
+
+    if (FAILED(hr))
+        return hr;
+
+    if (!settings)
+        return E_POINTER;
+
+    hr = settings->put_AreHostObjectsAllowed(TRUE);
+    if (FAILED(hr))
+        return hr;
+
+    hr = settings->put_IsScriptEnabled(TRUE);
+    if (FAILED(hr))
+        return hr;
+
+    hr = settings->put_AreDefaultScriptDialogsEnabled(TRUE);
+    if (FAILED(hr))
+        return hr;
+
+    hr = settings->put_IsWebMessageEnabled(TRUE);
+    if (FAILED(hr))
+        return hr;
+
+    //SetContextMenuEnabled
+    hr = settings->put_AreDefaultContextMenusEnabled(options_.contextMenuEnabled ? TRUE : FALSE);
+    if (FAILED(hr))
+        return hr;
+
+    //SetZoomEnabled
+    hr = settings->put_IsZoomControlEnabled(options_.zoomEnabled ? TRUE : FALSE);
+    if (FAILED(hr))
+        return hr;
+
+    //SetDevToolsEnabled
+    hr = settings->put_AreDevToolsEnabled(options_.devToolsEnabled ? TRUE : FALSE);
+    if (FAILED(hr))
+        return hr;
+
+    //SetStatusBarEnabled
+    hr = settings->put_IsStatusBarEnabled(options_.statusBarEnabled ? TRUE : FALSE);
+    if (FAILED(hr))
+        return hr;
+
+    const auto settings3 = settings.try_query<ICoreWebView2Settings3>();
+
+    if (settings3)
+    {
+        hr = settings3->put_AreBrowserAcceleratorKeysEnabled(options_.browserAcceleratorKeysEnabled ? TRUE : FALSE);
+
+        if (FAILED(hr))
+            return hr;
+    }
+
+    const auto settings4 = settings.try_query<ICoreWebView2Settings4>();
+
+    if (settings4)
+    {
+        hr = settings4->put_IsGeneralAutofillEnabled(options_.generalAutofillEnabled ? TRUE : FALSE);
+
+        if (FAILED(hr))
+            return hr;
+
+        hr = settings4->put_IsPasswordAutosaveEnabled(options_.passwordAutosaveEnabled ? TRUE : FALSE);
+
+        if (FAILED(hr))
+            return hr;
+    }
+
+    const auto settings8 = settings.try_query<ICoreWebView2Settings8>();
+
+    if (settings8)
+    {
+        hr = settings8->put_IsReputationCheckingRequired(options_.reputationCheckingRequired ? TRUE : FALSE);
+
+        if (FAILED(hr))
+            return hr;
+    }
+
+    return S_OK;
 }
 
 void Photino::AttachWebView()
@@ -1117,6 +1369,7 @@ void Photino::CloseWebView()
     }
 
     platform_->webViewInitialized = false;
+    platform_->initialNavigationIssued = false;
     platform_->scriptId.clear();
 }
 

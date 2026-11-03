@@ -497,6 +497,58 @@ void Photino::SetStatusBarEnabled(const bool enabled)
     options_.statusBarEnabled = enabled;
 }
 
+void Photino::GetBrowserAcceleratorKeysEnabled(bool* enabled) const
+{
+    assert(enabled);
+    if (!enabled) return;
+
+    *enabled = options_.browserAcceleratorKeysEnabled;
+}
+
+void Photino::SetBrowserAcceleratorKeysEnabled(const bool enabled)
+{
+    options_.browserAcceleratorKeysEnabled = enabled;
+}
+
+void Photino::GetGeneralAutofillEnabled(bool* enabled) const
+{
+    assert(enabled);
+    if (!enabled) return;
+
+    *enabled = options_.generalAutofillEnabled;
+}
+
+void Photino::SetGeneralAutofillEnabled(const bool enabled)
+{
+    options_.generalAutofillEnabled = enabled;
+}
+
+void Photino::GetPasswordAutosaveEnabled(bool* enabled) const
+{
+    assert(enabled);
+    if (!enabled) return;
+
+    *enabled = options_.passwordAutosaveEnabled;
+}
+
+void Photino::SetPasswordAutosaveEnabled(const bool enabled)
+{
+    options_.passwordAutosaveEnabled = enabled;
+}
+
+void Photino::GetReputationCheckingRequired(bool* required) const
+{
+    assert(required);
+    if (!required) return;
+
+    *required = options_.reputationCheckingRequired;
+}
+
+void Photino::SetReputationCheckingRequired(const bool required)
+{
+    options_.reputationCheckingRequired = required;
+}
+
 void Photino::GetGrantBrowserPermissions(bool* grant) const
 {
     assert(grant);

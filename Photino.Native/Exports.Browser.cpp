@@ -151,6 +151,74 @@ extern "C"
     }
 
 
+    PHOTINO_EXPORT void Photino_GetBrowserAcceleratorKeysEnabled(const Photino* instance, bool* enabled)
+    {
+        assert(instance);
+        if (!instance || !enabled) return;
+
+        instance->GetBrowserAcceleratorKeysEnabled(enabled);
+    }
+
+    PHOTINO_EXPORT void Photino_SetBrowserAcceleratorKeysEnabled(Photino* instance, const bool enabled)
+    {
+        assert(instance);
+        if (!instance) return;
+
+        instance->SetBrowserAcceleratorKeysEnabled(enabled);
+    }
+
+
+    PHOTINO_EXPORT void Photino_GetGeneralAutofillEnabled(const Photino* instance, bool* enabled)
+    {
+        assert(instance);
+        if (!instance || !enabled) return;
+
+        instance->GetGeneralAutofillEnabled(enabled);
+    }
+
+    PHOTINO_EXPORT void Photino_SetGeneralAutofillEnabled(Photino* instance, const bool enabled)
+    {
+        assert(instance);
+        if (!instance) return;
+
+        instance->SetGeneralAutofillEnabled(enabled);
+    }
+
+
+    PHOTINO_EXPORT void Photino_GetPasswordAutosaveEnabled(const Photino* instance, bool* enabled)
+    {
+        assert(instance);
+        if (!instance || !enabled) return;
+
+        instance->GetPasswordAutosaveEnabled(enabled);
+    }
+
+    PHOTINO_EXPORT void Photino_SetPasswordAutosaveEnabled(Photino* instance, const bool enabled)
+    {
+        assert(instance);
+        if (!instance) return;
+
+        instance->SetPasswordAutosaveEnabled(enabled);
+    }
+
+
+    PHOTINO_EXPORT void Photino_GetReputationCheckingRequired(const Photino* instance, bool* required)
+    {
+        assert(instance);
+        if (!instance || !required) return;
+
+        instance->GetReputationCheckingRequired(required);
+    }
+
+    PHOTINO_EXPORT void Photino_SetReputationCheckingRequired(Photino* instance, const bool required)
+    {
+        assert(instance);
+        if (!instance) return;
+
+        instance->SetReputationCheckingRequired(required);
+    }
+
+
     PHOTINO_EXPORT void Photino_GetGrantBrowserPermissions(const Photino* instance, bool* grant)
     {
         assert(instance);

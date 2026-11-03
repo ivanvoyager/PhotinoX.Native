@@ -52,6 +52,11 @@ void Photino::InitializeOptions(const PhotinoInitParams* initParams)
     options_.statusBarEnabled = initParams->Browser.StatusBarEnabled;
     options_.devToolsEnabled = initParams->Browser.DevToolsEnabled;
 
+    options_.browserAcceleratorKeysEnabled = initParams->Browser.BrowserAcceleratorKeysEnabled;
+    options_.generalAutofillEnabled = initParams->Browser.GeneralAutofillEnabled;
+    options_.passwordAutosaveEnabled = initParams->Browser.PasswordAutosaveEnabled;
+    options_.reputationCheckingRequired = initParams->Browser.ReputationCheckingRequired;
+
     options_.grantBrowserPermissions = initParams->Browser.GrantBrowserPermissions;
 #if defined(_WIN32) || defined(__linux__)
     options_.mediaAutoplayEnabled = initParams->Browser.MediaAutoplayEnabled;

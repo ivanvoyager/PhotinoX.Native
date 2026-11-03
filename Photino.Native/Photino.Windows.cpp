@@ -28,8 +28,6 @@ namespace
     }
 }
 
-extern PlatformString g_webview2RuntimePath;
-
 const HBRUSH darkBrush = CreateSolidBrush(RGB(0, 0, 0));
 const HBRUSH lightBrush = CreateSolidBrush(RGB(255, 255, 255));
 

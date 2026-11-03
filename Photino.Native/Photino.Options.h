@@ -24,22 +24,28 @@ namespace PhotinoX::Native
 
         PlatformString userAgent;
         PlatformString browserControlInitParameters;
-        PlatformString userDataFolder; // Currently supported only on Windows.
+        PlatformString userDataFolder; // Currently supported only on Windows
 
         int zoom = 100;
+
         bool zoomEnabled = true;        // TODO: Currently supported only on Windows
-        bool contextMenuEnabled = true; // TODO: Currently supported only on Windows & Linux.
-        bool statusBarEnabled = true;   // TODO: Currently supported only on Windows
+        bool contextMenuEnabled = true; // TODO: Currently supported only on Windows & Linux
+        bool statusBarEnabled = true;   // Currently supported only on Windows
         bool devToolsEnabled = true;
+
+        bool browserAcceleratorKeysEnabled = true;  // Currently supported only on Windows
+        bool generalAutofillEnabled = true;         // Currently supported only on Windows
+        bool passwordAutosaveEnabled = false;       // Currently supported only on Windows
+        bool reputationCheckingRequired = true;     // Currently supported only on Windows
 
         bool grantBrowserPermissions = true;
     #if defined(_WIN32) || defined(__linux__)
         bool mediaAutoplayEnabled = true;
     #endif
         bool fileSystemAccessEnabled = true;
-        bool webSecurityEnabled = true;                 // TODO: Currently supported only on Windows & Linux.
-        bool javascriptClipboardAccessEnabled = true;   // TODO: Currently supported only on Windows & Linux.
-        bool mediaStreamEnabled = true;                 // TODO: Currently supported only on Windows & Linux.
+        bool webSecurityEnabled = true;
+        bool javascriptClipboardAccessEnabled = true;
+        bool mediaStreamEnabled = true;
     #if defined(_WIN32) || defined(__linux__)
         bool smoothScrollingEnabled = true;
     #endif
