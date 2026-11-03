@@ -1197,7 +1197,7 @@ void Photino::AttachWebView()
 
     Microsoft::WRL::ComPtr<ICoreWebView2Environment> cachedEnvironment;
 
-    WebView2EnvironmentCache::Result cacheResult =  WebView2EnvironmentCache::Instance().TryGet(
+    WebView2EnvironmentCache::Result cacheResult = WebView2EnvironmentCache::Instance().TryGet(
         platform_->webView2EnvironmentSharingKey, platform_->webView2EnvironmentKey, cachedEnvironment);
 
     if (cacheResult == WebView2EnvironmentCache::Result::Conflict)

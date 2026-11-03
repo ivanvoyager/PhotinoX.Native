@@ -317,4 +317,13 @@ extern "C"
         return false;
 #endif
     }
+
+PHOTINO_EXPORT bool Photino_EnsureWebView2RuntimeAvailable()
+    {
+#ifdef _WIN32
+        return Photino::EnsureWebView2RuntimeAvailable();
+#else
+        return false;
+#endif
+    }
 }

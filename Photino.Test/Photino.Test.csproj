@@ -29,6 +29,7 @@
     <Compile Include="$(PhotinoNetSourceDir)\Platform.Linux.cs" Link="src/Platform.Linux.cs" />
     <Compile Include="$(PhotinoNetSourceDir)\Platform.MacOS.cs" Link="src/Platform.MacOS.cs" />
     <Compile Include="$(PhotinoNetSourceDir)\PhotinoDialogEnums.cs" Link="src/PhotinoDialogEnums.cs" />
+    <Compile Include="$(PhotinoNetSourceDir)\PhotinoWebView2RuntimeNotFoundException.cs" Link="src/PhotinoWebView2RuntimeNotFoundException.cs" />
     <Compile Include="$(PhotinoNetSourceDir)\NativeMethods.cs" Link="src/NativeMethods.cs" />
     <Compile Include="$(PhotinoNetSourceDir)\NativeMethods.Application.cs" Link="src/NativeMethods.Application.cs" />
     <Compile Include="$(PhotinoNetSourceDir)\NativeMethods.Browser.cs" Link="src/NativeMethods.Browser.cs" />
