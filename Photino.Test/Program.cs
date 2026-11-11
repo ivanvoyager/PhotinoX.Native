@@ -10,7 +10,7 @@ namespace Photino.Test;
 class Program
 {
 #if !UseLocalProjects
-    private static void Main() { }
+    private static void Main() { Console.WriteLine("To run this sample, set PhotinoX_UseLocalProjects to true in Directory.Build.props."); }
 }
 #else
     private static readonly bool s_logEvents = true;
