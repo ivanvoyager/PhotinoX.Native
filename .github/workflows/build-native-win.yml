@@ -33,15 +33,13 @@ jobs:
           where cl
           cl /Bv  || ver
 
-      - name: NuGet restore
-        run: msbuild .\PhotinoX.Native.slnx -t:Restore -m
-
       - name: Build (v145)
         id: build_v145
         shell: cmd
         continue-on-error: true
         run: >
           msbuild .\Photino.Native\Photino.Native.vcxproj
+          -restore
           /p:Configuration=Release
           /p:Platform=${{ matrix.platform }}
           /p:PlatformToolset=v145
